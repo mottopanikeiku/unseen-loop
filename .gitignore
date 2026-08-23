@@ -18,7 +18,11 @@ keys/
 *.keyset
 
 # Generated research outputs
-artifacts/runs/
+artifacts/*/
+!artifacts/reference/
+!artifacts/reference/*.json
+artifacts/modal-evidence.json
+artifacts/gpu-result.json
 site/generated/
 
 # Editors and operating systems

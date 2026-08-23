@@ -97,7 +97,7 @@ class CompiledPolicy:
             raise ValueError("input is outside the compiled domain")
 
         started = time.perf_counter_ns()
-        client_specs_payload = self.client_specs_path.read_text()
+        client_specs_payload = self.client_specs_path.read_bytes()
         client_specs = fhe.ClientSpecs.deserialize(client_specs_payload)
         client = fhe.Client(client_specs)
         phase = time.perf_counter_ns()
@@ -149,7 +149,7 @@ class CompiledPolicy:
 
 def _import_fhe() -> Any:
     try:
-        from concrete import fhe
+        fhe = importlib.import_module("concrete.fhe")
     except ImportError as error:
         raise FHEUnavailableError(
             "Concrete-Python is not installed. Run `uv sync --extra fhe`; "
@@ -164,7 +164,6 @@ def _policy_kernel(policy: PolynomialPolicy) -> Any:
     n_features = policy.spec.quantizer.n_features
     degree = policy.spec.degree
 
-    @fhe.compiler({"x": "encrypted"})
     def kernel(x: Any) -> Any:
         result = weights[:, 0] + weights[:, 1 : 1 + n_features] @ x
         if degree == 2:
@@ -175,7 +174,7 @@ def _policy_kernel(policy: PolynomialPolicy) -> Any:
                     coefficient += 1
         return result
 
-    return kernel
+    return fhe.compiler({"x": "encrypted"})(kernel)
 
 
 def _zip_secret_markers(path: Path) -> tuple[str, ...]:
@@ -228,13 +227,17 @@ def compile_policy(
     destination = Path(artifact_dir)
     destination.mkdir(parents=True, exist_ok=True)
     server_path = destination / "server.zip"
-    client_specs_path = destination / "client-specs.json"
+    client_specs_path = destination / "client-specs.bin"
     circuit.server.save(str(server_path))
-    client_specs_payload = circuit.server.client_specs.serialize()
-    client_specs_path.write_text(client_specs_payload)
+    serialized_client_specs = circuit.server.client_specs.serialize()
+    specs_bytes = (
+        serialized_client_specs.encode()
+        if isinstance(serialized_client_specs, str)
+        else bytes(serialized_client_specs)
+    )
+    client_specs_path.write_bytes(specs_bytes)
 
     server_bytes = server_path.read_bytes()
-    specs_bytes = client_specs_payload.encode()
     mlir = str(getattr(circuit, "mlir", circuit))
     receipt = CircuitReceipt(
         policy_digest=policy.spec.digest,

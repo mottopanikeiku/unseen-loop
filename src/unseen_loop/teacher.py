@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 import gymnasium as gym
 import numpy as np
@@ -39,10 +39,7 @@ class TeacherCheckpoint:
         return json.dumps(asdict(self), sort_keys=True, separators=(",", ":"))
 
     @classmethod
-    def from_json(cls, payload: str) -> TeacherCheckpoint:
-        raw = json.loads(payload)
-        if not isinstance(raw, dict):
-            raise ValueError("teacher checkpoint must be a JSON object")
+    def from_dict(cls, raw: dict[str, Any]) -> TeacherCheckpoint:
         return cls(
             env_id=str(raw["env_id"]),
             observation_size=int(raw["observation_size"]),
@@ -55,6 +52,13 @@ class TeacherCheckpoint:
             elite_fraction=float(raw["elite_fraction"]),
             schema_version=str(raw.get("schema_version", "unseen-loop/teacher-v1")),
         )
+
+    @classmethod
+    def from_json(cls, payload: str) -> TeacherCheckpoint:
+        raw = json.loads(payload)
+        if not isinstance(raw, dict):
+            raise ValueError("teacher checkpoint must be a JSON object")
+        return cls.from_dict(raw)
 
 
 @dataclass(frozen=True)
@@ -178,7 +182,8 @@ def rollout(
     terminated = False
     truncated = False
     step = 0
-    limit = max_steps or int(env.spec.max_episode_steps or 1_000)
+    configured_limit = env.spec.max_episode_steps if env.spec is not None else None
+    limit = max_steps if max_steps is not None else int(configured_limit or 1_000)
     try:
         while step < limit and not (terminated or truncated):
             scores = np.asarray(policy.score(observation), dtype=np.float64)
@@ -274,6 +279,10 @@ def train_cem_teacher(
         raise ValueError("elite_fraction must lie in (0, 1)")
     probe = gym.make(env_id)
     try:
+        if not isinstance(probe.observation_space, gym.spaces.Box):
+            raise ValueError("CEM teacher requires a vector Box observation space")
+        if probe.observation_space.shape is None:
+            raise ValueError("CEM teacher requires a fixed observation shape")
         observation_size = int(np.prod(probe.observation_space.shape))
         if not isinstance(probe.action_space, gym.spaces.Discrete):
             raise ValueError("CEM teacher currently supports discrete action spaces only")
@@ -293,7 +302,9 @@ def train_cem_teacher(
     for iteration in range(iterations):
         candidates = rng.normal(mean, sigma, size=(population, count))
         returns = np.empty(population, dtype=np.float64)
-        episode_seeds = tuple(seed * 100_000 + iteration * 1_000 + index for index in range(episodes_per_candidate))
+        episode_seeds = tuple(
+            seed * 100_000 + iteration * 1_000 + index for index in range(episodes_per_candidate)
+        )
         for candidate_index, parameters in enumerate(candidates):
             policy = _CandidatePolicy(parameters, observation_size, hidden_size, actions)
             candidate_returns = [

@@ -17,7 +17,13 @@ from unseen_loop.artifacts import ArtifactLedger, RunProvenance, dataclass_dict
 from unseen_loop.certificate import BoxCertificate, certify_actions, certify_quantized_box
 from unseen_loop.fhe_backend import RoundTripMeasurement, compile_policy
 from unseen_loop.search import SearchConfig, SearchRecord, pareto_front, search_policies
-from unseen_loop.teacher import MLPTeacher, collect_trajectories, rollout, train_cem_teacher
+from unseen_loop.teacher import (
+    MLPTeacher,
+    TeacherCheckpoint,
+    collect_trajectories,
+    rollout,
+    train_cem_teacher,
+)
 
 Backend = Literal["clear", "simulate", "fhe"]
 
@@ -192,6 +198,7 @@ def run_experiment(
     run_id: str | None = None,
     git_commit: str | None = None,
     git_dirty: bool | None = None,
+    teacher_checkpoint: TeacherCheckpoint | None = None,
 ) -> ExperimentSummary:
     """Run the complete experiment and write a self-verifying evidence bundle."""
     identifier = (
@@ -213,17 +220,27 @@ def run_experiment(
     ledger.write_json("seeds.json", dataclass_dict(seeds))
     ledger.write_json(
         "config.json",
-        {"preset": dataclass_dict(preset), "search_candidates": preset.search.candidates},
+        {
+            "preset": dataclass_dict(preset),
+            "search_candidates": preset.search.candidates,
+            "teacher_source": "external-checkpoint" if teacher_checkpoint else "local-cem",
+        },
     )
 
-    teacher, history = train_cem_teacher(
-        env_id,
-        seed=seeds.training,
-        hidden_size=preset.hidden_size,
-        iterations=preset.teacher_iterations,
-        population=preset.teacher_population,
-        episodes_per_candidate=preset.episodes_per_candidate,
-    )
+    if teacher_checkpoint is None:
+        teacher, history = train_cem_teacher(
+            env_id,
+            seed=seeds.training,
+            hidden_size=preset.hidden_size,
+            iterations=preset.teacher_iterations,
+            population=preset.teacher_population,
+            episodes_per_candidate=preset.episodes_per_candidate,
+        )
+    else:
+        if teacher_checkpoint.env_id != env_id:
+            raise ValueError("external teacher checkpoint environment does not match")
+        teacher = MLPTeacher(teacher_checkpoint)
+        history = ()
     ledger.write_text("teacher/checkpoint.json", teacher.checkpoint.to_json() + "\n")
     ledger.write_jsonl("teacher/training.jsonl", (dataclass_dict(row) for row in history))
     teacher_return_mean, _ = _teacher_return(teacher, seeds.evaluation)
@@ -297,7 +314,7 @@ def run_experiment(
             simulation_match = bool(np.array_equal(simulated, clear))
             ledger.write_json("circuits/receipt.json", dataclass_dict(compiled.receipt))
             ledger.write_bytes("circuits/server.zip", compiled.server_path.read_bytes())
-            ledger.write_text("circuits/client-specs.json", compiled.client_specs_path.read_text())
+            ledger.write_bytes("circuits/client-specs.bin", compiled.client_specs_path.read_bytes())
             if backend == "fhe":
                 for row in calibration[: len(seeds.real_fhe)]:
                     real_measurements.append(compiled.real_roundtrip(row))

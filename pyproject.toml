@@ -31,7 +31,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-fhe = ["concrete-python==2.10.0"]
+fhe = ["concrete-python==2.10.0", "setuptools==75.3.0"]
 cloud = ["modal>=1.5,<2"]
 dev = [
   "mypy>=1.15,<2",
@@ -41,6 +41,7 @@ dev = [
 ]
 all = [
   "concrete-python==2.10.0",
+  "setuptools==75.3.0",
   "modal>=1.5,<2",
   "mypy>=1.15,<2",
   "pytest>=8.3,<9",
