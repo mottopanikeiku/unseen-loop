@@ -158,21 +158,51 @@ while True:
 
 Never decrypt on the evaluator. Never send browser plaintext to a hosted demo. Never catch a missing-FHE error and run clear while retaining an FHE label.
 
-## 9. Harden the transport boundary
+## 9. Authenticate and bind the remote transcript
 
-`RequestEnvelope`, `ResponseEnvelope`, `TranscriptAuthenticator`, and `FixedShapeGuard` bind context and detect replay/swap/downgrade:
+The Modal path uses `RequestEnvelope`, `ResponseEnvelope`, `SignedEnvelope`, `TranscriptAuthenticator`, and `FixedShapeGuard` rather than sending a bare ciphertext:
 
 ```python
-from unseen_loop.protocol import RequestEnvelope
+import hashlib
+import secrets
 
+from unseen_loop.protocol import (
+    FixedShapeGuard,
+    RequestEnvelope,
+    ResponseEnvelope,
+    SignedEnvelope,
+    TranscriptAuthenticator,
+)
+
+authentication_key = secrets.token_bytes(32)  # distinct from the FHE secret key
+authenticator = TranscriptAuthenticator(authentication_key)
 request = RequestEnvelope.create(
     serialized_ciphertext,
     policy_digest=policy.spec.digest,
     circuit_digest=compiled.receipt.server_artifact_sha256,
     client_context_digest=compiled.receipt.client_specs_sha256,
-    evaluation_key_digest=sha256(evaluation_keys).hexdigest(),
+    evaluation_key_digest=hashlib.sha256(evaluation_keys).hexdigest(),
     observation_shape=(policy.spec.quantizer.n_features,),
 )
+signed_request_json = authenticator.sign(request).to_json()
+
+# The serialized evaluator verifies the HMAC/guard, durably claims request.digest
+# in its ten-minute replay ledger, and only then calls Server.run.
+# It returns signed_response_json containing encrypted scores.
+signed_response = SignedEnvelope.from_json(server_record["signed_response_json"])
+response = authenticator.verify(signed_response, ResponseEnvelope)
+assert isinstance(response, ResponseEnvelope)
+guard = FixedShapeGuard(
+    policy_digest=policy.spec.digest,
+    circuit_digest=compiled.receipt.server_artifact_sha256,
+    client_context_digest=compiled.receipt.client_specs_sha256,
+    evaluation_key_digest=hashlib.sha256(evaluation_keys).hexdigest(),
+    observation_shape=(policy.spec.quantizer.n_features,),
+    output_shape=(policy.spec.actions,),
+    request_bytes=len(serialized_ciphertext),
+    response_bytes=response.ciphertext_bytes,
+)
+encrypted_scores = guard.validate_response(request, response)
 ```
 
-Transport authentication does not prove the evaluator ran the circuit. Preserve the honest-but-curious assumption unless a verifiable-evaluation proof is actually integrated.
+HMAC authentication covers the canonical ciphertext-bearing envelopes and detects substitution/context confusion before decryption. The durable request-digest claim rejects replay across RPCs and evaluator container restarts for longer than the request-freshness window. Neither mechanism proves that an evaluator holding the authentication key ran the committed circuit. Never persist the authentication key, plaintext private observation, or decrypted score vector in cloud evidence.

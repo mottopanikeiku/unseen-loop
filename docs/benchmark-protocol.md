@@ -12,12 +12,24 @@ This document separates the committed quick artifact from the evidence required 
 
 All use deterministic greedy discrete policies for the certificate contract. Pendulum-v1 is an optional continuous-action comparison and must report action-error bounds rather than action invariance.
 
+The executable release manifest is [`../experiments/release.toml`](../experiments/release.toml), schema `unseen-loop/release-suite-v1`. Materialize all declared environment/checkpoint runs with:
+
+```bash
+uv run unseen-loop suite \
+  --config experiments/release.toml \
+  --backend clear \
+  --output artifacts/release
+```
+
+This typed suite command is the release-matrix orchestrator. With `--backend clear` it materializes every declared environment/checkpoint and paired episode row, but provides no privacy evidence and does not itself execute the manifest's FHE challenge, stress, ablation, or repeated-container timing requirements. `unseen-loop research` and `modal_app.py::research --full` each scale only one environment/checkpoint path and must not be described as the preregistered suite.
+
 ## Checkpoints and seeds
 
 - five independently trained checkpoints per environment;
 - checkpoints selected by a precommitted rule, never best-of-seed after evaluation;
-- content-derived, disjoint namespaces for training, calibration, distillation, refinement, evaluation, stress, real-FHE challenges, timing order, and bootstrap resampling;
-- 100 paired evaluation episodes per checkpoint for float teacher, float student, integer clear, and compiled simulation;
+- content-derived, mutually disjoint namespaces for training, calibration, distillation, refinement, **candidate selection**, post-selection evaluation, stress, real-FHE challenges, timing order, and bootstrap resampling;
+- 100 selection episodes per candidate; Pareto filtering and champion choice use only integer-student trajectories from this namespace;
+- after selection is frozen, 100 paired evaluation episodes per checkpoint for float teacher and exact integer student, with compiled simulation evaluated against the same frozen policy;
 - real FHE runs on preregistered observations and closed-loop prefixes, with every attempt retained.
 
 Seed derivation hashes:
@@ -32,12 +44,15 @@ Cryptographic randomness is never deterministic or seeded for reproducibility.
 
 Per checkpoint:
 
-1. **Calibration/compile:** at least 4,096 teacher and student-occupancy observations plus axis extrema and in-domain range probes.
-2. **Common fidelity:** 10,000 held-out observations, half from teacher occupancy and half from integer-student occupancy; preserve episode and step IDs.
-3. **Stress:** quantizer half-steps, feature extrema, low-margin states, ties, perturbed reached states, and one-step-outside-domain cases marked `expected_reject`.
-4. **Real challenge:** preselect uniform, low-margin, input-range, and stress codes before FHE execution.
+1. **Distillation/refinement:** clear teacher targets and integer-student counterexample trajectories from their own namespaces.
+2. **Selection:** 100 integer-student episodes per candidate. Candidate utility, constraint cost, teacher agreement, and certificate coverage are computed from exact student-induced occupancy; a range-saturating candidate is ineligible for the Pareto frontier and championship.
+3. **Post-selection evaluation:** 100 fresh paired episode seeds used only after the champion is frozen. Persist one `FLOAT TEACHER` and one `QUANTIZED CLEAR` long-form episode row per seed. Headline return, constraint cost, agreement, and certificate coverage come only from these rows and the selected integer student's occupancy.
+4. **Calibration/compile:** at least 4,096 teacher and student-occupancy observations plus axis extrema and in-domain range probes.
+5. **Common fidelity:** 10,000 held-out observations, half from teacher occupancy and half from integer-student occupancy; preserve episode and step IDs.
+6. **Stress:** quantizer half-steps, feature extrema, low-margin states, ties, perturbed reached states, and one-step-outside-domain cases marked `expected_reject`.
+7. **Real challenge:** preselect uniform, low-margin, input-range, and stress codes before FHE execution.
 
-Calibration may not use fidelity, stress, or final evaluation rows.
+Calibration, selection, and evaluation namespaces may not overlap. Calibration may not use fidelity, stress, or final evaluation rows.
 
 ## Execution modes
 
@@ -63,7 +78,7 @@ Primary axes:
 - calibration padding: fixed before launch;
 - whole-circuit error target: $10^{-6}$ headline, $10^{-3}$ diagnostic ablation.
 
-Search uses integer clear and compiled simulation. Every Pareto finalist used in a headline receives real ciphertext measurements. Compiler failures remain explicit rows.
+Search uses integer clear and compiled simulation. Range-invalid candidates remain explicit records but are excluded from Pareto and champion eligibility. Every eligible Pareto finalist used in a headline receives real ciphertext measurements; compiler failures also remain explicit rows.
 
 ## Baselines
 
@@ -104,15 +119,15 @@ An in-circuit argmax or another FHE scheme is a separate circuit/leakage track, 
 
 ### Closed loop
 
-- undiscounted return;
+- post-selection undiscounted return from paired evaluation seeds;
 - episode length and termination/truncation;
 - environment success;
 - predefined constraint cost;
-- teacher action agreement;
-- certified occupancy coverage;
+- teacher action agreement measured at the selected integer student's reached states;
+- certificate coverage measured on that same integer-student occupancy;
 - time to first uncertified state and action divergence.
 
-Report mean, standard deviation, median, and IQR per checkpoint. Primary policy comparison uses paired episode seeds and a hierarchical bootstrap over checkpoint then episode. Across environments report interquartile mean and stratified bootstrap interval; never normalize to the best observed mode.
+Report mean, standard deviation, median, and IQR per checkpoint from the persisted paired episode rows. Primary policy comparison uses paired evaluation seeds and a hierarchical bootstrap over checkpoint then episode. Across environments report interquartile mean and stratified bootstrap interval; never normalize to the best observed mode. Selection-seed metrics must never be relabeled as post-selection evaluation.
 
 ### Systems
 
@@ -148,14 +163,14 @@ Use at least four independent warm evaluator containers with 16 shuffled measure
 | Secret separation | no secret key in evaluator API, image, Volume, server artifact, logs, or evidence |
 | Ciphertext canary | repeated same-input encryptions have distinct hashes and equal decrypted output |
 | Discrete action fidelity | ≥99% overall teacher action agreement; every checkpoint ≥97% |
-| Certificate | ≥99% held-out occupancy, zero certified mismatches |
+| Certificate | ≥99% post-selection evaluation coverage under integer-student occupancy, zero certified mismatches |
 | Domain safety | all outside-domain cases rejected before encryption; no wraparound |
 | Policy noninferiority | lower confidence bound on paired return delta above precommitted per-environment tolerance |
 | Local viability | canonical compile/keygen within resource cap and warm end-to-end ≤60 s |
 | Modal viability | every request returns; recorded SKU/image; warm end-to-end ≤60 s |
 | Reproducibility | deterministic artifact hashes and summary regenerate from clean commit |
 
-The quick `modal-smoke-001` record does **not** pass the ≥99% held-out certificate target (94.1%) and has only one teacher checkpoint. It is a strong systems/conformance artifact, not a completed release study.
+The quick `modal-smoke-001` record does **not** pass the ≥99% post-selection integer-student-occupancy certificate target (94.1%) and has only one teacher checkpoint. Its 25/25 encrypted prefix is conformance evidence, not a completed release study or a latency distribution.
 
 ## Invalid comparisons
 

@@ -6,21 +6,21 @@
 
 - Added weighted degree-1/2 policy distillation with signed observation and coefficient quantization.
 - Added analytical action-invariance certificates and exhaustive integer-box enumeration.
-- Added counterexample-guided student-occupancy refinement and Pareto filtering across utility, stability, and circuit cost.
+- Added counterexample-guided student-occupancy refinement, disjoint candidate-selection and post-selection evaluation namespaces, paired per-episode evidence rows, and range-valid Pareto filtering.
 - Added NumPy CPU CEM teachers and Torch-vectorized GPU CartPole CEM.
 
 ### FHE and protocol
 
 - Added Concrete-Python 2.10.0 compilation, clear simulation, real encryption/evaluation/decryption, and architecture-specific client/server serialization.
 - Added compiler receipts with security/error configuration, range, bit width, complexity, sizes, and content hashes.
-- Added fixed-shape authenticated envelopes, freshness/replay checks, context binding, and fail-closed range policy.
-- Added local-client/Modal-server key separation; no clear fallback under an FHE label.
+- Added fixed-shape HMAC-authenticated request/response envelopes, freshness/replay checks, policy/circuit/client/evaluation-key context binding, and fail-closed range policy.
+- Added local-client/Modal-server FHE key separation; the HMAC authentication key is distinct from the decryption key, and no clear fallback is allowed under an FHE label.
 
 ### Cloud and evidence
 
 - Added bounded Modal L4 training, CPU search, FHE compilation, remote ciphertext evaluation, and Volume persistence.
-- Recorded `modal-smoke-001`: 469/500 quantized-student/teacher return, 94.1% held-out certificate coverage, 98.9867% exhaustive box coverage, and 2/2 exact real-FHE trials.
-- Added checksum-ledger experiment artifacts and a committed raw Modal evidence record.
+- Recorded `modal-smoke-001`: a 6.548 s L4 teacher search, 469/500 post-selection quantized-student/teacher return over paired evaluation seeds, 94.1% integer-student-occupancy certificate coverage, 98.9867% exhaustive box coverage, and 27 exact REAL FHE calls—25/25 sequential encrypted control steps plus two fresh-randomness canaries.
+- Added `unseen-loop/modal-evidence-v2` with `closed_loop_real_fhe`, top-level and per-call authenticated-envelope metadata, same-input and secret-marker audits, and a nonsecret bundle of `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and their checksum ledger. Persisted/cloud evidence excludes plaintext private observations and decrypted score vectors.
 
 ### Research product
 

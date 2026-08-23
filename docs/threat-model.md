@@ -15,10 +15,10 @@ The claim is against the evaluator's protocol view. It is not information-theore
 |---|---|---|
 | Development machine | clear training data, teacher, student weights, calibration data, compiler | release client secret keys |
 | Local inference client | environment, observation, quantizer, FHE secret key, evaluation keys, decrypted scores, action | unpinned server artifact |
-| Modal evaluator | plaintext policy circuit, `server.zip`, public evaluation material, ciphertext input/output, timing metadata | secret/decryption key, plaintext observation, plaintext score |
-| Artifact store | policy/circuit receipts, server artifact, client specifications, raw non-secret measurements | client keys, encryption randomness, decrypted private observations |
+| Modal evaluator | plaintext policy circuit, `server.zip`, circuit receipt, HMAC authentication key, public evaluation material, ciphertext input/output, timing metadata | FHE secret/decryption key, plaintext observation, plaintext score |
+| Artifact store | policy/circuit receipts, server artifact, client specifications, authenticated-protocol metadata, raw non-secret measurements | client keys, authentication keys, encryption randomness, plaintext private observations, decrypted score vectors |
 
-The local client and Modal evaluator are separate program objects and processes. `modal_app.py::evaluate_ciphertext` imports `fhe.Server`, `fhe.Value`, and `fhe.EvaluationKeys`; it never constructs `fhe.Client`.
+The local client and Modal evaluator are separate program objects and processes. `modal_app.py::evaluate_ciphertext` imports `fhe.Server`, `fhe.Value`, and `fhe.EvaluationKeys`; it never constructs `fhe.Client`. The per-run HMAC key is operational transcript-authentication material shared with the evaluator, not the FHE decryption key, and is not persisted.
 
 ## Assets
 
@@ -37,9 +37,9 @@ The evaluator follows the protocol and committed circuit but records its complet
 
 ### A2: malicious network — partially in scope
 
-A network adversary may replay, swap, truncate, corrupt, or downgrade authenticated envelopes. A deployment must use authenticated transport and validate the request nonce, context digest, policy digest, circuit digest, fixed shape, fixed byte lengths, output schema, and freshness. The repository's transcript HMAC demonstrates these checks.
+A network adversary may replay, swap, truncate, corrupt, or downgrade envelopes. The implemented `authenticated-envelope-v1` protocol HMAC-authenticates canonical request and response documents and validates freshness, policy digest, circuit digest, client-context digest, evaluation-key digest, fixed shape, fixed ciphertext length, response-to-request binding, and schema. Random nonces are included and the local client rejects a nonce it generates twice.
 
-Traffic analysis remains out of scope. Authentication material is operational and distinct from the FHE secret key.
+After those checks, the serialized Modal evaluator atomically claims the authenticated request digest in `/artifacts/protocol/replay-ledger.json` and commits the shared Volume before deserializing any FHE input. Claims survive evaluator container restarts and are retained for ten minutes, beyond the five-minute freshness window, so every request still eligible for evaluation remains replay-protected. The HMAC assumes the per-run authentication key remains secret from the network adversary; it demonstrates message authentication but is not a replacement for deployment transport security. Traffic analysis remains out of scope.
 
 ### A3: malicious evaluator — out of scope
 
@@ -80,9 +80,9 @@ FHE does not protect plaintext already resident in client memory, secret keys st
 | Private training | Not provided | training and distillation are clear |
 | Side-channel resistance | Not evaluated | library and host implementation dependent |
 
-## Protocol requirements
+## Implemented protocol
 
-A release request envelope binds:
+The client creates a `RequestEnvelope` containing:
 
 - schema version;
 - random request ID and nonce;
@@ -90,11 +90,13 @@ A release request envelope binds:
 - policy and circuit digests;
 - client-context and evaluation-key digests;
 - fixed observation shape;
-- ciphertext byte length and payload digest.
+- ciphertext byte length and canonical base64 payload.
 
-The response binds request digest/ID/nonce, policy/circuit digest, fixed output shape, status, completion time, ciphertext length, and payload digest. The client verifies the response before decryption, validates the decrypted vector's exact shape and integer range, applies stable argmax, and fails closed.
+`TranscriptAuthenticator` signs the canonical payload with HMAC-SHA256. The Modal evaluator verifies the signed wrapper, then `FixedShapeGuard` checks freshness, context, shape, and fixed length. It claims the request digest in the durable replay ledger before releasing ciphertext bytes to `fhe.Server`.
 
-`FixedShapeGuard` intentionally describes transcript authentication as operational integrity, not evaluation integrity.
+The evaluator's `ResponseEnvelope` binds the request digest, ID and nonce, policy/circuit digests, fixed output shape, status, completion time, ciphertext length, and canonical base64 payload. It HMAC-signs that response. The client verifies the signature and request/context binding before decryption. The research entrypoint then requires exact equality with its local integer-clear score vector before stable argmax; a deployment client without that oracle must independently enforce the declared decrypted shape/range and fail closed.
+
+This is operational transcript integrity, not evaluation integrity. An evaluator holding the HMAC key can authenticate an incorrect result.
 
 ## Required negative tests
 
@@ -111,11 +113,11 @@ The response binds request digest/ID/nonce, policy/circuit digest, fixed output 
 | TM-09 | Out-of-domain plaintext before encryption | reject; never silently wrap |
 | TM-10 | Same observation encrypted twice | ciphertext hashes differ; decrypted integer result agrees |
 | TM-11 | Scan `server.zip` names for secret-key markers | zero markers |
-| TM-12 | Inspect evaluator function signature | only server bytes, ciphertext bytes, evaluation-key bytes |
+| TM-12 | Inspect evaluator function signature | server artifact, signed request JSON, evaluation keys, authentication key, and public receipt only; no FHE client or decryption key |
 | TM-13 | FHE boundary/tie canaries | real output equals exact integer clear or release fails |
 | TM-14 | Adaptive extraction budget | report fidelity versus query budget before model-privacy claims |
 
-The repository executes TM-01/02/03/05/09/10/11/13 in its automated suite. TM-07 is a documented expected limitation. Endpoint memory, extraction, and production transport audits require deployment-specific tests.
+Focused suites exercise replay rejection plus protocol swap/downgrade/freshness/shape checks, range rejection, randomized-ciphertext canaries, server-artifact secret-marker scans, and real-FHE equality. TM-07 is a documented expected limitation. Endpoint memory, extraction, and production transport audits require deployment-specific tests.
 
 ## Logging and artifacts
 
@@ -135,12 +137,12 @@ Never record:
 
 - client secret key or keyset;
 - CSPRNG seed/randomness;
-- clear private observation in server logs;
-- decrypted score/action in evaluator logs;
+- plaintext private observations in persisted/cloud evidence or server logs;
+- decrypted score vectors in persisted/cloud evidence or evaluator logs;
 - raw client memory or crash dumps;
-- authentication or API secrets.
+- HMAC authentication keys or API secrets.
 
-Evaluation material is cryptographically public in the selected protocol but operationally identifying. Release evidence records only its size and digest unless exact publication is required.
+`unseen-loop/modal-evidence-v2` records actions/rewards and nonsecret protocol metadata for the 25-step client-driven prefix, but no plaintext observation or decrypted score vector. Its `authenticated_envelope_protocol` descriptor and per-call protocol objects retain only schema/algorithm labels and envelope/context digests. The checksummed bundle is limited to `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and `checksums.sha256`; evaluation-key bytes and key material are not persisted. The separate replay ledger persists only authenticated request digests and claim times and is pruned after ten minutes. Evaluation material is cryptographically public in the selected protocol but operationally identifying, so evidence records only its size and digest. The server-archive audit scans filenames for secret-key markers; a clean scan is a useful gate, not a proof that arbitrary bytes contain no secret.
 
 ## Honest deployment statement
 

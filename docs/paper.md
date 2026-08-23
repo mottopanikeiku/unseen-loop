@@ -8,7 +8,7 @@ Fully Homomorphic Encryption (FHE) can evaluate a policy without revealing its i
 
 The central mechanism is a coefficient-rounding certificate. At a quantized state, if the clear student's top-two score margin exceeds twice an analytical per-score error bound, the error-free integer circuit must choose the same greedy action. Uncertified and mismatched student-occupancy states receive greater weight in the next distillation round. The certificate is composed—never conflated—with Concrete's probabilistic whole-circuit correctness configuration.
 
-A recorded CartPole case study trained 2,048 candidate teachers per iteration on an NVIDIA L4, selected a signed 4-bit-input/10-bit-coefficient affine student, and achieved mean held-out return 469 versus the teacher's 500 over eight seeded quick-artifact episodes. The certificate covers 94.1% of held-out occupancy and 98.9867% of all 50,625 integer codes in the declared $[-7,7]^4$ domain. Two client-encrypted, server-evaluated Modal requests matched exact integer-clear outputs; the second recorded server evaluation took 7.799 ms. These are artifact smoke measurements, not population-level or production latency claims. The selected bounded affine circuit ran in Concrete's FHE runtime without requiring bootstrapping; we make no unbounded-depth claim.
+A recorded CartPole case study evaluated a 2,048-policy teacher population per CEM iteration on an NVIDIA L4, selected a signed 4-bit-input/10-bit-coefficient affine student on a dedicated selection namespace, and then measured mean return 469 versus the teacher's 500 on the same eight held-out evaluation episodes under exact integer-student occupancy. The post-selection certificate covers 94.1% of that occupancy and 98.9867% of all 50,625 integer codes in the declared $[-7,7]^4$ domain. A 25-step client-key, server-evaluated Modal control prefix matched exact integer-clear actions at every encrypted step; all 25 reached codes certified. Across those 25 sequential steps in one trajectory, median server evaluation was 9.126 ms and median client-observed online time—including a separate Modal RPC per step—was 176.435 ms. The GPU training wall was 6.548 s. These are artifact smoke measurements, not population-level or production-latency claims.
 
 ## 1. Problem
 
@@ -20,7 +20,7 @@ $$
 
 without disclosing $s_t$ or the returned score values to the evaluator. The client generates a secret key, encrypts a fixed-shape quantized observation, sends the ciphertext and public evaluation material, receives encrypted scores, decrypts them, applies stable argmax, and advances the environment.
 
-This is not independent classification. If mode $A$ and mode $B$ select different actions at step $t$, then $s_{t+1}^{A}\neq s_{t+1}^{B}$ may hold even in a deterministic environment. Pointwise agreement on a frozen teacher dataset cannot characterize the resulting return or safety cost. Unseen Loop therefore makes **student-induced occupancy** a first-class search and evaluation distribution.
+This is not independent classification. If mode $A$ and mode $B$ select different actions at step $t$, then $s_{t+1}^{A}\neq s_{t+1}^{B}$ may hold even in a deterministic environment. Pointwise agreement on a frozen teacher dataset cannot characterize the resulting return or safety cost. Unseen Loop therefore makes **integer-student-induced occupancy** a first-class search distribution and the mandatory post-selection evaluation distribution.
 
 ### Scope
 
@@ -38,7 +38,7 @@ Not in scope: private RL training, stochastic action sampling, continuous-action
 2. **Counterexample-guided action certificates.** Derive a sound coefficient-rounding error bound at every reached state, reweight fragile states, and exactly enumerate low-dimensional declared integer domains.
 3. **Five-stage semantic ladder.** Keep float teacher, float student, exact integer clear, compiled simulation, and real FHE distinct. Only the final stage is confidentiality and encrypted-latency evidence.
 4. **Physical client/server protocol.** Serialize the architecture-specific server artifact, client specifications, ciphertexts, and evaluation material. The Modal evaluator never constructs a client and never receives the secret key.
-5. **Evidence-first artifact.** Emit content hashes, range and bit-width receipts, configuration, raw timings, ciphertext sizes and hashes, explicit non-claims, a static interactive report, and deterministic reproduction commands.
+5. **Evidence-first artifact.** Emit content hashes, range and bit-width receipts, configuration, raw timings, ciphertext sizes and hashes, explicit non-claims, a static interactive report, and deterministic reproduction commands. Persisted/cloud privacy evidence excludes plaintext private observations and decrypted score vectors.
 
 We do **not** claim the first use of FHE in RL. Encrypted tabular learning, encrypted policy synthesis, and encrypted deep-RL training predate this artifact [1–3]. The contribution is the combination of closed-loop co-design, action-stability evidence, and real serialized deployment.
 
@@ -113,7 +113,7 @@ $$
 \Pr[\text{any circuit-error event in }H\text{ calls}]\leq Hp_g.
 $$
 
-No independence assumption is required. This does not turn empirical equality in two trials into an estimate of $p_g$. It only composes a separately configured compiler premise with deterministic coefficient certification.
+No independence assumption is required. A small empirical canary set cannot estimate $p_g$. The bound only composes a separately configured compiler premise with deterministic coefficient certification.
 
 ## 5. Counterexample-guided distillation
 
@@ -122,13 +122,13 @@ For every candidate tuple $(d,b_x,b_w,\lambda)$:
 1. collect teacher trajectories on distillation-only seeds;
 2. calibrate the quantizer and fit weighted ridge scores;
 3. compute per-state action certificates;
-4. run the integer student to collect **student-induced** trajectories;
-5. query clear teacher scores on those states;
-6. multiply weights on uncertified states and integer/float mismatches, with an additional inverse-margin fragility factor;
-7. refit without changing the frozen quantizer;
-8. evaluate on disjoint seeds and Pareto-filter utility, stability, and cost.
+4. run the integer student on refinement-only seeds to collect **student-induced** trajectories;
+5. query clear teacher scores on those states, increase weights on uncertified and integer/float-mismatched states, and refit without changing the frozen quantizer;
+6. evaluate candidate utility, constraint cost, agreement, and certificate coverage on selection-only seeds under exact integer-student occupancy;
+7. exclude any candidate that saturates the declared quantizer range, then Pareto-filter and choose the champion using only selection metrics;
+8. after selection is frozen, run the champion and teacher on the same disjoint evaluation seeds and report only these post-selection paired results.
 
-This loop does not claim optimality. It is a deterministic, inspectable grid-search baseline intended to make the RL-specific objective falsifiable.
+Quick and release presets use 8/8 and 100/100 selection/evaluation episodes respectively. The artifact preserves two long-form episode rows per evaluation seed—`FLOAT TEACHER` and `QUANTIZED CLEAR`—so paired return deltas and denominators remain auditable. This loop does not claim optimality; it is a deterministic, inspectable grid-search baseline intended to make the RL-specific objective falsifiable.
 
 ## 6. Systems design
 
@@ -137,14 +137,14 @@ sequenceDiagram
     participant C as Local client + environment
     participant M as Modal evaluator
     C->>C: Generate secret + evaluation keys
-    C->>C: Quantize and encrypt observation
-    C->>M: server.zip digest, ciphertext, evaluation keys
-    M->>M: Deserialize and homomorphically evaluate
-    M-->>C: Encrypted integer scores
-    C->>C: Decrypt, stable argmax, environment.step
+    C->>C: Quantize, range-check, encrypt, authenticate envelope
+    C->>M: server.zip + receipt, signed request, evaluation keys
+    M->>M: Verify envelope/context; homomorphically evaluate
+    M-->>C: Authenticated encrypted-score envelope
+    C->>C: Verify, decrypt, stable argmax, environment.step
 ```
 
-Compilation is remote because `server.zip` is architecture-specific. Key generation, encryption, decryption, and environment transition execute in the local Modal entrypoint process. The evaluator function accepts only three byte strings: server artifact, encrypted input, and serialized evaluation keys.
+Compilation is remote because `server.zip` is architecture-specific. Key generation, encryption, decryption, and environment transition execute in the local Modal entrypoint process. The evaluator accepts the server artifact, an authenticated request-envelope JSON document, serialized evaluation keys, a per-run HMAC authentication key, and the circuit receipt. It verifies the HMAC, freshness, shape, payload length, and policy/circuit/client-context/evaluation-key digests, then atomically claims the request digest in a Volume replay ledger before FHE deserialization. The serialized evaluator retains claims for ten minutes, beyond the five-minute request-freshness window, including across container restarts. It authenticates the response envelope after `Server.run`. This transcript integrity is not a proof of correct evaluation, and the authentication key is distinct from the FHE secret key.
 
 The recorded champion is affine. Concrete evaluated its bounded encrypted integer dot product with a fully homomorphic scheme/runtime, but the circuit did not need programmable bootstrapping. The 64-byte evaluation-key payload reflects that circuit structure. Quadratic candidates exercise encrypted-encrypted multiplication and are retained in the search surface, but no quadratic real-FHE result is claimed in the recorded artifact.
 
@@ -162,31 +162,34 @@ The recorded champion is affine. Concrete evaluated its bounded encrypted intege
 
 ### 7.2 Recorded quick artifact
 
-Run ID: `modal-smoke-001`. Seed namespaces are content-derived and disjoint for teacher training, distillation, refinement, evaluation, and FHE canaries.
+Run ID: `modal-smoke-001`. Seed namespaces are content-derived and disjoint for teacher training, distillation, refinement, candidate selection, post-selection evaluation, and FHE canaries.
 
 | Field | Recorded value |
 |---|---:|
 | GPU | NVIDIA L4 |
 | Torch / CUDA | 2.7.1+cu126 / 12.6 |
 | CEM population × iterations × initial states | 2,048 × 18 × 12 |
-| GPU training wall | 9.497 s |
-| Teacher held-out return | 500.0 |
-| Quantized student held-out return | 469.0 |
-| Teacher action agreement | 83.85% |
-| Held-out action-certificate coverage | 94.10% |
+| GPU training wall | 6.548 s |
+| Teacher post-selection return | 500.0 over 8 evaluation episodes |
+| Quantized student post-selection return | 469.0 over the same 8 episodes |
+| Post-selection teacher action agreement | 83.85% under integer-student occupancy |
+| Post-selection action-certificate coverage | 94.10% under integer-student occupancy |
 | Exhaustive box coverage | 98.9867% of 50,625 codes |
 | Policy | degree 1, signed 4-bit input, signed 10-bit coefficients |
 | Max compiler integer width | 12 bits |
 | Server artifact | 7,108 B |
 | Request / response | 32,088 B / 16,168 B |
-| Cold / warm server evaluation | 43.736 ms / 7.799 ms |
-| Real-FHE exact matches | 2 / 2 |
+| REAL FHE call accounting | 25-step encrypted prefix + 2 randomized canaries = 27 exact calls |
+| Encrypted control prefix | 25 / 25 exact actions; 25 / 25 certified reached codes |
+| Median across the 25 trajectory steps | 9.126 ms server / 176.435 ms client-observed online |
 
 ### 7.3 Interpretation
 
-The teacher reaches the environment cap. The distilled integer student loses 31 mean return points but retains long-horizon behavior despite 83.85% pointwise teacher action agreement, illustrating why return and agreement are not interchangeable. Certificate coverage is about float-student versus integer semantics, not teacher agreement.
+The teacher reaches the environment cap. After the champion is chosen exclusively on selection seeds, the distilled integer student loses 31 mean return points on the disjoint paired evaluation seeds but retains long-horizon behavior despite 83.85% pointwise teacher action agreement. Return, agreement, and certificate coverage are recomputed under the selected integer student's occupancy; certificate coverage concerns float-student versus integer semantics, not teacher agreement.
 
-The latency rows are a smoke trace ($n=2$), not a distribution. We report cold and warm observations individually and do not report p95, throughput, or a “real-time” claim. A release study must run the preregistered repeated-container timing protocol and three task regimes described in `benchmark-protocol.md`.
+The latency rows are the median of 25 sequential steps from one closed-loop trajectory, each with a separate Modal RPC. They are not independent container samples and are not reported as p50, p95, throughput, steady-state service latency, or a “real-time” claim. The complete 27-call record—25 prefix steps and two fresh-randomness canaries—cannot empirically validate `global_p_error`. A release study must run the preregistered repeated-container timing protocol and three task regimes described in `benchmark-protocol.md`.
+
+The `unseen-loop/modal-evidence-v2` privacy record persists a top-level authenticated-envelope descriptor, per-call request/response envelope and context digests, same-input and server-artifact secret-marker audits, and the complete encrypted prefix without plaintext private observations or decrypted score vectors. The accompanying nonsecret Modal bundle comprises `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and `checksums.sha256`; the ledger covers the other five files. HMAC authentication detects transcript/context tampering, not incorrect computation by an evaluator that holds the authentication key. The server-archive audit checks filenames for secret markers; it is not a proof that arbitrary archive bytes contain no secret.
 
 ## 8. Threat model
 
@@ -211,7 +214,7 @@ Accordingly, Unseen Loop does not claim novelty in “FHE + RL,” policy distil
 7. Timing needs independent containers, shuffled repetitions, peak RSS, and confidence intervals.
 8. Model extraction must be evaluated as a query-budget curve before any model-privacy statement.
 
-The preregistered release protocol adds CartPole, MountainCar, and Acrobot; five independently trained checkpoints; 100 paired clear episodes; certificate-disabled and occupancy-disabled ablations; repeated real-FHE challenges; range and tie stress suites; and cold/warm latency distributions.
+The preregistered protocol in [`../experiments/release.toml`](../experiments/release.toml) requires CartPole, MountainCar, and Acrobot; five independently trained checkpoints each; 100 selection and 100 disjoint paired evaluation episodes per checkpoint; certificate-disabled and occupancy-disabled ablations; repeated real-FHE challenges; range and tie stress suites; and cold/warm latency distributions. `uv run unseen-loop suite --config experiments/release.toml --backend clear --output artifacts/release` type-checks the manifest and materializes the 15 clear environment/checkpoint runs plus paired aggregate rows. That clear command provides no privacy evidence and does not by itself discharge the manifest's FHE, stress, timing, or ablation requirements. The Modal `research --full` entrypoint remains a scaled single-checkpoint path, not the release suite.
 
 ## References
 

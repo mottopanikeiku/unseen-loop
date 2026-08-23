@@ -10,7 +10,7 @@ Unseen Loop is a reproducible research system for **encrypted closed-loop policy
 
 Ordinary FHE inference benchmarks stop at per-example accuracy. A control policy is sequential: one changed action changes every later state. Unseen Loop therefore optimizes and measures four coupled properties:
 
-1. **closed-loop return and constraint cost** under student-induced occupancy;
+1. **post-selection closed-loop return and constraint cost** on held-out seeds under exact integer-student occupancy;
 2. **action agreement and margin**, not only score error;
 3. **certified action invariance** under the deployed fixed-point circuit;
 4. **measured FHE systems cost**: compile, key generation, encryption, evaluation, decryption, payload, evaluation-key, and artifact sizes.
@@ -31,21 +31,23 @@ Every candidate is evaluated through the same semantics:
 
 ## Recorded Modal result
 
-The committed `modal-smoke-001` evidence record was produced by the real end-to-end path on 23 August 2026:
+The committed `modal-smoke-001` record was produced by the real end-to-end path on 23 August 2026:
 
 | Measurement | Recorded value |
 |---|---:|
 | GPU teacher search | 2,048 policies × 18 iterations × 12 states on NVIDIA L4 |
-| GPU training wall | 9.497 s |
-| Teacher / quantized student return | 500 / 469 over eight held-out quick-artifact episodes |
-| Held-out certificate coverage | 94.1% |
+| GPU training wall | 6.548 s |
+| Teacher / quantized student return | 500 / 469 over the same eight post-selection evaluation episodes |
+| Post-selection integer-student-occupancy certificate coverage | 94.1% |
 | Exhaustive integer-box coverage | 98.9867% of 50,625 codes |
 | FHE configuration | Concrete-Python 2.10.0, category 128, `global_p_error=10^-6` |
-| Cold / warm Modal server evaluation | 43.736 ms / 7.799 ms |
+| REAL FHE closed-loop prefix | 25 / 25 encrypted steps match integer clear; all 25 reached codes certified |
+| Median across those 25 sequential steps | 9.126 ms server evaluation / 176.435 ms client-observed online time |
 | Serialized request / response | 32,088 B / 16,168 B |
-| Real-FHE equality | 2 / 2 decrypted outputs equal exact integer clear |
 
-These are smoke measurements, not a latency distribution or multi-task paper result. The selected affine circuit used the Concrete FHE runtime but did not require bootstrapping; no unbounded-depth claim is made. Inspect the [raw recorded evidence](artifacts/reference/modal-smoke-001.json) and the [paper](docs/paper.md).
+These are smoke measurements, not a latency distribution or multi-task paper result. The latency medians describe one 25-step trajectory with a separate Modal RPC per step; they are not independent-container samples, p50 estimates, or throughput. The selected affine circuit used the Concrete FHE runtime but did not require bootstrapping; no unbounded-depth claim is made.
+
+The `unseen-loop/modal-evidence-v2` record contains the complete 25-step encrypted prefix, a top-level `authenticated_envelope_protocol` descriptor, and per-call request/response envelope and context digests. It does not persist plaintext private observations or decrypted score vectors. Its nonsecret Modal bundle contains `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and `checksums.sha256`; the ledger checksums the other five files. Inspect the [raw recorded evidence](artifacts/reference/modal-smoke-001.json) and the [paper](docs/paper.md).
 
 ## One-command paths
 
@@ -54,11 +56,17 @@ These are smoke measurements, not a latency distribution or multi-task paper res
 uv sync --extra dev
 uv run unseen-loop demo --backend clear --output artifacts/demo
 
-# Serialized real FHE locally.
+# Typed preregistered clear matrix: 3 environments × 5 checkpoints; no privacy claim.
+uv run unseen-loop suite \
+  --config experiments/release.toml \
+  --backend clear \
+  --output artifacts/release
+
+# Serialized real FHE locally for one quick experiment.
 uv sync --extra dev --extra fhe
 uv run unseen-loop demo --backend fhe --output artifacts/fhe-local
 
-# NVIDIA L4 teacher → CPU search/compile → local keygen → remote Modal FHE evaluator.
+# One-checkpoint Modal smoke: L4 teacher → CPU compile → local keygen → remote FHE.
 uv sync --extra cloud --extra fhe
 uv run modal run -w artifacts/modal-evidence.json \
   modal_app.py::research --run-id my-modal-run
@@ -68,13 +76,13 @@ uv run unseen-loop report artifacts/modal-evidence.json
 python -m http.server 8000
 ```
 
-The FHE path fails if Concrete is missing; it never aliases clear execution to an FHE label.
+`unseen-loop suite` is the typed release-matrix orchestrator: it validates `experiments/release.toml` and materializes every declared environment/checkpoint run. With `--backend clear`, it does not provide privacy evidence or discharge the manifest's real-FHE, stress, timing, and ablation requirements. `unseen-loop research` and `modal_app.py::research --full` scale one environment/checkpoint path only; neither is the release suite. The FHE paths fail if Concrete is missing and never alias clear execution to an FHE label.
 
 ## Security envelope
 
-The intended evaluator is **honest-but-curious** and runs a pinned, data-independent circuit. Under the FHE scheme's assumptions, fresh client encryption hides observation and encrypted-score values. Public leakage includes policy/version, tensor shape, parameter set, request/response sizes, timing, traffic volume, status, and linkable evaluation-key identity. The eventual action may be observable through the environment.
+The intended evaluator is **honest-but-curious** and runs a pinned, data-independent circuit. The client HMAC-authenticates fixed-shape request and response envelopes that bind freshness, payload length, and policy, circuit, client-context, and evaluation-key digests. Under the FHE scheme's assumptions, fresh client encryption hides observation and encrypted-score values. Public leakage includes policy/version, tensor shape, parameter set, request/response sizes, timing, traffic volume, status, and linkable evaluation-key identity. The eventual action may be observable through the environment.
 
-FHE is malleable and does **not** prove correct evaluation. Unseen Loop does not claim malicious-server integrity, circuit privacy, model-extraction resistance, endpoint protection, availability, or traffic-flow confidentiality. See the threat model before using the protocol outside research.
+Envelope authentication detects corruption, substitution, response swaps, and context confusion. After authentication, context, and freshness checks, the serialized evaluator atomically claims the request digest in a Volume-backed replay ledger retained for ten minutes—longer than the five-minute freshness window—before deserializing FHE inputs. Authentication still does not prove that a malicious evaluator ran the committed circuit. Unseen Loop does not claim malicious-server integrity, circuit privacy, model-extraction resistance, endpoint protection, availability, or traffic-flow confidentiality. See the threat model before using the protocol outside research.
 
 ## Repository map
 
