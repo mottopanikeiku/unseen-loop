@@ -59,7 +59,7 @@ class QuantizerSpec:
         unbounded = np.rint((values - center) / step)
         if reject and np.any(np.abs(unbounded) > self.qmax):
             raise ValueError("observation is outside the compiled quantization domain")
-        return np.clip(unbounded, -self.qmax, self.qmax).astype(np.int64)
+        return np.asarray(np.clip(unbounded, -self.qmax, self.qmax), dtype=np.int64)
 
     def dequantize(self, quantized: npt.ArrayLike) -> FloatArray:
         values = np.asarray(quantized, dtype=np.int64)
@@ -67,7 +67,9 @@ class QuantizerSpec:
             raise ValueError("quantized observation has the wrong final dimension")
         if np.any(np.abs(values) > self.qmax):
             raise ValueError("quantized observation exceeds qmax")
-        return values * np.asarray(self.step) + np.asarray(self.center)
+        return np.asarray(
+            values * np.asarray(self.step) + np.asarray(self.center), dtype=np.float64
+        )
 
     @classmethod
     def calibrate(
@@ -194,6 +196,7 @@ class CandidateMetrics:
     constraint_cost: float
     estimated_bit_width: int
     encrypted_multiplications: int
+    range_valid: bool
     server_p50_ms: float | None = None
     server_p95_ms: float | None = None
     evaluation_key_bytes: int | None = None

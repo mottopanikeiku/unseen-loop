@@ -16,7 +16,13 @@ from unseen_loop import __version__
 from unseen_loop.artifacts import ArtifactLedger, RunProvenance, dataclass_dict
 from unseen_loop.certificate import BoxCertificate, certify_actions, certify_quantized_box
 from unseen_loop.fhe_backend import RoundTripMeasurement, compile_policy
-from unseen_loop.search import SearchConfig, SearchRecord, pareto_front, search_policies
+from unseen_loop.search import (
+    IntegerStudent,
+    SearchConfig,
+    SearchRecord,
+    pareto_front,
+    search_policies,
+)
 from unseen_loop.teacher import (
     MLPTeacher,
     TeacherCheckpoint,
@@ -33,26 +39,55 @@ class SeedPlan:
     training: int
     distillation: tuple[int, ...]
     refinement: tuple[int, ...]
+    selection: tuple[int, ...]
     evaluation: tuple[int, ...]
     real_fhe: tuple[int, ...]
     namespace: str
 
     @classmethod
-    def derive(cls, root: str, env_id: str, *, full: bool) -> SeedPlan:
+    def derive(
+        cls,
+        root: str,
+        env_id: str,
+        *,
+        full: bool,
+        selection_episodes: int | None = None,
+        evaluation_episodes: int | None = None,
+    ) -> SeedPlan:
+        selection_count = (
+            selection_episodes if selection_episodes is not None else (100 if full else 8)
+        )
+        evaluation_count = (
+            evaluation_episodes if evaluation_episodes is not None else (100 if full else 8)
+        )
+        if selection_count < 1 or evaluation_count < 1:
+            raise ValueError("selection and evaluation episode counts must be positive")
+
+        allocated: set[int] = set()
+
         def seeds(purpose: str, count: int) -> tuple[int, ...]:
             result: list[int] = []
             for index in range(count):
-                digest = hashlib.sha256(
-                    f"unseen-loop/v1|{root}|{env_id}|{purpose}|{index}".encode()
-                ).digest()
-                result.append(int.from_bytes(digest[:4], "little") & 0x7FFF_FFFF)
+                collision = 0
+                while True:
+                    suffix = f"|collision|{collision}" if collision else ""
+                    digest = hashlib.sha256(
+                        f"unseen-loop/v1|{root}|{env_id}|{purpose}|{index}{suffix}".encode()
+                    ).digest()
+                    candidate = int.from_bytes(digest[:4], "little") & 0x7FFF_FFFF
+                    if candidate not in allocated:
+                        allocated.add(candidate)
+                        result.append(candidate)
+                        break
+                    collision += 1
             return tuple(result)
 
         return cls(
             training=seeds("training", 1)[0],
             distillation=seeds("distillation", 20 if full else 4),
             refinement=seeds("refinement", 10 if full else 2),
-            evaluation=seeds("evaluation", 100 if full else 8),
+            selection=seeds("selection", selection_count),
+            evaluation=seeds("evaluation", evaluation_count),
             real_fhe=seeds("real-fhe", 5 if full else 2),
             namespace=f"{root}:{env_id}:{'full' if full else 'quick'}",
         )
@@ -64,8 +99,14 @@ class ResearchPreset:
     teacher_iterations: int
     teacher_population: int
     episodes_per_candidate: int
+    selection_episodes: int
+    evaluation_episodes: int
     hidden_size: int
     search: SearchConfig
+
+    def __post_init__(self) -> None:
+        if self.selection_episodes < 1 or self.evaluation_episodes < 1:
+            raise ValueError("selection and evaluation episode counts must be positive")
 
     @classmethod
     def quick(cls) -> ResearchPreset:
@@ -74,14 +115,16 @@ class ResearchPreset:
             teacher_iterations=8,
             teacher_population=32,
             episodes_per_candidate=1,
+            selection_episodes=8,
+            evaluation_episodes=8,
             hidden_size=12,
             search=SearchConfig(
                 degrees=(1, 2),
-                input_bits=(4, 5),
+                input_bits=(5, 6, 7),
                 coefficient_bits=(8, 10),
                 ridge_values=(1e-3,),
-                refinement_rounds=1,
-                calibration_padding=0.75,
+                refinement_rounds=2,
+                calibration_padding=1.5,
             ),
         )
 
@@ -92,14 +135,16 @@ class ResearchPreset:
             teacher_iterations=40,
             teacher_population=128,
             episodes_per_candidate=3,
+            selection_episodes=100,
+            evaluation_episodes=100,
             hidden_size=32,
             search=SearchConfig(
                 degrees=(1, 2),
-                input_bits=(3, 4, 5, 6),
+                input_bits=(4, 5, 6, 7, 8),
                 coefficient_bits=(3, 4, 6, 8, 10),
                 ridge_values=(1e-4, 1e-3, 1e-2),
                 refinement_rounds=3,
-                calibration_padding=0.5,
+                calibration_padding=1.0,
             ),
         )
 
@@ -144,14 +189,17 @@ def _select_champion(
 ) -> SearchRecord:
     if not frontier:
         raise RuntimeError("policy search produced no Pareto candidates")
+    eligible = [record for record in frontier if record.metrics.range_valid]
+    if not eligible:
+        raise RuntimeError("policy search produced no range-valid Pareto candidates")
     tolerance = max(5.0, 0.05 * abs(teacher_return_mean))
     viable = [
         record
-        for record in frontier
+        for record in eligible
         if record.metrics.return_mean >= teacher_return_mean - tolerance
         and record.metrics.certified_coverage >= 0.95
     ]
-    pool = viable or list(frontier)
+    pool = viable or eligible
     return min(
         pool,
         key=lambda record: (
@@ -207,7 +255,13 @@ def run_experiment(
     )
     destination = Path(output)
     ledger = ArtifactLedger(destination)
-    seeds = SeedPlan.derive(seed_root, env_id, full=preset.full)
+    seeds = SeedPlan.derive(
+        seed_root,
+        env_id,
+        full=preset.full,
+        selection_episodes=preset.selection_episodes,
+        evaluation_episodes=preset.evaluation_episodes,
+    )
     provenance = RunProvenance.capture(
         run_id=identifier,
         project_version=__version__,
@@ -243,17 +297,17 @@ def run_experiment(
         history = ()
     ledger.write_text("teacher/checkpoint.json", teacher.checkpoint.to_json() + "\n")
     ledger.write_jsonl("teacher/training.jsonl", (dataclass_dict(row) for row in history))
-    teacher_return_mean, _ = _teacher_return(teacher, seeds.evaluation)
+    teacher_selection_return, _ = _teacher_return(teacher, seeds.selection)
 
     records = search_policies(
         teacher,
         distillation_seeds=seeds.distillation,
-        evaluation_seeds=seeds.evaluation,
+        selection_seeds=seeds.selection,
         refinement_seeds=seeds.refinement,
         config=preset.search,
     )
     frontier = pareto_front(records)
-    champion = _select_champion(frontier, teacher_return_mean)
+    champion = _select_champion(frontier, teacher_selection_return)
     ledger.write_jsonl(
         "search/candidates.jsonl",
         (
@@ -273,10 +327,42 @@ def run_experiment(
             f"policies/{record.policy.spec.digest}.json", record.policy.spec.to_json() + "\n"
         )
 
-    heldout = collect_trajectories(env_id, teacher, seeds.evaluation)
-    quantized = champion.policy.quantize(heldout.observations, reject=False)
+    teacher_heldout = collect_trajectories(env_id, teacher, seeds.evaluation)
+    deployed_student = IntegerStudent(champion.policy, reject=True)
+    student_heldout = collect_trajectories(env_id, deployed_student, seeds.evaluation)
+    quantized = champion.policy.quantize(student_heldout.observations, reject=True)
+    teacher_actions = np.argmax(teacher.score(student_heldout.observations), axis=1)
+    teacher_agreement = float(np.mean(student_heldout.actions == teacher_actions))
     certificate = certify_actions(
         champion.policy, quantized, global_p_error=preset.search.global_p_error
+    )
+    teacher_return_mean = float(np.mean(teacher_heldout.returns))
+    student_return_mean = float(np.mean(student_heldout.returns))
+    student_constraint_cost = float(np.mean(student_heldout.constraint_costs))
+    teacher_episodes = {episode.seed: episode for episode in teacher_heldout.episodes}
+    student_episodes = {episode.seed: episode for episode in student_heldout.episodes}
+    expected_episode_seeds = set(seeds.evaluation)
+    if (
+        len(teacher_episodes) != len(teacher_heldout.episodes)
+        or len(student_episodes) != len(student_heldout.episodes)
+        or set(teacher_episodes) != expected_episode_seeds
+        or set(student_episodes) != expected_episode_seeds
+    ):
+        raise RuntimeError("held-out teacher and student episodes are not paired by seed")
+    ledger.write_jsonl(
+        "evaluation/episodes.jsonl",
+        (
+            {
+                **dataclass_dict(episode),
+                "mode": mode,
+                "policy_digest": policy_digest,
+            }
+            for seed in seeds.evaluation
+            for mode, episode, policy_digest in (
+                ("FLOAT TEACHER", teacher_episodes[seed], teacher.checkpoint.digest),
+                ("QUANTIZED CLEAR", student_episodes[seed], champion.policy.spec.digest),
+            )
+        ),
     )
     ledger.write_json(
         "certificates/heldout.json",
@@ -301,7 +387,7 @@ def run_experiment(
     simulation_match: bool | None = None
     real_measurements: list[RoundTripMeasurement] = []
     if backend in {"simulate", "fhe"}:
-        calibration = _calibration_with_extrema(champion, heldout.observations)
+        calibration = _calibration_with_extrema(champion, student_heldout.observations)
         with tempfile.TemporaryDirectory(prefix="unseen-loop-fhe-") as temporary:
             compiled = compile_policy(
                 champion.policy,
@@ -344,11 +430,11 @@ def run_experiment(
         frontier_candidates=len(frontier),
         champion_policy_digest=champion.policy.spec.digest,
         champion_name=champion.policy.spec.name,
-        champion_return_mean=champion.metrics.return_mean,
-        champion_return_delta=champion.metrics.return_mean - teacher_return_mean,
-        teacher_agreement=champion.metrics.teacher_agreement,
+        champion_return_mean=student_return_mean,
+        champion_return_delta=student_return_mean - teacher_return_mean,
+        teacher_agreement=teacher_agreement,
         certified_coverage=certificate.coverage,
-        constraint_cost=champion.metrics.constraint_cost,
+        constraint_cost=student_constraint_cost,
         estimated_output_bits=champion.metrics.estimated_bit_width,
         encrypted_multiplications=champion.metrics.encrypted_multiplications,
         box_certificate_coverage=box.coverage if box is not None else None,

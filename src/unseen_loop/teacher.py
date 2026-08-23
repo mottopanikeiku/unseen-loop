@@ -81,6 +81,7 @@ class TrajectoryBatch:
     steps: IntArray
     returns: tuple[float, ...]
     constraint_costs: tuple[float, ...]
+    episodes: tuple[EpisodeResult, ...]
 
 
 @dataclass(frozen=True)
@@ -226,6 +227,7 @@ def collect_trajectories(
     steps: list[int] = []
     returns: list[float] = []
     costs: list[float] = []
+    episode_results: list[EpisodeResult] = []
     for episode_id, seed in enumerate(seeds):
         result, traces = rollout(env_id, policy, seed=seed, max_steps=max_steps, collect=True)
         assert traces is not None
@@ -237,6 +239,7 @@ def collect_trajectories(
         steps.extend(range(len(obs_rows)))
         returns.append(result.total_return)
         costs.append(result.constraint_cost)
+        episode_results.append(result)
     return TrajectoryBatch(
         observations=np.asarray(observations, dtype=np.float64),
         scores=np.asarray(scores, dtype=np.float64),
@@ -245,6 +248,7 @@ def collect_trajectories(
         steps=np.asarray(steps, dtype=np.int64),
         returns=tuple(returns),
         constraint_costs=tuple(costs),
+        episodes=tuple(episode_results),
     )
 
 

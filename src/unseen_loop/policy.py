@@ -66,7 +66,9 @@ class PolynomialPolicy:
     def dequantized_integer_scores(self, quantized: npt.ArrayLike) -> FloatArray:
         return self.integer_scores_from_quantized(quantized) / self.spec.coefficient_scale
 
-    def scores(self, observations: npt.ArrayLike, *, integer: bool = False) -> FloatArray | IntArray:
+    def scores(
+        self, observations: npt.ArrayLike, *, integer: bool = False
+    ) -> FloatArray | IntArray:
         quantized = self.quantize(observations)
         if integer:
             return self.integer_scores_from_quantized(quantized)
@@ -177,7 +179,8 @@ def fit_polynomial_policy(
 
     coefficient_qmax = (1 << (coefficient_bits - 1)) - 1
     largest = float(np.max(np.abs(coefficients)))
-    coefficient_scale = coefficient_qmax / max(largest, np.finfo(np.float64).eps)
+    epsilon = float(np.finfo(np.float64).eps)
+    coefficient_scale = coefficient_qmax / max(largest, epsilon)
     quantized_coefficients = np.rint(coefficients * coefficient_scale)
     quantized_coefficients = np.clip(
         quantized_coefficients, -coefficient_qmax, coefficient_qmax

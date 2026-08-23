@@ -156,9 +156,11 @@ def certify_quantized_box(
     high = upper or tuple(qmax for _ in range(dimensions))
     if len(low) != dimensions or len(high) != dimensions:
         raise ValueError("box endpoints must match the observation dimension")
-    if any(left > right or left < -qmax or right > qmax for left, right in zip(low, high)):
+    if any(
+        left > right or left < -qmax or right > qmax for left, right in zip(low, high, strict=True)
+    ):
         raise ValueError("box must be ordered and lie inside the quantizer domain")
-    points = int(np.prod([right - left + 1 for left, right in zip(low, high)]))
+    points = int(np.prod([right - left + 1 for left, right in zip(low, high, strict=True)]))
     if points > max_points:
         raise ValueError(f"box contains {points} points, above max_points={max_points}")
     if batch_size < 1:
@@ -184,7 +186,7 @@ def certify_quantized_box(
             float(np.max(result.error_bounds)),
         )
 
-    axes = [range(left, right + 1) for left, right in zip(low, high)]
+    axes = [range(left, right + 1) for left, right in zip(low, high, strict=True)]
     for point in product(*axes):
         pending.append(point)
         if len(pending) == batch_size:

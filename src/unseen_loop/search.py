@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import product
+from itertools import combinations, product
 
 import numpy as np
 import numpy.typing as npt
@@ -11,7 +11,7 @@ import numpy.typing as npt
 from unseen_loop.certificate import certificate_guided_weights, certify_actions
 from unseen_loop.policy import FitDiagnostics, PolynomialPolicy, fit_polynomial_policy
 from unseen_loop.specs import CandidateMetrics, FloatArray, QuantizerSpec
-from unseen_loop.teacher import MLPTeacher, collect_trajectories, rollout
+from unseen_loop.teacher import MLPTeacher, collect_trajectories
 
 
 @dataclass(frozen=True)
@@ -21,13 +21,18 @@ class SearchConfig:
     coefficient_bits: tuple[int, ...] = (4, 6, 8)
     ridge_values: tuple[float, ...] = (1e-3, 1e-2)
     refinement_rounds: int = 2
-    calibration_padding: float = 0.25
+    calibration_padding: float = 1.0
+    certificate_weighting: bool = True
+    student_occupancy_refinement: bool = True
     global_p_error: float = 1e-6
 
     @property
     def candidates(self) -> int:
-        return len(self.degrees) * len(self.input_bits) * len(self.coefficient_bits) * len(
-            self.ridge_values
+        return (
+            len(self.degrees)
+            * len(self.input_bits)
+            * len(self.coefficient_bits)
+            * len(self.ridge_values)
         )
 
 
@@ -85,14 +90,14 @@ def pareto_front(records: tuple[SearchRecord, ...]) -> tuple[SearchRecord, ...]:
             -right.metrics.estimated_bit_width,
             -right.metrics.encrypted_multiplications,
         )
-        return all(a >= b for a, b in zip(left_values, right_values)) and any(
-            a > b for a, b in zip(left_values, right_values)
-        )
+        pairs = tuple(zip(left_values, right_values, strict=True))
+        return all(a >= b for a, b in pairs) and any(a > b for a, b in pairs)
 
+    valid_records = tuple(record for record in records if record.metrics.range_valid)
     frontier = [
         record
-        for record in records
-        if not any(dominates(other, record) for other in records if other is not record)
+        for record in valid_records
+        if not any(dominates(other, record) for other in valid_records if other is not record)
     ]
     return tuple(
         sorted(
@@ -144,14 +149,20 @@ def _fit_refined_candidate(
             sample_weights=train_weights,
             quantizer=quantizer,
         )
-        quantized_train = policy.quantize(train_observations, reject=False)
-        certificate = certify_actions(
-            policy, quantized_train, global_p_error=config.global_p_error
-        )
-        train_weights = certificate_guided_weights(certificate)
         if round_index == config.refinement_rounds:
             break
-
+        if config.certificate_weighting:
+            quantized_train = policy.quantize(train_observations, reject=False)
+            certificate = certify_actions(
+                policy, quantized_train, global_p_error=config.global_p_error
+            )
+            train_weights = certificate_guided_weights(certificate)
+        else:
+            train_weights = np.ones(train_observations.shape[0], dtype=np.float64)
+        if not config.student_occupancy_refinement and not config.certificate_weighting:
+            break
+        if not config.student_occupancy_refinement:
+            continue
         adapter = IntegerStudent(policy, reject=False)
         batch = collect_trajectories(
             teacher.checkpoint.env_id,
@@ -163,16 +174,24 @@ def _fit_refined_candidate(
         if batch.observations.size == 0:
             continue
         new_scores = np.asarray(teacher.score(batch.observations), dtype=np.float64)
-        new_quantized = policy.quantize(batch.observations, reject=False)
-        new_certificate = certify_actions(
-            policy, new_quantized, global_p_error=config.global_p_error
-        )
-        new_weights = certificate_guided_weights(
-            new_certificate, uncertified_gain=12.0, mismatch_gain=24.0
-        )
+        if config.certificate_weighting:
+            new_quantized = policy.quantize(batch.observations, reject=False)
+            new_certificate = certify_actions(
+                policy, new_quantized, global_p_error=config.global_p_error
+            )
+            new_weights = certificate_guided_weights(
+                new_certificate, uncertified_gain=12.0, mismatch_gain=24.0
+            )
+        else:
+            new_weights = np.ones(batch.observations.shape[0], dtype=np.float64)
         train_observations = np.concatenate((train_observations, batch.observations), axis=0)
         train_scores = np.concatenate((train_scores, new_scores), axis=0)
         train_weights = np.concatenate((train_weights, new_weights), axis=0)
+        quantizer = QuantizerSpec.calibrate(
+            train_observations,
+            input_bits=input_bits,
+            padding=config.calibration_padding,
+        )
 
     saturation_rate = saturation_count / saturation_calls if saturation_calls else 0.0
     return policy, diagnostics, train_observations.shape[0], saturation_rate
@@ -182,18 +201,23 @@ def search_policies(
     teacher: MLPTeacher,
     *,
     distillation_seeds: tuple[int, ...],
-    evaluation_seeds: tuple[int, ...],
+    selection_seeds: tuple[int, ...],
     refinement_seeds: tuple[int, ...],
-    config: SearchConfig = SearchConfig(),
+    config: SearchConfig | None = None,
 ) -> tuple[SearchRecord, ...]:
     """Search a fixed grid, using student-induced states as certificate counterexamples."""
-    if not distillation_seeds or not evaluation_seeds or not refinement_seeds:
-        raise ValueError("distillation, evaluation, and refinement seeds cannot be empty")
-    if set(distillation_seeds) & set(evaluation_seeds):
-        raise ValueError("distillation and evaluation seeds must be disjoint")
-    teacher_batch = collect_trajectories(
-        teacher.checkpoint.env_id, teacher, distillation_seeds
-    )
+    config = config or SearchConfig()
+    if not distillation_seeds or not selection_seeds or not refinement_seeds:
+        raise ValueError("distillation, selection, and refinement seeds cannot be empty")
+    split_seeds = {
+        "distillation": set(distillation_seeds),
+        "selection": set(selection_seeds),
+        "refinement": set(refinement_seeds),
+    }
+    for (left_name, left), (right_name, right) in combinations(split_seeds.items(), 2):
+        if left & right:
+            raise ValueError(f"{left_name} and {right_name} seeds must be disjoint")
+    teacher_batch = collect_trajectories(teacher.checkpoint.env_id, teacher, distillation_seeds)
     records: list[SearchRecord] = []
 
     for degree, input_bits, coefficient_bits, ridge in product(
@@ -213,21 +237,17 @@ def search_policies(
             refinement_seeds=refinement_seeds,
         )
 
-        heldout = collect_trajectories(teacher.checkpoint.env_id, teacher, evaluation_seeds)
-        quantized_heldout = policy.quantize(heldout.observations, reject=False)
-        student_actions = policy.actions_from_quantized(quantized_heldout, integer=True)
-        agreement = float(np.mean(student_actions == heldout.actions))
-        certificate = certify_actions(
-            policy, quantized_heldout, global_p_error=config.global_p_error
-        )
-
         adapter = IntegerStudent(policy, reject=False)
-        episodes = [
-            rollout(teacher.checkpoint.env_id, adapter, seed=seed)[0]
-            for seed in evaluation_seeds
-        ]
-        returns = np.asarray([episode.total_return for episode in episodes], dtype=np.float64)
-        costs = np.asarray([episode.constraint_cost for episode in episodes], dtype=np.float64)
+        selection = collect_trajectories(teacher.checkpoint.env_id, adapter, selection_seeds)
+        quantized_selection = policy.quantize(selection.observations, reject=False)
+        teacher_actions = np.argmax(teacher.score(selection.observations), axis=1)
+        agreement = float(np.mean(selection.actions == teacher_actions))
+        certificate = certify_actions(
+            policy, quantized_selection, global_p_error=config.global_p_error
+        )
+        returns = np.asarray(selection.returns, dtype=np.float64)
+        costs = np.asarray(selection.constraint_costs, dtype=np.float64)
+        range_valid = adapter.saturations == 0
         metrics = CandidateMetrics(
             policy_digest=policy.spec.digest,
             degree=degree,
@@ -240,6 +260,7 @@ def search_policies(
             constraint_cost=float(np.mean(costs)),
             estimated_bit_width=policy.estimated_output_bits,
             encrypted_multiplications=policy.encrypted_multiplications,
+            range_valid=range_valid,
         )
         records.append(
             SearchRecord(
