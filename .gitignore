@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Local FHE material: never commit client secret keys
+.keys/
+keys/
+**/client-keys/
+*.keyset
+
+# Generated research outputs
+artifacts/runs/
+site/generated/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
