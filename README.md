@@ -29,21 +29,46 @@ Every candidate is evaluated through the same semantics:
 | `FHE SIMULATED` | Concrete compiler simulation | compiled numerical semantics; **not privacy or latency** |
 | `REAL FHE` | keygen → encrypt → homomorphic evaluate → decrypt | encrypted correctness and measured systems cost |
 
-## Planned one-command paths
+## Recorded Modal result
+
+The committed `modal-smoke-001` evidence record was produced by the real end-to-end path on 23 August 2026:
+
+| Measurement | Recorded value |
+|---|---:|
+| GPU teacher search | 2,048 policies × 18 iterations × 12 states on NVIDIA L4 |
+| GPU training wall | 9.497 s |
+| Teacher / quantized student return | 500 / 469 over eight held-out quick-artifact episodes |
+| Held-out certificate coverage | 94.1% |
+| Exhaustive integer-box coverage | 98.9867% of 50,625 codes |
+| FHE configuration | Concrete-Python 2.10.0, category 128, `global_p_error=10^-6` |
+| Cold / warm Modal server evaluation | 43.736 ms / 7.799 ms |
+| Serialized request / response | 32,088 B / 16,168 B |
+| Real-FHE equality | 2 / 2 decrypted outputs equal exact integer clear |
+
+These are smoke measurements, not a latency distribution or multi-task paper result. The selected affine circuit used the Concrete FHE runtime but did not require bootstrapping; no unbounded-depth claim is made. Inspect the [raw recorded evidence](artifacts/reference/modal-smoke-001.json) and the [paper](docs/paper.md).
+
+## One-command paths
 
 ```bash
-# Fast deterministic local research smoke; no privacy claim.
+# Deterministic local research smoke; no privacy claim.
+uv sync --extra dev
 uv run unseen-loop demo --backend clear --output artifacts/demo
 
-# Compile and execute a real encrypted step locally.
-uv sync --extra fhe
-nix_or_linux_command='uv run unseen-loop demo --backend fhe --output artifacts/fhe-smoke'
+# Serialized real FHE locally.
+uv sync --extra dev --extra fhe
+uv run unseen-loop demo --backend fhe --output artifacts/fhe-local
 
-# Train/search on Modal, compile finalists on CPU, and persist signed receipts.
-modal run modal_app.py::research --env-id CartPole-v1 --seeds 0,1,2,3,4
+# NVIDIA L4 teacher → CPU search/compile → local keygen → remote Modal FHE evaluator.
+uv sync --extra cloud --extra fhe
+uv run modal run -w artifacts/modal-evidence.json \
+  modal_app.py::research --run-id my-modal-run
+
+# Publish and inspect the evidence-first report.
+uv run unseen-loop report artifacts/modal-evidence.json
+python -m http.server 8000
 ```
 
-The commands are activated as their implementation lands; CI never aliases a missing FHE runtime to a clear backend.
+The FHE path fails if Concrete is missing; it never aliases clear execution to an FHE label.
 
 ## Security envelope
 
@@ -62,6 +87,18 @@ docs/                  paper, architecture, threat model, reproduction guide
 site/                   generated evidence-first research report
 artifacts/              machine-readable run manifests and raw measurements
 ```
+
+## Research documentation
+
+- [Paper and precise novelty boundary](docs/paper.md)
+- [Threat model and negative tests](docs/threat-model.md)
+- [Architecture and trust boundaries](docs/architecture.md)
+- [Preregistered release benchmark](docs/benchmark-protocol.md)
+- [Local and Modal reproduction](docs/reproduction.md)
+- [Step-by-step encrypted action tutorial](docs/tutorial.md)
+- [Modal resource and cost controls](docs/modal.md)
+
+The interactive report is served from [`site/index.html`](site/index.html); it loads every displayed result from the committed evidence JSON rather than hard-coded hidden state.
 
 ## License
 
