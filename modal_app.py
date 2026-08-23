@@ -92,12 +92,15 @@ def train_teacher_gpu(seed: int, full: bool = False) -> dict[str, Any]:
 )
 def search_on_cpu(checkpoint_json: str, run_id: str, full: bool = False) -> dict[str, Any]:
     """Search the return/certificate/circuit frontier and persist every candidate."""
+    import shutil
     from unseen_loop.artifacts import dataclass_dict
     from unseen_loop.experiment import ResearchPreset, run_experiment
     from unseen_loop.teacher import TeacherCheckpoint
 
     checkpoint = TeacherCheckpoint.from_json(checkpoint_json)
     output = ARTIFACT_ROOT / run_id / "clear-search"
+    if output.exists():
+        shutil.rmtree(output)
     summary = run_experiment(
         env_id=checkpoint.env_id,
         output=output,
@@ -218,11 +221,15 @@ def evaluate_ciphertext(
         TranscriptAuthenticator,
     )
 
+    if len(signed_request_json.encode("utf-8")) > 1_500_000:
+        raise ValueError("signed request exceeds the authenticated transport cap")
     authenticator = TranscriptAuthenticator(authentication_key)
     signed_request = SignedEnvelope.from_json(signed_request_json)
     verified = authenticator.verify(signed_request, RequestEnvelope)
     if not isinstance(verified, RequestEnvelope):
         raise TypeError("authenticated evaluator request has the wrong type")
+    if verified.ciphertext_bytes > 1_048_576:
+        raise ValueError("serialized ciphertext exceeds the evaluator safety cap")
 
     evaluation_key_digest = hashlib.sha256(evaluation_keys).hexdigest()
     actual_server_digest = hashlib.sha256(server_artifact).hexdigest()

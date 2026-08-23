@@ -103,7 +103,7 @@ This proposition says nothing about whether the student matches the teacher. It 
 
 ### 4.1 Domain certificate
 
-For a low-dimensional quantizer box, Unseen Loop enumerates every integer code, hashes the ordered code stream, evaluates the analytical obligation, and checks for certified mismatches. The CartPole quick artifact enumerates $15^4=50{,}625$ codes. Coverage below 100% is reported directly; an exhaustive run is not mislabeled a complete global action guarantee.
+For a low-dimensional quantizer box, Unseen Loop enumerates every integer code, hashes the ordered code stream, evaluates the analytical obligation, and checks for certified mismatches. The CartPole quick artifact enumerates $31^4=923{,}521$ codes over $[-15,15]^4$. Coverage below 100% is reported directly; an exhaustive run is not mislabeled a complete global action guarantee.
 
 ### 4.2 FHE correctness composition
 
@@ -191,6 +191,18 @@ The latency rows are the median of 25 sequential steps from one closed-loop traj
 
 The `unseen-loop/modal-evidence-v2` privacy record persists a top-level authenticated-envelope descriptor, per-call request/response envelope and context digests, same-input and server-artifact secret-marker audits, and the complete encrypted prefix without plaintext private observations or decrypted score vectors. The accompanying nonsecret Modal bundle comprises `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and `checksums.sha256`; the ledger covers the other five files. HMAC authentication detects transcript/context tampering, not incorrect computation by an evaluator that holds the authentication key. The server-archive audit checks filenames for secret markers; it is not a proof that arbitrary archive bytes contain no secret.
 
+### 7.4 Multi-task clear conformance matrix
+
+To exercise the typed suite beyond one task, we recorded a separate clear-only matrix with three environments, five independently seeded checkpoints per environment, eight selection episodes, eight disjoint paired evaluation episodes, and eight policy candidates per run. The transitive checksum ledger covers 15 complete child artifacts, 120 candidates, and 240 episode rows.
+
+| Environment | Mean teacher return | Mean integer-student return | Mean certificate coverage |
+|---|---:|---:|---:|
+| CartPole-v1 | 387.375 | 274.450 | 98.352% |
+| MountainCar-v0 | −200.000 | −200.000 | 100.000% |
+| Acrobot-v1 | −91.725 | −248.725 | 97.926% |
+
+The task-averaged paired return delta is −89.975; the deterministic checkpoint-then-episode bootstrap interval is [−162.134, −24.183]. These results expose, rather than hide, two important failures: the smoke teachers do not solve MountainCar, and the Acrobot polynomial student loses substantial return. The matrix is pipeline/generalization conformance, not privacy evidence, not a powered benchmark, and not a substitute for the full preregistration.
+
 ## 8. Threat model
 
 The evaluator is honest-but-curious, runs a pinned data-independent circuit, and may observe policy/version, tensor shapes, parameter set, ciphertext and evaluation-key sizes, request timing/volume/status, and linkable evaluation-key identity. Assuming secure scheme parameters, fresh client randomness, uncompromised endpoints, and no decryption oracle, FHE computationally hides observation and encrypted-score values.
@@ -205,7 +217,7 @@ Accordingly, Unseen Loop does not claim novelty in “FHE + RL,” policy distil
 
 ## 10. Limitations and next experiments
 
-1. The recorded case study is CartPole only and uses one teacher checkpoint. It is conformance evidence, not a multi-task paper result.
+1. The encrypted case study is CartPole only and uses one teacher checkpoint. The clear 15-run matrix exercises three environments but uses deliberately small smoke teachers and is not a powered release study.
 2. The champion circuit is affine. Quadratic and TLU baselines require matched real-FHE measurements before circuit-family claims.
 3. Certificate coverage is not 100%; behavior at uncertified states remains an empirical property.
 4. The current domain certificate enumerates integer codes, not a continuous reachable-set proof.

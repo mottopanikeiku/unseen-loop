@@ -172,6 +172,8 @@ Use at least four independent warm evaluator containers with 16 shuffled measure
 
 The quick `modal-smoke-001` record does **not** pass the ≥99% post-selection integer-student-occupancy certificate target (95.875%) and has only one teacher checkpoint. Its 25/25 encrypted prefix is conformance evidence; 24/25 reached codes certify. This is not a completed release study or a latency distribution.
 
+The separate `multitask-smoke-2026-08` clear matrix materializes all three environments and five checkpoints each with 120 candidates and 240 paired episode rows, but uses only eight selection/evaluation episodes and small teachers. Its paired-return interval excludes zero and its Acrobot student regresses sharply; it is transparent conformance evidence, not a pass of these release gates and not FHE evidence.
+
 ## Invalid comparisons
 
 Reject:

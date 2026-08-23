@@ -18,6 +18,17 @@ def test_ledger_finalizes_and_detects_tampering(tmp_path) -> None:
     assert failures == ("checksum mismatch: summary.json",)
 
 
+def test_ledger_rejects_unledgered_files(tmp_path) -> None:
+    ledger = ArtifactLedger(tmp_path)
+    ledger.write_json("summary.json", {"complete": True})
+    ledger.finalize()
+    (tmp_path / "stale.json").write_text("{}")
+
+    valid, failures = ledger.verify()
+    assert not valid
+    assert failures == ("unledgered artifact: stale.json",)
+
+
 def test_ledger_refuses_secret_key_paths(tmp_path) -> None:
     ledger = ArtifactLedger(tmp_path)
     with pytest.raises(ValueError, match="secret-key"):

@@ -62,7 +62,7 @@
     </section>
 
     <section class="section shell" aria-labelledby="envelope-heading">
-      <div class="section-head"><h2 id="envelope-heading">Authenticated envelope and nonsecret bundle.</h2><p>Authentication detects replay, substitution, corruption, and context mismatch. It binds the transcript; it does not prove that a malicious evaluator ran the circuit.</p></div>
+      <div class="section-head"><h2 id="envelope-heading">Authenticated envelope and nonsecret bundle.</h2><p>Authentication detects substitution, corruption, and context mismatch; the separate durable replay ledger rejects request reuse inside the freshness window. These controls bind the transcript but do not prove that a malicious evaluator ran the circuit.</p></div>
       <div class="receipt-grid">
         <div class="receipt-cell"><span class="label">Protocol</span><span class="receipt-value" data-field="protocol">NOT MEASURED</span></div>
         <div class="receipt-cell"><span class="label">Authentication</span><span class="receipt-value" data-field="authentication-algorithm">NOT MEASURED</span></div>

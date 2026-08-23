@@ -37,7 +37,7 @@ The evaluator follows the protocol and committed circuit but records its complet
 
 ### A2: malicious network — partially in scope
 
-A network adversary may replay, swap, truncate, corrupt, or downgrade envelopes. The implemented `authenticated-envelope-v1` protocol HMAC-authenticates canonical request and response documents and validates freshness, policy digest, circuit digest, client-context digest, evaluation-key digest, fixed shape, fixed ciphertext length, response-to-request binding, and schema. Random nonces are included and the local client rejects a nonce it generates twice.
+A network adversary may replay, swap, truncate, corrupt, or downgrade envelopes. The implemented `authenticated-envelope-v1` protocol HMAC-authenticates canonical request and response documents and validates freshness, policy digest, circuit digest, client-context digest, evaluation-key digest, fixed shape, canonical payload length, a 1 MiB ciphertext safety cap, response-to-request binding, and schema. Random nonces are included and the local client rejects a nonce it generates twice.
 
 After those checks, the serialized Modal evaluator atomically claims the authenticated request digest in `/artifacts/protocol/replay-ledger.json` and commits the shared Volume before deserializing any FHE input. Claims survive evaluator container restarts and are retained for ten minutes, beyond the five-minute freshness window, so every request still eligible for evaluation remains replay-protected. The HMAC assumes the per-run authentication key remains secret from the network adversary; it demonstrates message authentication but is not a replacement for deployment transport security. Traffic analysis remains out of scope.
 
@@ -106,7 +106,7 @@ This is operational transcript integrity, not evaluation integrity. An evaluator
 | TM-02 | Swap response between request IDs | reject before decryption |
 | TM-03 | Change policy/circuit digest | reject downgrade/substitution |
 | TM-04 | Wrong context/evaluation-key digest | reject context confusion |
-| TM-05 | Truncated/oversized base64 payload | reject fixed-length violation |
+| TM-05 | Truncated or oversized base64 payload | reject canonical-length mismatch or 1 MiB cap violation |
 | TM-06 | Stale/future request clock | reject freshness violation |
 | TM-07 | Valid authentication over wrong encrypted result | authenticate transcript but document that correctness is not established |
 | TM-08 | Wrong-shape decrypted result | fail closed; do not actuate |

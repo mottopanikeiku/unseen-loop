@@ -51,6 +51,14 @@ function requireString(value, name) {
   return value;
 }
 
+function requireDigest(value, name) {
+  const digest = requireString(value, name);
+  if (!/^[0-9a-f]{64}$/.test(digest)) {
+    throw new Error(`${name} must be a lowercase SHA-256 digest`);
+  }
+  return digest;
+}
+
 function assertEvidence(data) {
   const root = requireObject(data, "evidence");
   if (root.schema_version !== "unseen-loop/modal-evidence-v2") {
@@ -188,7 +196,23 @@ function assertEvidence(data) {
       [protocol.request_envelope_digest, "protocol.request_envelope_digest"],
       [protocol.response_envelope_digest, "protocol.response_envelope_digest"],
       [protocol.evaluation_key_digest, "protocol.evaluation_key_digest"],
-    ].forEach(([value, field]) => requireString(value, `REAL-FHE row ${index}.${field}`));
+    ].forEach(([value, field]) => requireDigest(value, `REAL-FHE row ${index}.${field}`));
+    if (
+      !Number.isInteger(row.action)
+      || row.action < 0
+      || row.action >= receipt.integer_output_bound.length
+    ) {
+      throw new Error(`REAL-FHE row ${index}.action is outside the action space`);
+    }
+    if (index < trials.length) {
+      const outputShape = requireArray(row.output_shape, `REAL-FHE row ${index}.output_shape`);
+      if (
+        outputShape.length !== 1
+        || outputShape[0] !== receipt.integer_output_bound.length
+      ) {
+        throw new Error(`REAL-FHE row ${index}.output_shape is invalid`);
+      }
+    }
     if ("online_end_to_end_ns" in row) {
       requireNumber(row.online_end_to_end_ns, `REAL-FHE row ${index}.online_end_to_end_ns`);
     }
@@ -370,6 +394,11 @@ function initTrace(data) {
 
   play.addEventListener("click", () => {
     window.clearInterval(timer);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      show(5);
+      play.textContent = "Replay canary trace";
+      return;
+    }
     show(0);
     play.textContent = "Playing…";
     timer = window.setInterval(() => {
@@ -379,7 +408,7 @@ function initTrace(data) {
         return;
       }
       show(current + 1);
-    }, window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 30 : 850);
+    }, 850);
   });
 
   function selectCanary(index) {

@@ -126,12 +126,14 @@ class ArtifactLedger:
         if not checksum_path.exists():
             return False, ("checksums.sha256 is missing",)
         failures: list[str] = []
+        expected_paths: set[Path] = set()
         for line in checksum_path.read_text().splitlines():
             expected, separator, relative = line.partition("  ")
             if not separator:
                 failures.append(f"malformed checksum row: {line}")
                 continue
             path = self._validate_relative(relative)
+            expected_paths.add(path)
             source = self.root / path
             if not source.exists():
                 failures.append(f"missing artifact: {relative}")
@@ -139,6 +141,13 @@ class ArtifactLedger:
             actual = hashlib.sha256(source.read_bytes()).hexdigest()
             if actual != expected:
                 failures.append(f"checksum mismatch: {relative}")
+        actual_paths = {
+            path.relative_to(self.root)
+            for path in self.root.rglob("*")
+            if path.is_file() and path != checksum_path
+        }
+        for extra in sorted(actual_paths - expected_paths):
+            failures.append(f"unledgered artifact: {extra.as_posix()}")
         return not failures, tuple(failures)
 
 

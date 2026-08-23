@@ -49,6 +49,18 @@ These are smoke measurements, not a latency distribution or multi-task paper res
 
 The `unseen-loop/modal-evidence-v2` record contains the complete 25-step encrypted prefix, a top-level `authenticated_envelope_protocol` descriptor, and per-call request/response envelope and context digests. It does not persist plaintext private observations or decrypted score vectors. Its nonsecret Modal bundle contains `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and `checksums.sha256`; the ledger checksums the other five files. Inspect the [raw recorded evidence](artifacts/reference/modal-smoke-001.json) and the [paper](docs/paper.md).
 
+## Recorded 15-run clear multi-task smoke
+
+The committed [`multitask-smoke-2026-08`](artifacts/multitask-smoke/suite-summary.json) executes CartPole, MountainCar, and Acrobot with five independently seeded checkpoints each, eight selection episodes, eight disjoint paired evaluation episodes, and eight policy candidates per run. Its transitive ledger covers all 15 child artifacts, 120 candidate rows, and 240 retained episode rows.
+
+| Environment | Mean teacher return | Mean integer-student return | Mean certificate coverage |
+|---|---:|---:|---:|
+| CartPole-v1 | 387.375 | 274.450 | 98.352% |
+| MountainCar-v0 | −200.000 | −200.000 | 100.000% |
+| Acrobot-v1 | −91.725 | −248.725 | 97.926% |
+
+The task-averaged paired return delta is −89.975 with a checkpoint-then-episode bootstrap interval [−162.134, −24.183]. This is intentionally **clear-only conformance evidence**, not privacy evidence or the preregistered full release. Its poor Acrobot/student and unsolved MountainCar results are retained rather than hidden.
+
 ## One-command paths
 
 ```bash
