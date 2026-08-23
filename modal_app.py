@@ -93,6 +93,7 @@ def train_teacher_gpu(seed: int, full: bool = False) -> dict[str, Any]:
 def search_on_cpu(checkpoint_json: str, run_id: str, full: bool = False) -> dict[str, Any]:
     """Search the return/certificate/circuit frontier and persist every candidate."""
     import shutil
+
     from unseen_loop.artifacts import dataclass_dict
     from unseen_loop.experiment import ResearchPreset, run_experiment
     from unseen_loop.teacher import TeacherCheckpoint

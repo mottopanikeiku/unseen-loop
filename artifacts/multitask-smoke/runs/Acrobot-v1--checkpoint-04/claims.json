@@ -1,0 +1,15 @@
+{
+  "not_supported": [
+    "malicious-server computation integrity",
+    "model confidentiality against adaptive clients",
+    "private training",
+    "traffic-flow confidentiality",
+    "endpoint security"
+  ],
+  "privacy_evidence": false,
+  "supported": [
+    "client-side quantization is frozen and range checked",
+    "certificate-guided search measures student-induced closed-loop return",
+    "execution evidence label: QUANTIZED CLEAR"
+  ]
+}

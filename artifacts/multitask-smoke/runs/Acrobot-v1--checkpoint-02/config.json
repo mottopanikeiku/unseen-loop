@@ -1,0 +1,35 @@
+{
+  "preset": {
+    "episodes_per_candidate": 1,
+    "evaluation_episodes": 8,
+    "full": true,
+    "hidden_size": 12,
+    "search": {
+      "calibration_padding": 1.5,
+      "certificate_weighting": true,
+      "coefficient_bits": [
+        8,
+        10
+      ],
+      "degrees": [
+        1,
+        2
+      ],
+      "global_p_error": 1e-06,
+      "input_bits": [
+        5,
+        6
+      ],
+      "refinement_rounds": 1,
+      "ridge_values": [
+        0.001
+      ],
+      "student_occupancy_refinement": true
+    },
+    "selection_episodes": 8,
+    "teacher_iterations": 8,
+    "teacher_population": 32
+  },
+  "search_candidates": 8,
+  "teacher_source": "local-cem"
+}

@@ -1,0 +1,64 @@
+schema_version = "unseen-loop/release-suite-v1"
+name = "multitask-smoke-2026-08"
+seed_root = "multitask-smoke-2026-08"
+fhe_runtime = "clear-only-no-privacy-claim"
+security_level = 128
+global_p_error = 1e-6
+stable_argmax = "lowest-index"
+
+[workloads]
+environments = ["CartPole-v1", "MountainCar-v0", "Acrobot-v1"]
+checkpoints_per_environment = 5
+selection_episodes = 8
+evaluation_episodes = 8
+real_challenge_rows = 1
+real_canary_repetitions = 1
+closed_loop_fhe_prefix_steps = 1
+
+[search]
+degrees = [1, 2]
+input_bits = [5, 6]
+coefficient_bits = [8, 10]
+ridge = [1e-3]
+refinement_rounds = 1
+calibration_padding = 1.5
+
+[training.gpu]
+type = "CPU smoke"
+population = 32
+iterations = 8
+episodes_per_candidate = 1
+hidden_size = 12
+
+[timing]
+warm_containers = 1
+warmups_per_container = 0
+measured_requests_per_container = 1
+batch = 1
+concurrency = 1
+
+[gates]
+integer_simulation_exact = false
+real_fhe_exact = false
+minimum_security_level = 128
+maximum_global_p_error = 1e-6
+minimum_action_agreement = 0.0
+minimum_checkpoint_action_agreement = 0.0
+minimum_certified_occupancy = 0.5
+maximum_certified_mismatches = 0
+maximum_in_domain_saturation = 0.001
+maximum_warm_end_to_end_seconds = 60.0
+server_secret_key_present = false
+
+[claims]
+allowed = [
+  "clear multi-task pipeline conformance",
+  "post-selection paired return rows",
+  "student-occupancy certificate coverage",
+]
+forbidden = [
+  "privacy evidence",
+  "REAL FHE execution",
+  "release-study completion",
+  "statistical power beyond this smoke matrix",
+]

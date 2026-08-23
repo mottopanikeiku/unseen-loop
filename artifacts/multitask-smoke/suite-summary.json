@@ -1,0 +1,38 @@
+{
+  "all_champions_range_valid": true,
+  "all_runs_complete": true,
+  "all_suite_gates_passed": true,
+  "backend": "clear",
+  "candidates_per_run": 8,
+  "checkpoints_per_environment": 5,
+  "completed_runs": 15,
+  "config_sha256": "409e1af7201955cf5e58e6046ea79b13365453a9cbb16886ad9b6184a56a0e2a",
+  "environments": [
+    "CartPole-v1",
+    "MountainCar-v0",
+    "Acrobot-v1"
+  ],
+  "evaluation_episodes_per_checkpoint": 8,
+  "expected_candidate_rows": 120,
+  "expected_paired_episodes": 120,
+  "expected_runs": 15,
+  "expected_selection_episodes": 120,
+  "name": "multitask-smoke-2026-08",
+  "paired_return_delta": {
+    "ci95_high": -24.18270833333334,
+    "ci95_low": -162.13354166666664,
+    "mean": -89.97500000000001,
+    "method": "paired episodes within checkpoints; checkpoints within fixed environments",
+    "repetitions": 10000,
+    "seed": 2427220432863896912,
+    "seed_namespace": "multitask-smoke-2026-08|paired-return-bootstrap-v1"
+  },
+  "retained_episode_rows": 240,
+  "retained_paired_episodes": 120,
+  "schema_version": "unseen-loop/release-suite-v1",
+  "selection_episodes_per_checkpoint": 8,
+  "suite_gate_scope": [
+    "minimum_certified_occupancy",
+    "maximum_certified_mismatches"
+  ]
+}

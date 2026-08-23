@@ -1,0 +1,21 @@
+{
+  "command": [
+    "unseen-loop",
+    "research",
+    "--env-id",
+    "MountainCar-v0",
+    "--backend",
+    "clear"
+  ],
+  "created_utc": "2026-08-23T19:48:20.393697+00:00",
+  "git_commit": "fb0fc1e62213a6cfc0708a876107ab59525b3711",
+  "git_dirty": false,
+  "machine": "x86_64",
+  "mode": "clear",
+  "platform": "Linux-7.1.7-200.fc44.x86_64-x86_64-with-glibc2.43",
+  "processor": "",
+  "project_version": "0.1.0",
+  "python_version": "3.12.13",
+  "run_id": "MountainCar-v0--checkpoint-00",
+  "schema_version": "unseen-loop/run-provenance-v1"
+}
