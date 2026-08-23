@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.12.2"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - run: uv sync --frozen --extra dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check src tests modal_app.py
+      - run: uv run mypy
+      - run: uv run pytest -q -m "not fhe"
+      - name: Parse the preregistered release matrix
+        run: >-
+          uv run python -c "from unseen_loop.suite import load_release_config;
+          c, digest = load_release_config('experiments/release.toml');
+          assert c.expected_runs == 15 and c.expected_selection_episodes == 1500
+          and c.expected_paired_episodes == 1500 and c.expected_candidate_rows == 1800
+          and len(digest) == 64"
+      - run: uv run unseen-loop report artifacts/reference/modal-smoke-001.json --output /tmp/evidence.json
+      - run: cmp /tmp/evidence.json site/data/evidence.json
+      - run: node --check site/app.js
+
+  smoke:
+    name: Deterministic clear research smoke
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --extra dev
+      - run: uv run unseen-loop demo --backend clear --output /tmp/unseen-loop-smoke
+      - run: uv run unseen-loop verify /tmp/unseen-loop-smoke
+      - name: Enforce honest mode label
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          summary = json.loads(Path('/tmp/unseen-loop-smoke/summary.json').read_text())
+          assert summary['label'] == 'QUANTIZED CLEAR'
+          assert summary['privacy_evidence'] is False
+          PY

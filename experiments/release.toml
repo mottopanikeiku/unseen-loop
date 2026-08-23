@@ -1,15 +1,16 @@
-schema_version = "unseen-loop/experiment-v1"
+schema_version = "unseen-loop/release-suite-v1"
 name = "release-2026-08"
 seed_root = "release-2026-08"
-backend = "concrete-python-2.10.0"
+fhe_runtime = "concrete-python-2.10.0"
 security_level = 128
 global_p_error = 1e-6
 stable_argmax = "lowest-index"
 
 [workloads]
 environments = ["CartPole-v1", "MountainCar-v0", "Acrobot-v1"]
-training_seeds = 5
-evaluation_seeds = 100
+checkpoints_per_environment = 5
+selection_episodes = 100
+evaluation_episodes = 100
 real_challenge_rows = 64
 real_canary_repetitions = 5
 closed_loop_fhe_prefix_steps = 25

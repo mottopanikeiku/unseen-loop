@@ -1,0 +1,48 @@
+name: Real FHE canary
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-fhe-canary
+  cancel-in-progress: false
+
+jobs:
+  real-fhe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.12.2"
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --extra dev --extra fhe
+      - name: Python tests with branch coverage
+        run: uv run pytest --cov=unseen_loop --cov-report=term-missing -q
+      - name: End-to-end REAL FHE smoke
+        run: uv run unseen-loop demo --backend fhe --output /tmp/unseen-loop-fhe
+      - name: Verify evidence gates
+        run: |
+          uv run unseen-loop verify /tmp/unseen-loop-fhe
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          summary = json.loads(Path('/tmp/unseen-loop-fhe/summary.json').read_text())
+          assert summary['label'] == 'REAL FHE'
+          assert summary['privacy_evidence'] is True
+          assert summary['simulated_matches_integer'] is True
+          assert summary['real_fhe_all_match'] is True
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-fhe-canary-${{ github.run_id }}
+          path: /tmp/unseen-loop-fhe
+          retention-days: 14

@@ -10,6 +10,7 @@ from pathlib import Path
 
 from unseen_loop.artifacts import dataclass_dict
 from unseen_loop.experiment import ResearchPreset, load_summary, run_experiment, verify_artifact
+from unseen_loop.suite import run_release_suite
 
 
 def _git_state() -> tuple[str | None, bool | None]:
@@ -46,11 +47,20 @@ def _parser() -> argparse.ArgumentParser:
     demo.add_argument("--output", type=Path, default=Path("artifacts/demo"))
     demo.add_argument("--seed-root", default="demo-2026-08")
 
-    research = subcommands.add_parser("research", help="run the preregistered full search")
+    research = subcommands.add_parser(
+        "research", help="run one environment with the full research preset"
+    )
     research.add_argument("--env-id", default="CartPole-v1")
     research.add_argument("--backend", choices=("clear", "simulate", "fhe"), default="clear")
     research.add_argument("--output", type=Path, required=True)
     research.add_argument("--seed-root", default="release-2026-08")
+
+    suite = subcommands.add_parser(
+        "suite", help="run every environment/checkpoint declared by a release TOML"
+    )
+    suite.add_argument("--config", type=Path, default=Path("experiments/release.toml"))
+    suite.add_argument("--backend", choices=("clear", "simulate", "fhe"), default="clear")
+    suite.add_argument("--output", type=Path, required=True)
 
     verify = subcommands.add_parser("verify", help="verify an artifact checksum ledger")
     verify.add_argument("artifact", type=Path)
@@ -78,6 +88,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             git_dirty=dirty,
         )
         print(json.dumps(dataclass_dict(summary), sort_keys=True, indent=2))
+        return 0
+    if arguments.command == "suite":
+        commit, dirty = _git_state()
+        suite_summary = run_release_suite(
+            config_path=arguments.config,
+            output=arguments.output,
+            backend=arguments.backend,
+            git_commit=commit,
+            git_dirty=dirty,
+        )
+        print(json.dumps(suite_summary, sort_keys=True, indent=2))
         return 0
     if arguments.command == "verify":
         valid, failures = verify_artifact(arguments.artifact)
