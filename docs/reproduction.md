@@ -104,6 +104,18 @@ python -m http.server 8000
 
 ## Release suite versus single-checkpoint scale-up
 
+The committed measured smoke matrix is exactly reproduced with:
+
+```bash
+uv run unseen-loop suite \
+  --config experiments/multitask-smoke.toml \
+  --backend clear \
+  --output artifacts/multitask-smoke-reproduction
+```
+
+It runs three environments × five checkpoints with eight selection and eight disjoint evaluation episodes per checkpoint. It retains 120 paired episodes / 240 long-form rows and is explicitly clear-only conformance evidence.
+
+
 The preregistered release path is the typed suite command:
 
 ```bash

@@ -61,6 +61,15 @@ The committed [`multitask-smoke-2026-08`](artifacts/multitask-smoke/suite-summar
 
 The task-averaged paired return delta is −89.975 with a checkpoint-then-episode bootstrap interval [−162.134, −24.183]. This is intentionally **clear-only conformance evidence**, not privacy evidence or the preregistered full release. Its poor Acrobot/student and unsolved MountainCar results are retained rather than hidden.
 
+Reproduce that exact measured matrix:
+
+```bash
+uv run unseen-loop suite \
+  --config experiments/multitask-smoke.toml \
+  --backend clear \
+  --output artifacts/multitask-smoke-reproduction
+```
+
 ## One-command paths
 
 ```bash
