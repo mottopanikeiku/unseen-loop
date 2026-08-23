@@ -8,6 +8,7 @@ import json
 import time
 import zipfile
 from dataclasses import asdict, dataclass
+from itertools import product
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +32,10 @@ class CircuitReceipt:
     maximum_integer_bit_width: int
     complexity: float
     input_shape: tuple[int, ...]
+    calibration_strategy: str
+    domain_points: int
     calibration_rows: int
+    calibration_sha256: str
     input_min: tuple[int, ...]
     input_max: tuple[int, ...]
     integer_output_bound: tuple[int, ...]
@@ -52,9 +56,8 @@ class CircuitReceipt:
 
 @dataclass(frozen=True)
 class RoundTripMeasurement:
-    integer_input: tuple[int, ...]
-    integer_output: tuple[int, ...]
-    clear_output: tuple[int, ...]
+    input_shape: tuple[int, ...]
+    output_shape: tuple[int, ...]
     output_matches_clear: bool
     keygen_ns: int
     encrypt_ns: int
@@ -66,9 +69,9 @@ class RoundTripMeasurement:
     response_bytes: int
     request_sha256: str
     response_sha256: str
-    server_secret_key_present: bool
+    server_secret_key_marker_present: bool
     backend: str = "REAL FHE"
-    schema_version: str = "unseen-loop/fhe-measurement-v1"
+    schema_version: str = "unseen-loop/fhe-measurement-v2"
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), sort_keys=True, indent=2)
@@ -93,7 +96,9 @@ class CompiledPolicy:
         values = np.asarray(quantized, dtype=np.int64)
         if values.shape != (self.policy.spec.quantizer.n_features,):
             raise ValueError("real FHE roundtrip accepts exactly one observation")
-        if np.any(np.abs(values) > self.policy.spec.quantizer.qmax):
+        if np.any(values < -self.policy.spec.quantizer.qmax) or np.any(
+            values > self.policy.spec.quantizer.qmax
+        ):
             raise ValueError("input is outside the compiled domain")
 
         started = time.perf_counter_ns()
@@ -129,9 +134,8 @@ class CompiledPolicy:
         clear = np.atleast_1d(self.policy.integer_scores_from_quantized(values))
         decrypted = np.atleast_1d(decrypted)
         return RoundTripMeasurement(
-            integer_input=tuple(int(value) for value in values),
-            integer_output=tuple(int(value) for value in decrypted),
-            clear_output=tuple(int(value) for value in clear),
+            input_shape=tuple(int(value) for value in values.shape),
+            output_shape=tuple(int(value) for value in decrypted.shape),
             output_matches_clear=bool(np.array_equal(decrypted, clear)),
             keygen_ns=keygen_ns,
             encrypt_ns=encrypt_ns,
@@ -143,7 +147,7 @@ class CompiledPolicy:
             response_bytes=len(serialized_output),
             request_sha256=hashlib.sha256(serialized_input).hexdigest(),
             response_sha256=hashlib.sha256(serialized_output).hexdigest(),
-            server_secret_key_present=bool(self.receipt.server_secret_key_markers),
+            server_secret_key_marker_present=bool(server_artifact_secret_markers(self.server_path)),
         )
 
 
@@ -177,14 +181,60 @@ def _policy_kernel(policy: PolynomialPolicy) -> Any:
     return fhe.compiler({"x": "encrypted"})(kernel)
 
 
-def _zip_secret_markers(path: Path) -> tuple[str, ...]:
+def server_artifact_secret_markers(path: str | Path) -> tuple[str, ...]:
+    """Return suspicious archive member names; this is an audit signal, not a key proof."""
     markers: list[str] = []
-    with zipfile.ZipFile(path) as archive:
+    with zipfile.ZipFile(Path(path)) as archive:
         for name in archive.namelist():
-            lowered = name.lower()
-            if "secret" in lowered or "private_key" in lowered or "client_key" in lowered:
+            normalized = name.lower().replace("-", "_").replace(".", "_")
+            parts = {part for part in normalized.replace("/", "_").split("_") if part}
+            explicit_marker = (
+                "secret" in parts
+                or "private" in parts
+                or "clientkey" in parts
+                or "secretkey" in parts
+                or "privatekey" in parts
+                or {"client", "key"} <= parts
+            )
+            if explicit_marker:
                 markers.append(name)
     return tuple(sorted(markers))
+
+
+MAX_CALIBRATION_POINTS = 1_000_000
+
+
+def calibration_inputset(
+    policy: PolynomialPolicy,
+    *,
+    max_points: int = MAX_CALIBRATION_POINTS,
+) -> tuple[IntArray, str, int]:
+    """Construct a range-sound compiler inputset for the complete supported domain."""
+    if max_points < 1:
+        raise ValueError("calibration safety cap must be positive")
+    qmax = policy.spec.quantizer.qmax
+    dimensions = policy.spec.quantizer.n_features
+    domain_points = (2 * qmax + 1) ** dimensions
+    if policy.spec.degree == 1:
+        calibration_points = 2**dimensions
+        if calibration_points > max_points:
+            raise ValueError(
+                "degree-one corner calibration requires "
+                f"{calibration_points} points above the {max_points:,}-point safety cap"
+            )
+        values = product((-qmax, qmax), repeat=dimensions)
+        strategy = "all signed-domain corners"
+    else:
+        calibration_points = domain_points
+        if calibration_points > max_points:
+            raise ValueError(
+                "degree-two FHE compilation requires exhaustive calibration; "
+                f"domain has {domain_points} points above the {max_points:,}-point safety cap"
+            )
+        values = product(range(-qmax, qmax + 1), repeat=dimensions)
+        strategy = "exhaustive signed integer domain"
+    calibration = np.asarray(tuple(values), dtype=np.int64)
+    return calibration, strategy, domain_points
 
 
 def compile_policy(
@@ -206,8 +256,10 @@ def compile_policy(
         raise ValueError("calibration_quantized must have shape (samples, observation_features)")
     if calibration.shape[0] < 2:
         raise ValueError("at least two calibration rows are required")
-    if np.any(np.abs(calibration) > policy.spec.quantizer.qmax):
+    qmax = policy.spec.quantizer.qmax
+    if np.any(calibration < -qmax) or np.any(calibration > qmax):
         raise ValueError("calibration input exceeds the quantizer domain")
+    calibration, calibration_strategy, domain_points = calibration_inputset(policy)
 
     fhe = _import_fhe()
     compiler = _policy_kernel(policy)
@@ -248,6 +300,9 @@ def compile_policy(
         complexity=float(circuit.complexity),
         input_shape=expected_shape,
         calibration_rows=calibration.shape[0],
+        calibration_strategy=calibration_strategy,
+        domain_points=domain_points,
+        calibration_sha256=hashlib.sha256(calibration.tobytes(order="C")).hexdigest(),
         input_min=tuple(int(value) for value in np.min(calibration, axis=0)),
         input_max=tuple(int(value) for value in np.max(calibration, axis=0)),
         integer_output_bound=tuple(int(value) for value in policy.integer_output_bound()),
@@ -257,7 +312,7 @@ def compile_policy(
         client_specs_sha256=hashlib.sha256(specs_bytes).hexdigest(),
         compile_ns=compile_ns,
         mlir_sha256=hashlib.sha256(mlir.encode()).hexdigest(),
-        server_secret_key_markers=_zip_secret_markers(server_path),
+        server_secret_key_markers=server_artifact_secret_markers(server_path),
     )
     (destination / "receipt.json").write_text(receipt.to_json() + "\n")
     return CompiledPolicy(
