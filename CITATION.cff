@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use Unseen Loop, cite this software artifact."
+title: "Unseen Loop: Certificate-Guided Distillation for Encrypted Closed-Loop Policy Serving"
+type: software
+authors:
+  - family-names: "mottopanikeiku"
+version: 0.1.0
+date-released: 2026-08-23
+license: MIT
+repository-code: "https://github.com/mottopanikeiku/unseen-loop"
+keywords:
+  - fully homomorphic encryption
+  - privacy-preserving machine learning
+  - reinforcement learning
+  - encrypted inference
+  - policy distillation
+  - action-invariance certificates

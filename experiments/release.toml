@@ -1,0 +1,64 @@
+schema_version = "unseen-loop/experiment-v1"
+name = "release-2026-08"
+seed_root = "release-2026-08"
+backend = "concrete-python-2.10.0"
+security_level = 128
+global_p_error = 1e-6
+stable_argmax = "lowest-index"
+
+[workloads]
+environments = ["CartPole-v1", "MountainCar-v0", "Acrobot-v1"]
+training_seeds = 5
+evaluation_seeds = 100
+real_challenge_rows = 64
+real_canary_repetitions = 5
+closed_loop_fhe_prefix_steps = 25
+
+[search]
+degrees = [1, 2]
+input_bits = [3, 4, 5, 6]
+coefficient_bits = [3, 4, 6, 8, 10]
+ridge = [1e-4, 1e-3, 1e-2]
+refinement_rounds = 3
+calibration_padding = 0.5
+
+[training.gpu]
+type = "L4"
+population = 8192
+iterations = 40
+episodes_per_candidate = 32
+hidden_size = 24
+
+[timing]
+warm_containers = 4
+warmups_per_container = 3
+measured_requests_per_container = 16
+batch = 1
+concurrency = 1
+
+[gates]
+integer_simulation_exact = true
+real_fhe_exact = true
+minimum_security_level = 128
+maximum_global_p_error = 1e-6
+minimum_action_agreement = 0.99
+minimum_checkpoint_action_agreement = 0.97
+minimum_certified_occupancy = 0.99
+maximum_certified_mismatches = 0
+maximum_in_domain_saturation = 0.001
+maximum_warm_end_to_end_seconds = 60.0
+server_secret_key_present = false
+
+[claims]
+allowed = [
+  "input-private inference against an honest-but-curious evaluator",
+  "measured real-FHE execution for explicitly labeled rows",
+  "float-student versus integer-circuit action invariance on certified codes",
+]
+forbidden = [
+  "private training",
+  "malicious-server integrity",
+  "model extraction resistance",
+  "simulation as privacy evidence",
+  "unbounded FHE depth for a bounded leveled circuit",
+]
