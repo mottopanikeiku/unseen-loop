@@ -170,7 +170,7 @@ Use at least four independent warm evaluator containers with 16 shuffled measure
 | Modal viability | every request returns; recorded SKU/image; warm end-to-end ≤60 s |
 | Reproducibility | deterministic artifact hashes and summary regenerate from clean commit |
 
-The quick `modal-smoke-001` record does **not** pass the ≥99% post-selection integer-student-occupancy certificate target (94.1%) and has only one teacher checkpoint. Its 25/25 encrypted prefix is conformance evidence, not a completed release study or a latency distribution.
+The quick `modal-smoke-001` record does **not** pass the ≥99% post-selection integer-student-occupancy certificate target (95.875%) and has only one teacher checkpoint. Its 25/25 encrypted prefix is conformance evidence; 24/25 reached codes certify. This is not a completed release study or a latency distribution.
 
 ## Invalid comparisons
 

@@ -36,14 +36,14 @@ The committed `modal-smoke-001` record was produced by the real end-to-end path 
 | Measurement | Recorded value |
 |---|---:|
 | GPU teacher search | 2,048 policies × 18 iterations × 12 states on NVIDIA L4 |
-| GPU training wall | 6.548 s |
-| Teacher / quantized student return | 500 / 469 over the same eight post-selection evaluation episodes |
-| Post-selection integer-student-occupancy certificate coverage | 94.1% |
-| Exhaustive integer-box coverage | 98.9867% of 50,625 codes |
+| GPU training wall | 9.668 s |
+| Teacher / quantized student return | 500 / 500 over the same eight post-selection evaluation episodes |
+| Post-selection integer-student-occupancy certificate coverage | 95.875% |
+| Exhaustive integer-box coverage | 98.7534% of 923,521 codes |
 | FHE configuration | Concrete-Python 2.10.0, category 128, `global_p_error=10^-6` |
-| REAL FHE closed-loop prefix | 25 / 25 encrypted steps match integer clear; all 25 reached codes certified |
-| Median across those 25 sequential steps | 9.126 ms server evaluation / 176.435 ms client-observed online time |
-| Serialized request / response | 32,088 B / 16,168 B |
+| REAL FHE closed-loop prefix | 25 / 25 encrypted steps match integer clear; 24 / 25 reached codes certified |
+| Median across those 25 sequential steps | 11.058 ms server evaluation / 1,795.318 ms client-observed online time |
+| Serialized request / response | 33,592 B / 16,920 B |
 
 These are smoke measurements, not a latency distribution or multi-task paper result. The latency medians describe one 25-step trajectory with a separate Modal RPC per step; they are not independent-container samples, p50 estimates, or throughput. The selected affine circuit used the Concrete FHE runtime but did not require bootstrapping; no unbounded-depth claim is made.
 

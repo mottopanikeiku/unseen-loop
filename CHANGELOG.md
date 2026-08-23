@@ -19,7 +19,7 @@
 ### Cloud and evidence
 
 - Added bounded Modal L4 training, CPU search, FHE compilation, remote ciphertext evaluation, and Volume persistence.
-- Recorded `modal-smoke-001`: a 6.548 s L4 teacher search, 469/500 post-selection quantized-student/teacher return over paired evaluation seeds, 94.1% integer-student-occupancy certificate coverage, 98.9867% exhaustive box coverage, and 27 exact REAL FHE calls—25/25 sequential encrypted control steps plus two fresh-randomness canaries.
+- Recorded `modal-smoke-001`: a 9.668 s L4 teacher search, 500/500 post-selection quantized-student/teacher return over paired evaluation seeds, 95.875% integer-student-occupancy certificate coverage, 98.7534% exhaustive box coverage, and 27 exact REAL FHE calls—25/25 sequential encrypted control steps plus two fresh-randomness canaries.
 - Added `unseen-loop/modal-evidence-v2` with `closed_loop_real_fhe`, top-level and per-call authenticated-envelope metadata, same-input and secret-marker audits, and a nonsecret bundle of `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and their checksum ledger. Persisted/cloud evidence excludes plaintext private observations and decrypted score vectors.
 
 ### Research product

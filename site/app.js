@@ -12,6 +12,11 @@ const format = {
   probability: (value) => value.toExponential(0).replace("e", " × 10^"),
 };
 
+function median(values) {
+  const ordered = [...values].sort((left, right) => left - right);
+  return ordered[Math.floor(ordered.length / 2)];
+}
+
 function setField(name, value) {
   document.querySelectorAll(`[data-field="${name}"]`).forEach((node) => {
     node.textContent = value;

@@ -8,7 +8,7 @@ Fully Homomorphic Encryption (FHE) can evaluate a policy without revealing its i
 
 The central mechanism is a coefficient-rounding certificate. At a quantized state, if the clear student's top-two score margin exceeds twice an analytical per-score error bound, the error-free integer circuit must choose the same greedy action. Uncertified and mismatched student-occupancy states receive greater weight in the next distillation round. The certificate is composed—never conflated—with Concrete's probabilistic whole-circuit correctness configuration.
 
-A recorded CartPole case study evaluated a 2,048-policy teacher population per CEM iteration on an NVIDIA L4, selected a signed 4-bit-input/10-bit-coefficient affine student on a dedicated selection namespace, and then measured mean return 469 versus the teacher's 500 on the same eight held-out evaluation episodes under exact integer-student occupancy. The post-selection certificate covers 94.1% of that occupancy and 98.9867% of all 50,625 integer codes in the declared $[-7,7]^4$ domain. A 25-step client-key, server-evaluated Modal control prefix matched exact integer-clear actions at every encrypted step; all 25 reached codes certified. Across those 25 sequential steps in one trajectory, median server evaluation was 9.126 ms and median client-observed online time—including a separate Modal RPC per step—was 176.435 ms. The GPU training wall was 6.548 s. These are artifact smoke measurements, not population-level or production-latency claims.
+A recorded CartPole case study evaluated a 2,048-policy teacher population per CEM iteration on an NVIDIA L4, selected a signed 5-bit-input/10-bit-coefficient affine student on a dedicated selection namespace, and then measured mean return 500 for both student and teacher on the same eight held-out evaluation episodes under exact integer-student occupancy. The post-selection certificate covers 95.875% of that occupancy and 98.7534% of all 923,521 integer codes in the declared $[-15,15]^4$ domain. A 25-step client-key, server-evaluated Modal control prefix matched exact integer-clear actions at every step; 24 of 25 reached codes certified. Within that single trajectory, median server evaluation was 11.058 ms and median client-observed online time—including authenticated-envelope verification, a Volume-backed replay claim, and a separate Modal RPC per step—was 1,795.318 ms. These are artifact smoke measurements, not population-level or production latency claims. The selected bounded affine circuit ran in Concrete's FHE runtime without requiring bootstrapping; we make no unbounded-depth claim.
 
 ## 1. Problem
 
@@ -169,25 +169,25 @@ Run ID: `modal-smoke-001`. Seed namespaces are content-derived and disjoint for 
 | GPU | NVIDIA L4 |
 | Torch / CUDA | 2.7.1+cu126 / 12.6 |
 | CEM population × iterations × initial states | 2,048 × 18 × 12 |
-| GPU training wall | 6.548 s |
+| GPU training wall | 9.668 s |
 | Teacher post-selection return | 500.0 over 8 evaluation episodes |
-| Quantized student post-selection return | 469.0 over the same 8 episodes |
-| Post-selection teacher action agreement | 83.85% under integer-student occupancy |
-| Post-selection action-certificate coverage | 94.10% under integer-student occupancy |
-| Exhaustive box coverage | 98.9867% of 50,625 codes |
-| Policy | degree 1, signed 4-bit input, signed 10-bit coefficients |
-| Max compiler integer width | 12 bits |
-| Server artifact | 7,108 B |
-| Request / response | 32,088 B / 16,168 B |
+| Quantized student post-selection return | 500.0 over the same 8 episodes |
+| Post-selection teacher action agreement | 82.375% under integer-student occupancy |
+| Post-selection action-certificate coverage | 95.875% under integer-student occupancy |
+| Exhaustive box coverage | 98.7534% of 923,521 codes |
+| Policy | degree 1, signed 5-bit input, signed 10-bit coefficients |
+| Max compiler integer width | 13 bits |
+| Server artifact | 7,158 B |
+| Request / response | 33,592 B / 16,920 B |
 | REAL FHE call accounting | 25-step encrypted prefix + 2 randomized canaries = 27 exact calls |
-| Encrypted control prefix | 25 / 25 exact actions; 25 / 25 certified reached codes |
-| Median across the 25 trajectory steps | 9.126 ms server / 176.435 ms client-observed online |
+| Encrypted control prefix | 25 / 25 exact actions; 24 / 25 certified reached codes |
+| Median across the 25 trajectory steps | 11.058 ms server / 1,795.318 ms client-observed online |
 
 ### 7.3 Interpretation
 
-The teacher reaches the environment cap. After the champion is chosen exclusively on selection seeds, the distilled integer student loses 31 mean return points on the disjoint paired evaluation seeds but retains long-horizon behavior despite 83.85% pointwise teacher action agreement. Return, agreement, and certificate coverage are recomputed under the selected integer student's occupancy; certificate coverage concerns float-student versus integer semantics, not teacher agreement.
+The teacher and selected integer student both reach the environment cap on the disjoint paired evaluation seeds despite 82.375% pointwise teacher action agreement. Return, agreement, and certificate coverage are recomputed under the selected integer student's occupancy; certificate coverage concerns float-student versus integer semantics, not teacher agreement.
 
-The latency rows are the median of 25 sequential steps from one closed-loop trajectory, each with a separate Modal RPC. They are not independent container samples and are not reported as p50, p95, throughput, steady-state service latency, or a “real-time” claim. The complete 27-call record—25 prefix steps and two fresh-randomness canaries—cannot empirically validate `global_p_error`. A release study must run the preregistered repeated-container timing protocol and three task regimes described in `benchmark-protocol.md`.
+The latency rows are the median of 25 sequential steps from one closed-loop trajectory, each with a separate Modal RPC and a durable replay-ledger commit. They are not independent container samples and are not reported as p50, p95, throughput, steady-state service latency, or a “real-time” claim. The complete 27-call record—25 prefix steps and two fresh-randomness canaries—cannot empirically validate `global_p_error`. A release study must run the preregistered repeated-container timing protocol and three task regimes described in `benchmark-protocol.md`.
 
 The `unseen-loop/modal-evidence-v2` privacy record persists a top-level authenticated-envelope descriptor, per-call request/response envelope and context digests, same-input and server-artifact secret-marker audits, and the complete encrypted prefix without plaintext private observations or decrypted score vectors. The accompanying nonsecret Modal bundle comprises `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and `checksums.sha256`; the ledger covers the other five files. HMAC authentication detects transcript/context tampering, not incorrect computation by an evaluator that holds the authentication key. The server-archive audit checks filenames for secret markers; it is not a proof that arbitrary archive bytes contain no secret.
 
