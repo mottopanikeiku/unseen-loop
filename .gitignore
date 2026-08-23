@@ -21,6 +21,8 @@ keys/
 artifacts/*/
 !artifacts/reference/
 !artifacts/reference/*.json
+!artifacts/reference/modal-smoke-001/
+!artifacts/reference/modal-smoke-001/**
 artifacts/modal-evidence.json
 artifacts/gpu-result.json
 site/generated/

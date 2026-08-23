@@ -1,0 +1,41 @@
+{
+  "backend": "Concrete-Python TFHE",
+  "calibration_rows": 16,
+  "calibration_sha256": "7d1056644aab595c45a095a301d8076fba61c348ffe9bea80f011c556440d2f0",
+  "calibration_strategy": "all signed-domain corners",
+  "client_specs_bytes": 1380,
+  "client_specs_sha256": "92721867df84b0452b535e227f477953436e0f8eee20b7e2b7f2656ac69d8997",
+  "compile_ns": 192841943,
+  "complexity": 1041.0,
+  "concrete_python_version": "2.10.0",
+  "domain_points": 923521,
+  "global_p_error": 1e-06,
+  "input_max": [
+    15,
+    15,
+    15,
+    15
+  ],
+  "input_min": [
+    -15,
+    -15,
+    -15,
+    -15
+  ],
+  "input_shape": [
+    4
+  ],
+  "integer_output_bound": [
+    3181,
+    2277
+  ],
+  "maximum_integer_bit_width": 13,
+  "mlir_sha256": "06f6066288edaf9aca7e11e97db8e7134b8106b8c6dd1a0c3ff5acd580d04f4a",
+  "mode": "COMPILED",
+  "policy_digest": "e777a3e92f192f39972d8d3f535c6301f4e46281e73f33c4c4a6608ba9fa859e",
+  "schema_version": "unseen-loop/circuit-receipt-v1",
+  "security_level": 128,
+  "server_artifact_bytes": 7158,
+  "server_artifact_sha256": "6f180e9c9460377daaccda334949248048cab1d08f504e1f2d2f569d03310d33",
+  "server_secret_key_markers": []
+}
