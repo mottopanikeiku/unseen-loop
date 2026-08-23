@@ -17,31 +17,32 @@
 
   <main id="main">
     <section class="hero shell" style="padding-bottom:3rem">
-      <p class="eyebrow">Recorded trace / trial 01</p>
+      <p class="eyebrow">Recorded protocol evidence</p>
+      <div class="status-line"><span class="status-dot" aria-hidden="true"></span><span data-evidence-status role="status">Loading served evidence…</span></div>
       <h1>Watch the blind evaluator work.</h1>
-      <p class="dek">A deterministic replay of one measured Modal request. This surface does not run cryptography in the browser and never sends plaintext to a hosted demo.</p>
-      <div class="qualifier"><strong>RECORDED</strong><span>Source: <code>modal-smoke-001</code>. REAL FHE, Concrete-Python 2.10.0, NVIDIA L4 teacher, x86 CPU evaluator, secret key held by the local entrypoint.</span></div>
+      <p class="dek">Replay a same-private-input encryption canary. This surface does not run cryptography in the browser, contact a live endpoint, or display private observation and score vectors.</p>
+      <div class="qualifier"><strong data-measurement-state>NOT MEASURED</strong><span>Source: <code data-field="run-id">NOT MEASURED</code>. REAL FHE, Concrete-Python <span data-field="concrete-version">NOT MEASURED</span>, <span data-field="gpu-device">NOT MEASURED</span> teacher, remote evaluator, secret key held by the <span data-field="client-location">NOT MEASURED</span>.</span></div>
     </section>
 
     <section class="section shell" aria-labelledby="trace-heading">
-      <div class="section-head"><h2 id="trace-heading">One encrypted decision.</h2><p>Select a step or play the trace. The evaluator pane shows exactly the declared server-visible metadata.</p></div>
+      <div class="section-head"><h2 id="trace-heading">Same-input canary <span id="canary-label">NOT MEASURED</span>.</h2><p>Select a stage or play the trace. The recorded canaries encrypt the same withheld client input with fresh randomness; they are not steps from the sequential control trajectory.</p></div>
       <div class="run-layout">
         <aside class="trace-controls">
-          <button class="button primary" id="play-trace" type="button">Play recorded trace</button>
+          <button class="button primary" id="play-trace" type="button">Play canary trace</button>
           <ol class="trace-list" id="trace-list">
-            <li data-step="0">Client quantizes state</li>
-            <li data-step="1">Client encrypts payload</li>
-            <li data-step="2">Modal accepts ciphertext</li>
-            <li data-step="3">Server evaluates circuit</li>
-            <li data-step="4">Client decrypts scores</li>
-            <li data-step="5">Client selects action</li>
+            <li><button class="trace-step" data-step="0" type="button">Client holds private input</button></li>
+            <li><button class="trace-step" data-step="1" type="button">Client encrypts canary</button></li>
+            <li><button class="trace-step" data-step="2" type="button">Server verifies envelope</button></li>
+            <li><button class="trace-step" data-step="3" type="button">Server evaluates circuit</button></li>
+            <li><button class="trace-step" data-step="4" type="button">Client verifies response</button></li>
+            <li><button class="trace-step" data-step="5" type="button">Client compares semantics</button></li>
           </ol>
-          <p class="label">Fresh randomness canary</p>
-          <button class="button" id="toggle-trial" type="button">Compare trial 02</button>
+          <p class="label">Fresh-randomness comparison</p>
+          <button class="button" id="toggle-trial" type="button">Next canary</button>
         </aside>
         <article class="inspector" aria-live="polite">
           <div class="inspector-top"><span class="label" id="inspector-zone">CLIENT / PRIVATE</span><span class="plate" id="inspector-state">READY</span></div>
-          <pre id="trace-output">Press “Play recorded trace” or select a step.
+          <pre id="trace-output">Loading served evidence…
 
 No live endpoint is contacted.
 No plaintext leaves this browser.</pre>
@@ -49,27 +50,37 @@ No plaintext leaves this browser.</pre>
       </div>
     </section>
 
-    <section class="section shell" aria-labelledby="latency-heading">
-      <div class="section-head"><h2 id="latency-heading">Latency anatomy.</h2><p>Setup and online phases are separated. The first Modal evaluator call includes a cold load; the second is the recorded warm call. No simulation timing appears.</p></div>
-      <div class="waterfall" aria-label="Recorded latency components">
-        <div class="waterfall-row"><span>Key generation</span><span class="waterfall-bar" data-width="8"></span><span class="waterfall-value" data-field="keygen">3.92 ms</span></div>
-        <div class="waterfall-row"><span>Encrypt</span><span class="waterfall-bar" data-width="3"></span><span class="waterfall-value" data-field="encrypt">1.11 ms</span></div>
-        <div class="waterfall-row real"><span>Server / cold</span><span class="waterfall-bar" data-width="100"></span><span class="waterfall-value" data-field="cold-eval">43.74 ms</span></div>
-        <div class="waterfall-row real"><span>Server / warm</span><span class="waterfall-bar" data-width="18"></span><span class="waterfall-value" data-field="warm-eval">7.80 ms</span></div>
-        <div class="waterfall-row"><span>Decrypt</span><span class="waterfall-bar" data-width="3"></span><span class="waterfall-value" data-field="decrypt">1.35 ms</span></div>
+    <section class="section section-real shell" aria-labelledby="loop-heading">
+      <div class="section-head"><h2 id="loop-heading">The REAL-FHE loop is sequential.</h2><p>The control record is separate from the two canaries above: one fresh authenticated request, remote evaluation, client decrypt, argmax, and environment transition per step.</p></div>
+      <div class="loop-callout">
+        <span class="label">Encrypted closed loop</span>
+        <strong><span data-field="closed-loop-completed">NOT MEASURED</span> sequential calls</strong>
+        <p><span data-field="closed-loop-steps">NOT MEASURED</span> actions matched integer-clear semantics; return <span data-field="closed-loop-return">NOT MEASURED</span>; <span data-field="closed-loop-certified">NOT MEASURED</span> reached codes certified.</p>
       </div>
-      <p class="qualifier"><strong>MEASURED</strong><span>Two requests establish a smoke trace, not a latency distribution. No p95 or throughput claim is made from n=2.</span></p>
+    </section>
+
+    <section class="section shell" aria-labelledby="latency-heading">
+      <div class="section-head"><h2 id="latency-heading">Latency anatomy.</h2><p>Setup and online phases are separated. The first same-input canary includes a cold load; the second is the warm canary. The sequential-loop median covers its own recorded calls. No simulation timing appears.</p></div>
+      <div class="waterfall" aria-label="Recorded latency components">
+        <div class="waterfall-row"><span>Key generation</span><span class="waterfall-bar" data-duration-field="keygen"></span><span class="waterfall-value" data-field="keygen">NOT MEASURED</span></div>
+        <div class="waterfall-row"><span>Encrypt</span><span class="waterfall-bar" data-duration-field="encrypt"></span><span class="waterfall-value" data-field="encrypt">NOT MEASURED</span></div>
+        <div class="waterfall-row real"><span>Canary / cold</span><span class="waterfall-bar" data-duration-field="cold-eval"></span><span class="waterfall-value" data-field="cold-eval">NOT MEASURED</span></div>
+        <div class="waterfall-row real"><span>Canary / warm</span><span class="waterfall-bar" data-duration-field="warm-eval"></span><span class="waterfall-value" data-field="warm-eval">NOT MEASURED</span></div>
+        <div class="waterfall-row real"><span>Loop median</span><span class="waterfall-bar" data-duration-field="episode-server-median"></span><span class="waterfall-value" data-field="episode-server-median">NOT MEASURED</span></div>
+        <div class="waterfall-row"><span>Decrypt</span><span class="waterfall-bar" data-duration-field="decrypt"></span><span class="waterfall-value" data-field="decrypt">NOT MEASURED</span></div>
+      </div>
+      <p class="qualifier"><strong data-measurement-state>NOT MEASURED</strong><span>The encrypted trajectory contains <span data-field="closed-loop-completed">NOT MEASURED</span> sequential calls with a <span data-field="episode-server-median">NOT MEASURED</span> within-episode server median and <span data-field="episode-e2e-median">NOT MEASURED</span> client-observed median. It is one trajectory, not a cross-container latency distribution; no p95 claim is made.</span></p>
     </section>
 
     <section class="section shell" aria-labelledby="wire-heading">
-      <div class="section-head"><h2 id="wire-heading">The wire knows bytes, not values.</h2><p>Two encryptions of the same quantized zero observation produced distinct ciphertext hashes and the same decrypted score vector.</p></div>
+      <div class="section-head"><h2 id="wire-heading">The wire knows bytes, not values.</h2><p>The <span data-field="canary-count">NOT MEASURED</span> recorded encryptions use the same withheld client input and independently generated ciphertext. Decrypted scores are not persisted or displayed; only the equality check and selected action remain.</p></div>
       <div class="receipt-grid">
-        <div class="receipt-cell"><span class="label">Request</span><span class="receipt-value" data-field="request-bytes">32,088 B</span></div>
-        <div class="receipt-cell"><span class="label">Response</span><span class="receipt-value" data-field="response-bytes">16,168 B</span></div>
-        <div class="receipt-cell"><span class="label">Evaluation key</span><span class="receipt-value" data-field="evaluation-key-bytes">64 B</span></div>
-        <div class="receipt-cell"><span class="label">Trial hash</span><span class="receipt-value hash" id="request-hash">bd5104ee…54110</span></div>
-        <div class="receipt-cell"><span class="label">Decrypted scores</span><span class="receipt-value">−511 · −492</span></div>
-        <div class="receipt-cell"><span class="label">Stable argmax</span><span class="receipt-value">action 1</span></div>
+        <div class="receipt-cell"><span class="label">Request</span><span class="receipt-value" data-field="request-bytes">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Response</span><span class="receipt-value" data-field="response-bytes">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Evaluation key</span><span class="receipt-value" data-field="evaluation-key-bytes">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Selected canary request SHA-256</span><span class="receipt-value hash" data-canary-request-hash>NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Distinct request hashes</span><span class="receipt-value" data-field="canary-distinct">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Integer-clear matches</span><span class="receipt-value" data-field="canary-matches">NOT MEASURED</span></div>
       </div>
     </section>
   </main>

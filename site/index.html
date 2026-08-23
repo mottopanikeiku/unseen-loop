@@ -25,49 +25,49 @@
   <main id="main">
     <section class="hero shell">
       <p class="eyebrow">Encrypted closed-loop policy serving</p>
-      <div class="status-line"><span class="status-dot"></span><span>Recorded real-FHE run verified</span></div>
+      <div class="status-line"><span class="status-dot" aria-hidden="true"></span><span data-evidence-status role="status">Loading served evidence…</span></div>
       <h1>The cloud acts on state it cannot read.</h1>
-      <p class="dek">A reproducible RL systems experiment that trains a teacher on an NVIDIA L4, distills it against closed-loop return and action stability, then evaluates client-encrypted observations on a separate Modal FHE worker.</p>
+      <p class="dek">A reproducible RL systems experiment that trains a teacher on <span data-field="gpu-device">NOT MEASURED</span>, distills an integer student, then evaluates client-encrypted observations on a separate Modal FHE worker.</p>
       <div class="hero-actions">
         <a class="button primary" href="#evidence">Inspect the evidence</a>
-        <a class="button" href="run.html">Replay one encrypted step</a>
+        <a class="button" href="run.html">Inspect encrypted canaries</a>
         <a class="button" href="artifact.html">Reproduce the benchmark</a>
       </div>
       <div class="qualifier">
         <strong>LIMIT</strong>
-        <span>Inference only. Training and policy weights remain clear. The client learns the score vector and performs argmax. Only rows marked <b>REAL FHE</b> execute ciphertext; simulation is never privacy or latency evidence.</span>
+        <span>Inference only. Training and policy weights remain clear. The client learns scores and performs argmax, but plaintext score vectors are deliberately excluded from served evidence. Only rows marked <b>REAL FHE</b> execute ciphertext; simulation is never privacy or latency evidence.</span>
       </div>
     </section>
 
     <section class="metrics" id="evidence" aria-labelledby="evidence-heading">
       <div class="shell">
-        <h2 id="evidence-heading" class="label" style="padding-top:1.5rem">Run modal-smoke-001 / measured evidence</h2>
+        <h2 id="evidence-heading" class="label" style="padding-top:1.5rem">Run <span data-field="run-id">NOT MEASURED</span> / served evidence</h2>
         <div class="metric-grid">
-          <article class="metric"><span class="label">GPU policy search</span><span class="metric-value" data-field="gpu-policies">2,048</span><small>policies per CEM iteration on an NVIDIA L4; 18 iterations × 12 initial states.</small></article>
-          <article class="metric"><span class="label">Closed-loop return</span><span class="metric-value"><span data-field="student-return">469</span> / <span data-field="teacher-return">500</span></span><small>quantized student versus float teacher, across eight held-out seeded episodes.</small></article>
-          <article class="metric"><span class="label">Certified occupancy</span><span class="metric-value" data-field="certified-coverage">94.1%</span><small>held-out reached states satisfying the analytical action-invariance margin condition.</small></article>
-          <article class="metric"><span class="label">Warm server evaluate</span><span class="metric-value" data-field="warm-eval">7.80 ms</span><small>second recorded Modal REAL FHE request; single query, no batch amortization.</small></article>
+          <article class="metric"><span class="label">GPU policy search</span><span class="metric-value" data-field="gpu-policies">NOT MEASURED</span><small>policies per CEM iteration on <span data-field="gpu-device">NOT MEASURED</span>; <span data-field="gpu-iterations">NOT MEASURED</span> iterations × <span data-field="gpu-episodes">NOT MEASURED</span> initial states.</small></article>
+          <article class="metric"><span class="label">Post-selection return</span><span class="metric-value"><span data-field="student-return">NOT MEASURED</span> / <span data-field="teacher-return">NOT MEASURED</span></span><small>integer student versus float teacher on the evaluation namespace recorded by the experiment.</small></article>
+          <article class="metric"><span class="label">Certified occupancy</span><span class="metric-value" data-field="certified-coverage">NOT MEASURED</span><small>evaluation states satisfying the analytical action-invariance margin condition.</small></article>
+          <article class="metric metric-real"><span class="label">REAL-FHE closed loop</span><span class="metric-value" data-field="closed-loop-steps">NOT MEASURED</span><small>sequential encrypted actions matched integer clear; <span data-field="closed-loop-completed">NOT MEASURED</span> Modal calls, server median <span data-field="episode-server-median">NOT MEASURED</span>.</small></article>
         </div>
       </div>
     </section>
 
     <section class="section shell" aria-labelledby="protocol-heading">
-      <div class="section-head"><h2 id="protocol-heading">One loop. Two trust zones.</h2><p>The environment and secret key stay on the client. Modal receives serialized ciphertext and public evaluation material, evaluates a policy compiled for its x86 worker, and returns ciphertext scores.</p></div>
+      <div class="section-head"><h2 id="protocol-heading">One loop. Two trust zones.</h2><p>The environment and secret key stay on the client. Modal receives authenticated ciphertext and public evaluation material, evaluates a compiled policy, and returns authenticated ciphertext scores.</p></div>
       <div class="protocol-grid">
-        <article class="actor"><p class="label">01 / client</p><h3>Observe, quantize, encrypt</h3><ul><li>Gym environment state</li><li>secret/decryption key</li><li>stable argmax and action</li></ul><span class="packet">32,088 B<br>ciphertext request</span></article>
-        <article class="cloud-stage"><p class="label">02 / evaluator</p><h3>Homomorphic score circuit</h3><p>Concrete-Python 2.10.0 · category 128 · <i>global_p_error</i> 10<sup>−6</sup></p><span class="packet">server view<br>hash · bytes · timing<br><b>no observation value</b></span></article>
-        <article class="actor"><p class="label">03 / client</p><h3>Decrypt scores, choose action</h3><ul><li>16,168 B response</li><li>integer scores −511, −492</li><li>action 1 advances loop</li></ul><span class="packet">fresh ciphertext<br>each request</span></article>
+        <article class="actor"><p class="label">01 / client</p><h3>Observe, quantize, encrypt</h3><ul><li>Gym environment state</li><li>secret/decryption key</li><li>stable argmax and action</li></ul><span class="packet"><span data-field="request-bytes">NOT MEASURED</span><br>ciphertext request</span></article>
+        <article class="cloud-stage"><p class="label">02 / evaluator</p><h3>Homomorphic score circuit</h3><p><span data-field="concrete-version">NOT MEASURED</span> · category <span data-field="security-level">NOT MEASURED</span> · <i>global_p_error</i> <span data-field="global-p-error">NOT MEASURED</span></p><span class="packet">server view<br>hash · bytes · timing<br><b>no observation value</b></span></article>
+        <article class="actor"><p class="label">03 / client</p><h3>Authenticate, decrypt, act</h3><ul><li><span data-field="response-bytes">NOT MEASURED</span> ciphertext response</li><li>score vector retained client-side</li><li>action advances the private loop</li></ul><span class="packet"><span data-field="protocol">NOT MEASURED</span><br><span data-field="authentication-algorithm">NOT MEASURED</span><br>fresh ciphertext each call</span></article>
       </div>
     </section>
 
     <section class="section shell" aria-labelledby="ladder-heading">
       <div class="section-head"><h2 id="ladder-heading">No collapsed baselines.</h2><p>Five semantic stages isolate teacher quality, distillation, quantization, compilation, and cryptographic execution. A mode label is a claim boundary.</p></div>
       <div class="ladder" role="list" aria-label="Execution evidence ladder">
-        <div class="ladder-row" role="listitem"><span class="mode-shape"></span><strong class="mode-name">FLOAT TEACHER</strong><span class="mode-note">GPU-trained tanh MLP; clear utility ceiling.</span><span class="badge measured">MEASURED · 500 return</span></div>
+        <div class="ladder-row" role="listitem"><span class="mode-shape"></span><strong class="mode-name">FLOAT TEACHER</strong><span class="mode-note">GPU-trained tanh MLP; clear utility ceiling.</span><span class="badge measured"><span data-measurement-state>NOT MEASURED</span> · <span data-field="teacher-return">NOT MEASURED</span> return</span></div>
         <div class="ladder-row" role="listitem"><span class="mode-shape"></span><strong class="mode-name">FLOAT STUDENT</strong><span class="mode-note">Fitted low-degree score policy before coefficient rounding.</span><span class="badge">PROPERTY</span></div>
-        <div class="ladder-row" role="listitem"><span class="mode-shape quant"></span><strong class="mode-name">QUANTIZED CLEAR</strong><span class="mode-note">Exact exported integer circuit; closed-loop search semantics.</span><span class="badge measured">MEASURED · 469 return</span></div>
+        <div class="ladder-row" role="listitem"><span class="mode-shape quant"></span><strong class="mode-name">QUANTIZED CLEAR</strong><span class="mode-note">Exact exported integer circuit; selection and evaluation use disjoint seed namespaces.</span><span class="badge measured"><span data-measurement-state>NOT MEASURED</span> · <span data-field="student-return">NOT MEASURED</span> return</span></div>
         <div class="ladder-row" role="listitem"><span class="mode-shape sim"></span><strong class="mode-name">FHE SIMULATED</strong><span class="mode-note">Clear compiler semantics. Never evidence of confidentiality or encrypted latency.</span><span class="badge limit">LIMIT</span></div>
-        <div class="ladder-row" role="listitem"><span class="mode-shape real"></span><strong class="mode-name">REAL FHE</strong><span class="mode-note">Local client keygen/encrypt/decrypt; remote Modal server evaluation.</span><span class="badge measured">MEASURED · 2 / 2 exact</span></div>
+        <div class="ladder-row" role="listitem"><span class="mode-shape real"></span><strong class="mode-name">REAL FHE</strong><span class="mode-note">Local client keygen/encrypt/decrypt; remote Modal server evaluation.</span><span class="badge measured"><span data-measurement-state>NOT MEASURED</span> · <span data-field="closed-loop-steps">NOT MEASURED</span> sequential exact</span></div>
       </div>
     </section>
 
@@ -77,7 +77,7 @@
         <div>
           <p class="eyebrow">Action-invariance condition</p>
           <p class="equation"><i>m</i>(s) &gt; 2<i>ε</i>(s) ⇒ argmax unchanged</p>
-          <p>On held-out student occupancy, <strong data-field="certified-coverage">94.1%</strong> of states are certified. Exhaustive enumeration covers all <strong data-field="box-points">50,625</strong> quantized codes in the declared 4-D box; <strong data-field="box-coverage">98.99%</strong> certify.</p>
+          <p>On integer-student evaluation occupancy, <strong data-field="certified-coverage">NOT MEASURED</strong> of states are certified. Exhaustive enumeration covers <strong data-field="box-points">NOT MEASURED</strong> quantized codes in the declared box; <strong data-field="box-coverage">NOT MEASURED</strong> certify.</p>
           <p class="qualifier"><strong>LIMIT</strong><span>This proves float-student versus integer-circuit action agreement at certified codes, conditional on correct FHE evaluation. It does not prove teacher agreement, safety, or a malicious server's work.</span></p>
         </div>
         <figure class="margin-chart" aria-label="Illustrative margin threshold chart"><figcaption class="label">Margin space / schematic</figcaption><div class="margin-axis"><span class="margin-band"></span><span class="margin-threshold"></span><span class="margin-point" style="left:18%;bottom:24%"></span><span class="margin-point" style="left:39%;bottom:58%"></span><span class="margin-point" style="left:66%;bottom:35%"></span><span class="margin-point" style="left:78%;bottom:72%"></span><span class="margin-point" style="left:91%;bottom:48%"></span></div><p><span class="limit">uncertified band</span> / <span class="property">certified region</span></p></figure>
@@ -86,19 +86,21 @@
 
     <section class="section shell" aria-labelledby="trust-heading">
       <div class="section-head"><h2 id="trust-heading">Privacy is categorical.</h2><p>No synthetic “privacy score.” Each property is either provided under named assumptions, leaked by the protocol, or outside this system.</p></div>
-      <table class="trust-table">
-        <thead><tr><th>Property</th><th>Status</th><th>Evidence / boundary</th></tr></thead>
-        <tbody>
-          <tr><td>Observation value hidden from evaluator</td><td class="property">PROVIDED</td><td>Client-key FHE; server receives opaque serialized value and no secret key.</td></tr>
-          <tr><td>Encrypted score value hidden from evaluator</td><td class="property">PROVIDED</td><td>Only the client deserializes and decrypts the response.</td></tr>
-          <tr><td>Shape, sizes, policy version, timing</td><td class="limit">LEAKED</td><td>Fixed 4-vector; request/response byte counts and access timing are public transcript metadata.</td></tr>
-          <tr><td>Correct computation by malicious server</td><td class="limit">NOT PROVIDED</td><td>FHE is malleable. Hashes and authentication bind a transcript but do not prove evaluation.</td></tr>
-          <tr><td>Model extraction resistance</td><td class="limit">NOT PROVIDED</td><td>The client learns score vectors; adaptive black-box extraction remains possible.</td></tr>
-        </tbody>
-      </table>
+      <div class="table-scroll" tabindex="0" aria-label="Privacy boundary table, scroll horizontally if needed">
+        <table class="trust-table">
+          <thead><tr><th scope="col">Property</th><th scope="col">Status</th><th scope="col">Evidence / boundary</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Observation value hidden from evaluator</th><td class="property" data-privacy-state>NOT MEASURED</td><td>Client-key FHE; server receives opaque serialized value and no secret key.</td></tr>
+            <tr><th scope="row">Encrypted score value hidden from evaluator</th><td class="property" data-privacy-state>NOT MEASURED</td><td>Only the client deserializes and decrypts the response.</td></tr>
+            <tr><th scope="row">Shape, sizes, policy version, timing</th><td class="limit">LEAKED</td><td>Fixed shape <span data-field="input-shape">NOT MEASURED</span>; request/response byte counts and access timing are public transcript metadata.</td></tr>
+            <tr><th scope="row">Correct computation by malicious server</th><td class="limit">NOT PROVIDED</td><td>FHE is malleable. Authentication binds a transcript but does not prove evaluation.</td></tr>
+            <tr><th scope="row">Model extraction resistance</th><td class="limit">NOT PROVIDED</td><td>The client learns score vectors; adaptive black-box extraction remains possible.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </main>
 
-  <footer class="site-foot shell"><div class="foot-grid"><div><p class="label">Unseen Loop / UL 01</p><h3>Instrumentation, not marketing.</h3></div><p>Every number on this page is loaded from the committed <a href="data/evidence.json">recorded evidence artifact</a>. Inspect hashes, commands, source, and limitations before citing a result.</p></div></footer>
+  <footer class="site-foot shell"><div class="foot-grid"><div><p class="label">Unseen Loop / UL 01</p><h3>Instrumentation, not marketing.</h3></div><p>Every run-dependent measurement on this page is populated from the served <a href="data/evidence.json">evidence JSON</a>. Inspect hashes, commands, source, and limitations before citing a result.</p></div></footer>
 </body>
 </html>

@@ -18,42 +18,62 @@
   <main id="main">
     <section class="hero shell" style="padding-bottom:3rem">
       <p class="eyebrow">Claim → artifact → command</p>
+      <div class="status-line"><span class="status-dot" aria-hidden="true"></span><span data-evidence-status role="status">Loading served evidence…</span></div>
       <h1>Nothing rests on a screenshot.</h1>
-      <p class="dek">The committed evidence record contains GPU provenance, the exact champion policy digest, a compiler-backed circuit receipt, and two real ciphertext trials. Rebuild every deterministic layer; expect ciphertext and timing to differ.</p>
+      <p class="dek">When loaded, the v2 record binds GPU provenance, the selected policy digest, a compiler-backed circuit receipt, same-private-input randomness canaries, and a <span data-field="closed-loop-completed">NOT MEASURED</span>-call REAL-FHE closed loop. Rebuild every deterministic layer; expect ciphertext and timing to differ.</p>
       <div class="hero-actions"><a class="button primary" href="data/evidence.json" download>Download evidence JSON</a><a class="button" href="#commands">Run it yourself</a></div>
-      <div class="qualifier"><strong>ARTIFACT HASH</strong><span class="hash" id="evidence-digest">computing SHA-256…</span></div>
+      <div class="qualifier"><strong>SERVED JSON SHA-256</strong><span class="hash" id="evidence-digest">NOT MEASURED</span></div>
     </section>
 
     <section class="metrics" aria-label="Circuit receipt summary"><div class="shell"><div class="metric-grid">
-      <article class="metric"><span class="label">Backend</span><span class="metric-value" style="font-size:2rem">Concrete TFHE</span><small>Concrete-Python <span data-field="concrete-version">2.10.0</span>.</small></article>
-      <article class="metric"><span class="label">Security category</span><span class="metric-value" data-field="security-level">128</span><small>Compiler security selection; not the same as global circuit error.</small></article>
-      <article class="metric"><span class="label">Global p(error)</span><span class="metric-value">10<sup>−6</sup></span><small>Whole-circuit correctness premise; not empirically estimated from two calls.</small></article>
-      <article class="metric"><span class="label">Server artifact</span><span class="metric-value" data-field="server-artifact-size">7,108 B</span><small>Architecture-specific compiled evaluator; secret-key filename scan clean.</small></article>
+      <article class="metric"><span class="label">Backend</span><span class="metric-value metric-compact" data-field="backend">NOT MEASURED</span><small>Concrete-Python <span data-field="concrete-version">NOT MEASURED</span>.</small></article>
+      <article class="metric"><span class="label">Security category</span><span class="metric-value" data-field="security-level">NOT MEASURED</span><small>Compiler security selection; not the same as global circuit error.</small></article>
+      <article class="metric"><span class="label">Global p(error)</span><span class="metric-value metric-compact" data-field="global-p-error">NOT MEASURED</span><small>Whole-circuit correctness premise; not empirically estimated from the recorded calls.</small></article>
+      <article class="metric"><span class="label">Server artifact</span><span class="metric-value" data-field="server-artifact-size">NOT MEASURED</span><small>Architecture-specific compiled evaluator; secret-key marker audit: <span data-field="secret-marker-status">NOT MEASURED</span>.</small></article>
     </div></div></section>
 
     <section class="section shell" aria-labelledby="claims-heading">
       <div class="section-head"><h2 id="claims-heading">Evidence map.</h2><p>Each headline has an inspectable field and an executable path. Missing evidence must render as not measured—not as zero.</p></div>
-      <table class="claim-table">
-        <thead><tr><th>Claim</th><th>Evidence field</th><th>Reproduction boundary</th></tr></thead>
-        <tbody>
-          <tr><td>GPU teacher reaches the 500-step CartPole cap</td><td><code>gpu_training.best_vectorized_return</code></td><td>Vectorized trainer on fixed NVIDIA L4; Gym rollouts validate the frozen checkpoint.</td></tr>
-          <tr><td>Student preserves 469 / 500 mean held-out return</td><td><code>clear_search.champion_return_mean</code></td><td>Eight deterministic evaluation seeds; quick artifact, not a multi-seed paper headline.</td></tr>
-          <tr><td>Declared box is exhaustively enumerated</td><td><code>box_certificate_points = 50,625</code></td><td>All signed 4-bit codes in [−7, 7]<sup>4</sup>; 98.99% certify.</td></tr>
-          <tr><td>Modal performed real ciphertext evaluation</td><td><code>real_fhe_trials[*].mode</code></td><td>Local client creates fresh ciphertext; server deserializes and evaluates without client construction.</td></tr>
-          <tr><td>Real output equals integer-clear output</td><td><code>matches_integer_clear = true</code></td><td>2 / 2 recorded smoke calls; compiler <code>global_p_error</code> remains the reliability bound.</td></tr>
-        </tbody>
-      </table>
+      <div class="table-scroll" tabindex="0" aria-label="Evidence map, scroll horizontally if needed">
+        <table class="claim-table">
+          <thead><tr><th scope="col">Claim</th><th scope="col">Evidence field</th><th scope="col">Reproduction boundary</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">GPU teacher reaches <span data-field="teacher-return">NOT MEASURED</span> mean evaluation return</th><td><code>clear_search.teacher_return_mean</code></td><td>GPU trainer and Gym rollouts validate the frozen checkpoint.</td></tr>
+            <tr><th scope="row">Integer student reaches <span data-field="student-return">NOT MEASURED</span> mean post-selection return</th><td><code>clear_search.champion_return_mean</code></td><td>Reported on the disjoint evaluation namespace, not the selection seeds.</td></tr>
+            <tr><th scope="row">Declared quantized box is exhaustively enumerated</th><td><code>clear_search.box_certificate_points</code></td><td><span data-field="box-points">NOT MEASURED</span> codes checked; <span data-field="box-coverage">NOT MEASURED</span> certify.</td></tr>
+            <tr><th scope="row"><span data-measurement-state>NOT MEASURED</span>: Modal performed authenticated real ciphertext evaluation</th><td><code>real_fhe_trials[*].mode</code><br><code>real_fhe_trials[*].protocol</code></td><td>Local client creates fresh ciphertext; server evaluates without constructing a client.</td></tr>
+            <tr><th scope="row">Closed-loop FHE preserves integer actions</th><td><code>closed_loop_real_fhe</code></td><td><span data-field="closed-loop-steps">NOT MEASURED</span> sequential actions match; <span data-field="closed-loop-certified">NOT MEASURED</span> reached codes certify; the client alone advances Gym state.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section class="section shell" aria-labelledby="receipt-heading">
       <div class="section-head"><h2 id="receipt-heading">Circuit receipt.</h2><p>The server artifact is content-addressed and tied to the selected policy, calibration input set, compiler version, integer ranges, and error configuration.</p></div>
       <div class="receipt-grid">
-        <div class="receipt-cell"><span class="label">Policy SHA-256</span><span class="receipt-value hash" data-field="policy-digest">f252c2ac…0ec</span></div>
-        <div class="receipt-cell"><span class="label">Server SHA-256</span><span class="receipt-value hash" data-field="server-digest">806f8a1d…3ed</span></div>
-        <div class="receipt-cell"><span class="label">MLIR SHA-256</span><span class="receipt-value hash" data-field="mlir-digest">3892f515…b9b</span></div>
-        <div class="receipt-cell"><span class="label">Max integer width</span><span class="receipt-value" data-field="max-bit-width">12 bits</span></div>
-        <div class="receipt-cell"><span class="label">Compiler complexity</span><span class="receipt-value" data-field="complexity">994</span></div>
-        <div class="receipt-cell"><span class="label">Compile wall</span><span class="receipt-value" data-field="compile-time">157.65 ms</span></div>
+        <div class="receipt-cell"><span class="label">Policy SHA-256</span><span class="receipt-value hash" data-field="policy-digest">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Server SHA-256</span><span class="receipt-value hash" data-field="server-digest">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Client specs SHA-256</span><span class="receipt-value hash" data-field="client-specs-digest">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">MLIR SHA-256</span><span class="receipt-value hash" data-field="mlir-digest">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Max integer width</span><span class="receipt-value" data-field="max-bit-width">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Compiler complexity</span><span class="receipt-value" data-field="complexity">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Compile wall</span><span class="receipt-value" data-field="compile-time">NOT MEASURED</span></div>
+      </div>
+    </section>
+
+    <section class="section shell" aria-labelledby="envelope-heading">
+      <div class="section-head"><h2 id="envelope-heading">Authenticated envelope and nonsecret bundle.</h2><p>Authentication detects replay, substitution, corruption, and context mismatch. It binds the transcript; it does not prove that a malicious evaluator ran the circuit.</p></div>
+      <div class="receipt-grid">
+        <div class="receipt-cell"><span class="label">Protocol</span><span class="receipt-value" data-field="protocol">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Authentication</span><span class="receipt-value" data-field="authentication-algorithm">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Request schema</span><span class="receipt-value hash" data-field="request-schema">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Response schema</span><span class="receipt-value hash" data-field="response-schema">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Bundle path</span><span class="receipt-value hash" data-field="bundle-path">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Evidence path</span><span class="receipt-value hash" data-field="bundle-evidence-path">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Checksums path</span><span class="receipt-value hash" data-field="bundle-checksums-path">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Published files</span><span class="receipt-value hash" data-field="bundle-files">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Replay protection</span><span class="receipt-value hash" data-field="replay-protection">NOT MEASURED</span></div>
+        <div class="receipt-cell"><span class="label">Secret-marker audit</span><span class="receipt-value" data-field="secret-marker-status">NOT MEASURED</span></div>
       </div>
     </section>
 
@@ -76,12 +96,14 @@ modal run -w artifacts/modal-evidence.json \
 
     <section class="section shell" aria-labelledby="limits-heading">
       <div class="section-head"><h2 id="limits-heading">Non-claims are part of the result.</h2><p>A usable PPML artifact states what the primitive does not solve.</p></div>
-      <table class="trust-table"><tbody>
-        <tr><td>Malicious evaluator integrity</td><td class="limit">NOT PROVIDED</td><td>A server can return a chosen ciphertext or wrong in-range score. TLS, HMAC, and digests do not prove FHE evaluation.</td></tr>
-        <tr><td>Private training</td><td class="limit">NOT PROVIDED</td><td>GPU teacher training and student distillation operate on clear development data.</td></tr>
-        <tr><td>Model confidentiality</td><td class="limit">BLACK-BOX ONLY</td><td>Weights stay server-side, but repeated score queries may extract the policy.</td></tr>
-        <tr><td>Action secrecy from environment</td><td class="limit">NOT PROVIDED</td><td>The server does not decrypt the action, but environment effects may reveal it.</td></tr>
-      </tbody></table>
+      <div class="table-scroll" tabindex="0" aria-label="Non-claims table, scroll horizontally if needed">
+        <table class="trust-table"><tbody>
+          <tr><th scope="row">Malicious evaluator integrity</th><td class="limit">NOT PROVIDED</td><td>A server can return a chosen ciphertext or wrong in-range score. TLS, HMAC, and digests do not prove FHE evaluation.</td></tr>
+          <tr><th scope="row">Private training</th><td class="limit">NOT PROVIDED</td><td>GPU teacher training and student distillation operate on clear development data.</td></tr>
+          <tr><th scope="row">Model confidentiality</th><td class="limit">BLACK-BOX ONLY</td><td>Weights stay server-side, but repeated score queries may extract the policy.</td></tr>
+          <tr><th scope="row">Action secrecy from environment</th><td class="limit">NOT PROVIDED</td><td>The server does not decrypt the action, but environment effects may reveal it.</td></tr>
+        </tbody></table>
+      </div>
     </section>
   </main>
 
