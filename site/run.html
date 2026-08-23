@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Replay a recorded real-FHE Unseen Loop protocol trace.">
+  <title>Protocol trace — Unseen Loop</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body data-page="run">
+  <a class="skip-link" href="#main">Skip to trace</a>
+  <header class="site-head shell">
+    <a class="brand" href="index.html"><svg viewBox="0 0 64 28" aria-hidden="true"><path d="M27 5H15C6 5 6 23 15 23h12M37 5h12c9 0 9 18 0 18H37" fill="none" stroke="currentColor" stroke-width="2"/><rect x="27" y="9" width="10" height="10" fill="currentColor"/></svg><span>Unseen Loop</span><span class="plate">UL / 01</span></a>
+    <nav class="site-nav" aria-label="Primary navigation"><a href="index.html">Evidence</a><a href="run.html" aria-current="page">Protocol trace</a><a href="artifact.html">Reproduce</a></nav>
+  </header>
+
+  <main id="main">
+    <section class="hero shell" style="padding-bottom:3rem">
+      <p class="eyebrow">Recorded trace / trial 01</p>
+      <h1>Watch the blind evaluator work.</h1>
+      <p class="dek">A deterministic replay of one measured Modal request. This surface does not run cryptography in the browser and never sends plaintext to a hosted demo.</p>
+      <div class="qualifier"><strong>RECORDED</strong><span>Source: <code>modal-smoke-001</code>. REAL FHE, Concrete-Python 2.10.0, NVIDIA L4 teacher, x86 CPU evaluator, secret key held by the local entrypoint.</span></div>
+    </section>
+
+    <section class="section shell" aria-labelledby="trace-heading">
+      <div class="section-head"><h2 id="trace-heading">One encrypted decision.</h2><p>Select a step or play the trace. The evaluator pane shows exactly the declared server-visible metadata.</p></div>
+      <div class="run-layout">
+        <aside class="trace-controls">
+          <button class="button primary" id="play-trace" type="button">Play recorded trace</button>
+          <ol class="trace-list" id="trace-list">
+            <li data-step="0">Client quantizes state</li>
+            <li data-step="1">Client encrypts payload</li>
+            <li data-step="2">Modal accepts ciphertext</li>
+            <li data-step="3">Server evaluates circuit</li>
+            <li data-step="4">Client decrypts scores</li>
+            <li data-step="5">Client selects action</li>
+          </ol>
+          <p class="label">Fresh randomness canary</p>
+          <button class="button" id="toggle-trial" type="button">Compare trial 02</button>
+        </aside>
+        <article class="inspector" aria-live="polite">
+          <div class="inspector-top"><span class="label" id="inspector-zone">CLIENT / PRIVATE</span><span class="plate" id="inspector-state">READY</span></div>
+          <pre id="trace-output">Press “Play recorded trace” or select a step.
+
+No live endpoint is contacted.
+No plaintext leaves this browser.</pre>
+        </article>
+      </div>
+    </section>
+
+    <section class="section shell" aria-labelledby="latency-heading">
+      <div class="section-head"><h2 id="latency-heading">Latency anatomy.</h2><p>Setup and online phases are separated. The first Modal evaluator call includes a cold load; the second is the recorded warm call. No simulation timing appears.</p></div>
+      <div class="waterfall" aria-label="Recorded latency components">
+        <div class="waterfall-row"><span>Key generation</span><span class="waterfall-bar" data-width="8"></span><span class="waterfall-value" data-field="keygen">3.92 ms</span></div>
+        <div class="waterfall-row"><span>Encrypt</span><span class="waterfall-bar" data-width="3"></span><span class="waterfall-value" data-field="encrypt">1.11 ms</span></div>
+        <div class="waterfall-row real"><span>Server / cold</span><span class="waterfall-bar" data-width="100"></span><span class="waterfall-value" data-field="cold-eval">43.74 ms</span></div>
+        <div class="waterfall-row real"><span>Server / warm</span><span class="waterfall-bar" data-width="18"></span><span class="waterfall-value" data-field="warm-eval">7.80 ms</span></div>
+        <div class="waterfall-row"><span>Decrypt</span><span class="waterfall-bar" data-width="3"></span><span class="waterfall-value" data-field="decrypt">1.35 ms</span></div>
+      </div>
+      <p class="qualifier"><strong>MEASURED</strong><span>Two requests establish a smoke trace, not a latency distribution. No p95 or throughput claim is made from n=2.</span></p>
+    </section>
+
+    <section class="section shell" aria-labelledby="wire-heading">
+      <div class="section-head"><h2 id="wire-heading">The wire knows bytes, not values.</h2><p>Two encryptions of the same quantized zero observation produced distinct ciphertext hashes and the same decrypted score vector.</p></div>
+      <div class="receipt-grid">
+        <div class="receipt-cell"><span class="label">Request</span><span class="receipt-value" data-field="request-bytes">32,088 B</span></div>
+        <div class="receipt-cell"><span class="label">Response</span><span class="receipt-value" data-field="response-bytes">16,168 B</span></div>
+        <div class="receipt-cell"><span class="label">Evaluation key</span><span class="receipt-value" data-field="evaluation-key-bytes">64 B</span></div>
+        <div class="receipt-cell"><span class="label">Trial hash</span><span class="receipt-value hash" id="request-hash">bd5104ee…54110</span></div>
+        <div class="receipt-cell"><span class="label">Decrypted scores</span><span class="receipt-value">−511 · −492</span></div>
+        <div class="receipt-cell"><span class="label">Stable argmax</span><span class="receipt-value">action 1</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot shell"><div class="foot-grid"><div><p class="label">Next inspection</p><h3>Trace the claim to a command.</h3></div><p><a href="artifact.html">Open the reproducibility artifact</a> for the compiler receipt, exact commands, hashes, and non-claims.</p></div></footer>
+</body>
+</html>

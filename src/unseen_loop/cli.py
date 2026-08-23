@@ -57,6 +57,9 @@ def _parser() -> argparse.ArgumentParser:
 
     inspect = subcommands.add_parser("inspect", help="print a run summary")
     inspect.add_argument("artifact", type=Path)
+    report = subcommands.add_parser("report", help="publish a recorded evidence JSON")
+    report.add_argument("evidence", type=Path)
+    report.add_argument("--output", type=Path, default=Path("site/data/evidence.json"))
     return parser
 
 
@@ -90,6 +93,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             json.dumps(dataclass_dict(load_summary(arguments.artifact)), sort_keys=True, indent=2)
         )
+        return 0
+    if arguments.command == "report":
+        raw = json.loads(arguments.evidence.read_text())
+        required = {"schema_version", "run_id", "circuit_receipt", "real_fhe_trials"}
+        if not isinstance(raw, dict) or not required.issubset(raw):
+            raise ValueError("evidence does not match the Modal evidence schema")
+        arguments.output.parent.mkdir(parents=True, exist_ok=True)
+        arguments.output.write_text(json.dumps(raw, sort_keys=True, indent=2) + "\n")
+        print(json.dumps({"evidence": str(arguments.output), "run_id": raw["run_id"]}))
         return 0
     raise AssertionError(f"unhandled command: {arguments.command}")
 
