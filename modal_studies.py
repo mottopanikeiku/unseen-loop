@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -65,6 +66,32 @@ def _package_source_digest(root: Path) -> tuple[str, int]:
     return digest.hexdigest(), len(source_files)
 
 
+def _caller_source_provenance() -> dict[str, Any]:
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        dirty = bool(
+            subprocess.run(
+                ["git", "status", "--porcelain"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        commit = None
+        dirty = None
+    return {
+        "git_commit": commit,
+        "git_dirty": dirty,
+        "modal_sdk_version": modal.__version__,
+    }
+
+
 @app.function(
     image=core_image,
     cpu=(8.0, 8.0),
@@ -77,7 +104,7 @@ def _package_source_digest(root: Path) -> tuple[str, int]:
     timeout=6 * 3_600,
     retries=0,
 )
-def run_suite(config_text: str, study_id: str) -> str:
+def run_suite(config_text: str, study_id: str, caller_source_json: str) -> str:
     """Run one caller-supplied release TOML wholly on a bounded Modal CPU worker."""
     import tempfile
 
@@ -90,6 +117,9 @@ def run_suite(config_text: str, study_id: str) -> str:
         raise ValueError("config_text must contain a release-suite TOML document")
     if len(config_bytes) > MAX_CONFIG_BYTES:
         raise ValueError(f"config_text exceeds the {MAX_CONFIG_BYTES}-byte limit")
+    caller_source = json.loads(caller_source_json)
+    if not isinstance(caller_source, dict):
+        raise TypeError("caller_source_json must encode an object")
     config_sha256 = hashlib.sha256(config_bytes).hexdigest()
     package_file = unseen_loop.__file__
     if package_file is None:
@@ -137,6 +167,7 @@ def run_suite(config_text: str, study_id: str) -> str:
             "python": "3.12",
             "numpy": "1.26.4",
             "gymnasium": "1.3.0",
+            "caller": caller_source,
         },
         "execution": {
             "backend": "clear",
@@ -154,7 +185,11 @@ def run_suite(config_text: str, study_id: str) -> str:
 @app.local_entrypoint()
 def suite(config: str, study_id: str) -> str:
     """Run: modal run modal_studies.py::suite --config PATH --study-id FRESH_ID"""
-    return run_suite.remote(Path(config).read_text(encoding="utf-8"), study_id)
+    return run_suite.remote(
+        Path(config).read_text(encoding="utf-8"),
+        study_id,
+        json.dumps(_caller_source_provenance(), sort_keys=True),
+    )
 
 
 @app.local_entrypoint()
@@ -164,10 +199,17 @@ def ablations(study_id: str, config_directory: str = "experiments") -> str:
     directory = Path(config_directory)
     config_paths = tuple(directory / name for name in ABLATION_CONFIGS)
     config_texts = tuple(path.read_text(encoding="utf-8") for path in config_paths)
+    caller_source = json.dumps(_caller_source_provenance(), sort_keys=True)
+    provenance_payloads = tuple(caller_source for _ in config_paths)
     study_ids = tuple(_validated_study_id(f"{prefix}--{path.stem}") for path in config_paths)
     summaries = [
         json.loads(payload)
-        for payload in run_suite.map(config_texts, study_ids, order_outputs=True)
+        for payload in run_suite.map(
+            config_texts,
+            study_ids,
+            provenance_payloads,
+            order_outputs=True,
+        )
     ]
     return _canonical_json(
         {
