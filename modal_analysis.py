@@ -18,10 +18,10 @@ import modal
 APP_NAME = "unseen-loop-release-analysis"
 VOLUME_NAME = "unseen-loop-artifacts"
 STUDY_ROOT = Path("/artifacts/studies")
-OUTPUT_ID = "unseen-loop-release-analysis-001"
+OUTPUT_ID = "unseen-loop-release-analysis-002"
 OUTPUT_ROOT = STUDY_ROOT / OUTPUT_ID
-EXPANDED_ID = "expanded-multitask-modal-001"
-ABLATION_PREFIX = "expanded-cartpole-ablation-modal-003--"
+EXPANDED_ID = "expanded-multitask-modal-002"
+ABLATION_PREFIX = "expanded-cartpole-ablation-modal-004--"
 ABLATION_SUFFIXES = (
     "ablation-cartpole-unweighted-refined",
     "ablation-cartpole-unweighted-unrefined",
