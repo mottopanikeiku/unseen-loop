@@ -33,6 +33,8 @@ Every candidate is evaluated through the same semantics:
 
 The publication source is [`artifacts/studies/unseen-loop-release-analysis-004/publication.json`](artifacts/studies/unseen-loop-release-analysis-004/publication.json), SHA-256 `7a8c4ee7fd8f5d27778b94c98913b292b120172b136dcffe936b2591f5811536`. Its enclosing `checksums.sha256` ledger has SHA-256 `3dd9ac68c0e2db09449b228180707b3f459f094606cb1bd7953e9a2f3a70e823`. Tables below are transcribed from that named, checksummed analysis—not recomputed in Markdown; decimal estimates are rounded to three places for display.
 
+Before any table is accepted, the Modal analyzer independently reloads every teacher, reruns all teacher selection seeds, reconstructs all 280 candidate objectives from 14,000 candidate-by-seed rows, recomputes every Pareto flag, and applies the exact champion tolerance and ordering rule. A summary-named but misselected champion fails publication.
+
 The expanded clear study completed all 15 environment/checkpoint runs: 120 candidate rows, 6,000 selection-episode rows, 1,500 paired post-selection evaluations, and 3,000 long-form teacher/student evaluation rows.
 
 | Environment | Checkpoints / pairs | Teacher mean | Integer-student mean | Paired return Δ, 95% bootstrap CI | Action certificate |

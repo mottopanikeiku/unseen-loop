@@ -1,0 +1,56 @@
+{
+  "all_gates_passed": true,
+  "execution": {
+    "browser": "Playwright Chromium",
+    "headless": true,
+    "location": "Modal"
+  },
+  "index": {
+    "innerWidth": 1440,
+    "metricValues": [
+      "2,048",
+      "500 / 500",
+      "95.9%",
+      "25 / 25"
+    ],
+    "notMeasured": false,
+    "scrollWidth": 1440,
+    "state": "loaded"
+  },
+  "schema_version": "unseen-loop/ui-verification-v1",
+  "screenshots": {
+    "desktop": {
+      "path": "/artifacts/studies/modal-ui-verification-001/studies-desktop.png",
+      "sha256": "3639c9cd9bf796b9de900ca2f96a3401bc94d1ebe4cead71c39c0e2da0d82299"
+    },
+    "mobile": {
+      "path": "/artifacts/studies/modal-ui-verification-001/studies-mobile.png",
+      "sha256": "936440cdcd48371b1985460793b9ef7364fd5995fb12b00669b2dd801b617401"
+    }
+  },
+  "source_provenance": {
+    "git_commit": "c0e349152a8131216e4a92728c1976d4252a0810",
+    "git_dirty": false,
+    "modal_sdk_version": "1.5.4"
+  },
+  "studies_desktop": {
+    "ablationRows": 4,
+    "effectRows": 3,
+    "expandedRows": 3,
+    "h1": 1,
+    "innerWidth": 1440,
+    "main": 1,
+    "notVerified": false,
+    "scrollWidth": 1440,
+    "sourceRows": 7,
+    "state": "loaded"
+  },
+  "studies_mobile": {
+    "focusableRegions": 5,
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "state": "loaded",
+    "tables": 5
+  },
+  "study_id": "modal-ui-verification-001"
+}
