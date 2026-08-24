@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import secrets
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,7 @@ TIMING_MEASURED_PER_CONTAINER = 16
 TIMING_ATTEMPTS = TIMING_CONTAINER_COUNT * (
     TIMING_WARMUPS_PER_CONTAINER + TIMING_MEASURED_PER_CONTAINER
 )
+CONTAINER_BOOT_NONCE = secrets.token_bytes(32)
 
 app = modal.App(APP_NAME)
 artifacts = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
@@ -311,9 +313,8 @@ def timing_container_remote(worker_request_json: str) -> str:
     ):
         raise ValueError("worker request does not match the release timing schedule")
 
-    hostname = socket.gethostname()
-    physical_container_digest = _sha256(hostname.encode("utf-8"))
-    container_id = f"slot-{slot}-{physical_container_digest[:16]}"
+    container_instance_digest = _sha256(socket.gethostname().encode("utf-8") + CONTAINER_BOOT_NONCE)
+    container_id = f"slot-{slot}-{container_instance_digest[:16]}"
     trial_id = f"trial-{slot}"
     qmax = circuit_configuration["qmax"]
     policy = PolynomialPolicy(challenge_policy_spec(qmax=qmax))
@@ -379,7 +380,7 @@ def timing_container_remote(worker_request_json: str) -> str:
     context = {
         "logical_slot": slot,
         "container_id": container_id,
-        "physical_container_sha256": physical_container_digest,
+        "container_instance_sha256": container_instance_digest,
         "hostname_retained": False,
         "policy_digest": policy.spec.digest,
         "circuit_receipt": receipt,
@@ -434,9 +435,9 @@ def timing_study_remote(study_id: str, source_provenance_json: str) -> str:
     if any(not isinstance(context, dict) for context in contexts):
         raise RuntimeError("timing worker omitted its context record")
     typed_contexts = [context for context in contexts if isinstance(context, dict)]
-    physical_ids = {str(context["physical_container_sha256"]) for context in typed_contexts}
+    instance_ids = {str(context["container_instance_sha256"]) for context in typed_contexts}
     container_ids = {str(context["container_id"]) for context in typed_contexts}
-    if len(physical_ids) != TIMING_CONTAINER_COUNT or len(container_ids) != TIMING_CONTAINER_COUNT:
+    if len(instance_ids) != TIMING_CONTAINER_COUNT or len(container_ids) != TIMING_CONTAINER_COUNT:
         raise RuntimeError("timing study requires four actual, distinct Modal containers")
 
     context_record: dict[str, Any] = {
@@ -481,7 +482,7 @@ def timing_study_remote(study_id: str, source_provenance_json: str) -> str:
         "execution": {
             "location": "Modal",
             "remote_worker_function": "timing_container_remote",
-            "actual_distinct_containers": len(physical_ids),
+            "actual_distinct_containers": len(instance_ids),
             "real_fhe_attempts": len(rows),
             "warmup_attempts": TIMING_CONTAINER_COUNT * TIMING_WARMUPS_PER_CONTAINER,
             "measured_attempts": TIMING_CONTAINER_COUNT * TIMING_MEASURED_PER_CONTAINER,
