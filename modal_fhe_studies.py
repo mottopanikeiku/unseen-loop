@@ -38,7 +38,11 @@ artifacts = modal.Volume.from_name(VOLUME_NAME, create_if_missing=True)
 
 # Aggregation never imports Concrete. REAL-FHE compilation, key generation, and
 # evaluation are confined to the separately pinned FHE image.
-core_image = modal.Image.debian_slim(python_version="3.12").add_local_python_source("unseen_loop")
+core_image = (
+    modal.Image.debian_slim(python_version="3.12")
+    .uv_pip_install("numpy==1.26.4")
+    .add_local_python_source("unseen_loop")
+)
 fhe_image = (
     modal.Image.debian_slim(python_version="3.12")
     .uv_pip_install(*FHE_PACKAGES)
