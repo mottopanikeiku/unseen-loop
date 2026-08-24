@@ -322,6 +322,36 @@ def run_experiment(
             for record in records
         ),
     )
+    expected_selection_seeds = set(seeds.selection)
+    for record in records:
+        episode_seeds = [episode.seed for episode in record.selection_episodes]
+        if (
+            len(episode_seeds) != len(expected_selection_seeds)
+            or len(set(episode_seeds)) != len(episode_seeds)
+            or set(episode_seeds) != expected_selection_seeds
+        ):
+            raise RuntimeError("candidate selection episodes do not match the selection seed plan")
+    ledger.write_jsonl(
+        "search/selection-episodes.jsonl",
+        (
+            {
+                "candidate_digest": record.policy.spec.digest,
+                "seed": episode.seed,
+                "total_return": episode.total_return,
+                "constraint_cost": episode.constraint_cost,
+                "range_valid": episode.saturation_count == 0,
+                "action_digest": episode.action_digest,
+                "steps": episode.steps,
+                "teacher_agreement_count": episode.teacher_agreement_count,
+                "certified_count": episode.certified_count,
+                "certified_mismatch_count": episode.certified_mismatch_count,
+                "saturation_count": episode.saturation_count,
+                "mode": "QUANTIZED CLEAR SELECTION",
+            }
+            for record in records
+            for episode in record.selection_episodes
+        ),
+    )
     for record in records:
         ledger.write_text(
             f"policies/{record.policy.spec.digest}.json", record.policy.spec.to_json() + "\n"

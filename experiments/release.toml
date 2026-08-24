@@ -22,6 +22,8 @@ coefficient_bits = [3, 4, 6, 8, 10]
 ridge = [1e-4, 1e-3, 1e-2]
 refinement_rounds = 3
 calibration_padding = 0.5
+certificate_weighting = true
+student_occupancy_refinement = true
 
 [training.gpu]
 type = "L4"

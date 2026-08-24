@@ -67,6 +67,18 @@ def test_small_search_returns_a_valid_pareto_candidate() -> None:
     assert pareto_front(records) == records
     assert 0 <= records[0].metrics.teacher_agreement <= 1
     assert 0 <= records[0].metrics.certified_coverage <= 1
+    assert tuple(episode.seed for episode in records[0].selection_episodes) == (4, 5)
+    selection = records[0].selection_episodes
+    selection_steps = sum(episode.steps for episode in selection)
+    assert records[0].metrics.teacher_agreement == (
+        sum(episode.teacher_agreement_count for episode in selection) / selection_steps
+    )
+    assert records[0].metrics.certified_coverage == (
+        sum(episode.certified_count for episode in selection) / selection_steps
+    )
+    assert records[0].metrics.range_valid == (
+        sum(episode.saturation_count for episode in selection) == 0
+    )
 
 
 def test_seed_plan_splits_are_disjoint_and_respect_episode_counts() -> None:

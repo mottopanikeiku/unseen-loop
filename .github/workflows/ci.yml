@@ -33,7 +33,7 @@ jobs:
         run: >-
           uv run python -c "from unseen_loop.suite import load_release_config;
           c, digest = load_release_config('experiments/release.toml');
-          assert c.expected_runs == 15 and c.expected_selection_episodes == 1500
+          assert c.expected_runs == 15 and c.expected_selection_episodes == 180000
           and c.expected_paired_episodes == 1500 and c.expected_candidate_rows == 1800
           and len(digest) == 64"
       - run: uv run unseen-loop report artifacts/reference/modal-smoke-001.json --output /tmp/evidence.json

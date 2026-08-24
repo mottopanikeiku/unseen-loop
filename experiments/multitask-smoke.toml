@@ -22,6 +22,8 @@ coefficient_bits = [8, 10]
 ridge = [1e-3]
 refinement_rounds = 1
 calibration_padding = 1.5
+certificate_weighting = true
+student_occupancy_refinement = true
 
 [training.gpu]
 type = "CPU smoke"

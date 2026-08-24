@@ -1,0 +1,46 @@
+schema_version = "unseen-loop/release-suite-v1"
+name = "ablation-cartpole-weighted-refined-2026-08"
+seed_root = "expanded-cartpole-ablation-2026-08"
+fhe_runtime = "clear-only-no-privacy-claim"
+security_level = 128
+global_p_error = 1e-6
+stable_argmax = "lowest-index"
+
+[workloads]
+environments = ["CartPole-v1"]
+checkpoints_per_environment = 5
+selection_episodes = 50
+evaluation_episodes = 100
+
+[search]
+degrees = [1, 2]
+input_bits = [5, 6]
+coefficient_bits = [8, 10]
+ridge = [1e-3]
+refinement_rounds = 3
+calibration_padding = 2.0
+certificate_weighting = true
+student_occupancy_refinement = true
+
+[training.gpu]
+type = "L4"
+population = 64
+iterations = 12
+episodes_per_candidate = 2
+hidden_size = 16
+
+[gates]
+minimum_certified_occupancy = 0.99
+maximum_certified_mismatches = 0
+
+[claims]
+allowed = [
+  "clear CartPole ablation with matched seeds and search budget",
+  "post-selection paired return rows",
+]
+forbidden = [
+  "privacy evidence",
+  "REAL FHE execution",
+  "private training",
+  "malicious-server integrity",
+]

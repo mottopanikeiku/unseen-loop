@@ -9,7 +9,7 @@ import tomllib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -45,6 +45,8 @@ class ReleaseSuiteConfig:
     hidden_size: int
     minimum_certified_occupancy: float
     maximum_certified_mismatches: int
+    certificate_weighting: bool = True
+    student_occupancy_refinement: bool = True
 
     @property
     def expected_runs(self) -> int:
@@ -65,7 +67,7 @@ class ReleaseSuiteConfig:
 
     @property
     def expected_selection_episodes(self) -> int:
-        return self.expected_runs * self.selection_episodes
+        return self.expected_runs * self.candidates_per_run * self.selection_episodes
 
     @property
     def expected_paired_episodes(self) -> int:
@@ -82,6 +84,7 @@ class _CompletedRun:
     paired_rows: tuple[dict[str, Any], ...]
     deltas: tuple[float, ...]
     suite_gates_passed: bool
+    selection_episode_rows: int
 
 
 def _table(raw: Mapping[str, Any], key: str) -> dict[str, Any]:
@@ -114,6 +117,13 @@ def _number(raw: Mapping[str, Any], key: str, *, positive: bool = True) -> float
         qualifier = "finite and positive" if positive else "finite"
         raise ValueError(f"release TOML field {key!r} must be {qualifier}")
     return result
+
+
+def _optional_boolean(raw: Mapping[str, Any], key: str, *, default: bool) -> bool:
+    value = raw.get(key, default)
+    if not isinstance(value, bool):
+        raise ValueError(f"release TOML field {key!r} must be a boolean")
+    return value
 
 
 def _integer_tuple(raw: Mapping[str, Any], key: str) -> tuple[int, ...]:
@@ -187,6 +197,10 @@ def load_release_config(path: str | Path) -> tuple[ReleaseSuiteConfig, str]:
         hidden_size=_integer(training, "hidden_size"),
         minimum_certified_occupancy=_number(gates, "minimum_certified_occupancy"),
         maximum_certified_mismatches=_integer(gates, "maximum_certified_mismatches", minimum=0),
+        certificate_weighting=_optional_boolean(search, "certificate_weighting", default=True),
+        student_occupancy_refinement=_optional_boolean(
+            search, "student_occupancy_refinement", default=True
+        ),
     )
     if config.schema_version != "unseen-loop/release-suite-v1":
         raise ValueError("unsupported release config schema")
@@ -218,7 +232,7 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def _validate_seed_plan(run_path: Path, config: ReleaseSuiteConfig) -> str:
+def _validate_seed_plan(run_path: Path, config: ReleaseSuiteConfig) -> tuple[str, tuple[int, ...]]:
     seed_plan = _read_json_object(run_path / "seeds.json")
     selection = seed_plan.get("selection")
     evaluation = seed_plan.get("evaluation")
@@ -246,7 +260,7 @@ def _validate_seed_plan(run_path: Path, config: ReleaseSuiteConfig) -> str:
     namespace = seed_plan.get("namespace")
     if not isinstance(namespace, str) or not namespace:
         raise RuntimeError("release run seed namespace label is missing")
-    return namespace
+    return namespace, tuple(selection)
 
 
 def _paired_episode_rows(
@@ -306,6 +320,107 @@ def _paired_episode_rows(
     return tuple(paired)
 
 
+def _validate_selection_episode_rows(
+    run_path: Path,
+    *,
+    candidate_metrics: Mapping[str, tuple[float, float, bool]],
+    selection_seeds: tuple[int, ...],
+) -> int:
+    rows = _read_jsonl(run_path / "search" / "selection-episodes.jsonl")
+    expected_keys = {
+        (candidate_digest, seed)
+        for candidate_digest in candidate_metrics
+        for seed in selection_seeds
+    }
+    observed_keys: set[tuple[str, int]] = set()
+    totals = {
+        candidate_digest: {
+            "steps": 0,
+            "teacher_agreement_count": 0,
+            "certified_count": 0,
+            "certified_mismatch_count": 0,
+            "saturation_count": 0,
+        }
+        for candidate_digest in candidate_metrics
+    }
+    for row in rows:
+        candidate_digest = row.get("candidate_digest")
+        seed = row.get("seed")
+        if not isinstance(candidate_digest, str) or not candidate_digest:
+            raise RuntimeError("release selection episode candidate digest is malformed")
+        if isinstance(seed, bool) or not isinstance(seed, int):
+            raise RuntimeError("release selection episode seed is malformed")
+        key = (candidate_digest, seed)
+        if key not in expected_keys:
+            raise RuntimeError("release selection episode candidate/seed pair is unexpected")
+        if key in observed_keys:
+            raise RuntimeError("release selection episode candidate/seed pair is duplicated")
+        observed_keys.add(key)
+        if row.get("mode") != "QUANTIZED CLEAR SELECTION":
+            raise RuntimeError("release selection episode mode is malformed")
+        for field in ("total_return", "constraint_cost"):
+            value = row.get(field)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+            ):
+                raise RuntimeError(f"release selection episode {field} is malformed")
+        counters: dict[str, int] = {}
+        for field in totals[candidate_digest]:
+            value = row.get(field)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise RuntimeError(f"release selection episode {field} is malformed")
+            counters[field] = value
+        steps = counters["steps"]
+        if steps < 1 or any(
+            counters[field] > steps
+            for field in (
+                "teacher_agreement_count",
+                "certified_count",
+                "certified_mismatch_count",
+                "saturation_count",
+            )
+        ):
+            raise RuntimeError("release selection episode counters exceed episode steps")
+        if counters["certified_mismatch_count"] > counters["certified_count"]:
+            raise RuntimeError("release certified mismatch count exceeds certified count")
+        range_valid = row.get("range_valid")
+        if not isinstance(range_valid, bool) or range_valid is not (
+            counters["saturation_count"] == 0
+        ):
+            raise RuntimeError("release selection episode range_valid is inconsistent")
+        action_digest = row.get("action_digest")
+        if not isinstance(action_digest, str) or not action_digest:
+            raise RuntimeError("release selection episode action digest is malformed")
+        for field, value in counters.items():
+            totals[candidate_digest][field] += value
+    if observed_keys != expected_keys:
+        raise RuntimeError("release selection episode candidate/seed pairs are incomplete")
+    for candidate_digest, counts in totals.items():
+        teacher_agreement, certified_coverage, range_valid = candidate_metrics[candidate_digest]
+        steps = counts["steps"]
+        if not math.isclose(
+            counts["teacher_agreement_count"] / steps,
+            teacher_agreement,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            raise RuntimeError("release candidate agreement disagrees with selection episode rows")
+        if not math.isclose(
+            counts["certified_count"] / steps,
+            certified_coverage,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            raise RuntimeError("release candidate coverage disagrees with selection episode rows")
+        if range_valid is not (counts["saturation_count"] == 0):
+            raise RuntimeError(
+                "release candidate range_valid disagrees with selection episode rows"
+            )
+    return len(rows)
+
+
 def _validate_completed_run(
     run_path: Path,
     *,
@@ -331,7 +446,7 @@ def _validate_completed_run(
     ):
         raise RuntimeError("release child summary identity is inconsistent")
 
-    seed_namespace = _validate_seed_plan(run_path, config)
+    seed_namespace, selection_seeds = _validate_seed_plan(run_path, config)
     paired_rows = _paired_episode_rows(
         run_path,
         environment=environment,
@@ -373,6 +488,42 @@ def _validate_completed_run(
     ]
     if len(champions) != 1 or champions[0]["metrics"].get("range_valid") is not True:
         raise RuntimeError("release champion is missing or range-invalid")
+    candidate_metrics: dict[str, tuple[float, float, bool]] = {}
+    for candidate in candidates:
+        metrics = candidate.get("metrics")
+        candidate_digest = metrics.get("policy_digest") if isinstance(metrics, dict) else None
+        range_valid = metrics.get("range_valid") if isinstance(metrics, dict) else None
+        teacher_agreement = metrics.get("teacher_agreement") if isinstance(metrics, dict) else None
+        certified_coverage = (
+            metrics.get("certified_coverage") if isinstance(metrics, dict) else None
+        )
+        if not isinstance(candidate_digest, str) or not candidate_digest:
+            raise RuntimeError("release candidate policy digest is malformed")
+        if not isinstance(range_valid, bool):
+            raise RuntimeError("release candidate range_valid is malformed")
+        for field, value in (
+            ("teacher_agreement", teacher_agreement),
+            ("certified_coverage", certified_coverage),
+        ):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or not 0.0 <= float(value) <= 1.0
+            ):
+                raise RuntimeError(f"release candidate {field} is malformed")
+        if candidate_digest in candidate_metrics:
+            raise RuntimeError("release candidate policy digests are duplicated")
+        candidate_metrics[candidate_digest] = (
+            float(cast(float, teacher_agreement)),
+            float(cast(float, certified_coverage)),
+            range_valid,
+        )
+    selection_episode_rows = _validate_selection_episode_rows(
+        run_path,
+        candidate_metrics=candidate_metrics,
+        selection_seeds=selection_seeds,
+    )
 
     certificate = _read_json_object(run_path / "certificates" / "heldout.json")
     coverage = certificate.get("coverage")
@@ -407,6 +558,9 @@ def _validate_completed_run(
         "seed_namespace": seed_namespace,
         "selection_episodes": config.selection_episodes,
         "evaluation_episodes": config.evaluation_episodes,
+        "retained_selection_episode_rows": selection_episode_rows,
+        "certificate_weighting": config.certificate_weighting,
+        "student_occupancy_refinement": config.student_occupancy_refinement,
         "retained_episode_rows": len(paired_rows) * 2,
         "child_ledger_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
         "suite_gates_passed": gates_passed,
@@ -429,6 +583,7 @@ def _validate_completed_run(
         paired_rows=paired_rows,
         deltas=tuple(float(item["paired_return_delta"]) for item in paired_rows),
         suite_gates_passed=gates_passed,
+        selection_episode_rows=selection_episode_rows,
     )
 
 
@@ -438,7 +593,7 @@ def _hierarchical_interval(
     seed: int,
     repetitions: int = 10_000,
 ) -> tuple[float, float, float]:
-    """Paired bootstrap: episodes within checkpoints, checkpoints within each task."""
+    """Bootstrap tasks, checkpoints within tasks, then paired episodes."""
 
     if repetitions < 1 or not deltas_by_environment:
         raise ValueError("hierarchical interval requires tasks and positive repetitions")
@@ -451,14 +606,16 @@ def _hierarchical_interval(
     rng = np.random.default_rng(seed)
     estimates = np.empty(repetitions, dtype=np.float64)
     for repetition in range(repetitions):
+        task_indices = rng.integers(0, len(task_values), size=len(task_values))
         task_means: list[float] = []
-        for runs in task_values:
+        for task_index in task_indices:
+            runs = task_values[int(task_index)]
             checkpoint_indices = rng.integers(0, len(runs), size=len(runs))
             checkpoint_means: list[float] = []
-            for index in checkpoint_indices:
-                values = np.asarray(runs[int(index)], dtype=np.float64)
-                sampled = values[rng.integers(0, len(values), size=len(values))]
-                checkpoint_means.append(float(np.mean(sampled)))
+            for checkpoint_index in checkpoint_indices:
+                values = np.asarray(runs[int(checkpoint_index)], dtype=np.float64)
+                episode_indices = rng.integers(0, len(values), size=len(values))
+                checkpoint_means.append(float(np.mean(values[episode_indices])))
             task_means.append(float(np.mean(checkpoint_means)))
         estimates[repetition] = float(np.mean(task_means))
     low, high = np.quantile(estimates, (0.025, 0.975))
@@ -508,6 +665,8 @@ def run_release_suite(
             ridge_values=config.ridge_values,
             refinement_rounds=config.refinement_rounds,
             calibration_padding=config.calibration_padding,
+            certificate_weighting=config.certificate_weighting,
+            student_occupancy_refinement=config.student_occupancy_refinement,
             global_p_error=config.global_p_error,
         ),
     )
@@ -547,6 +706,9 @@ def run_release_suite(
     paired_rows = [row for result in completed for row in result.paired_rows]
     if len(paired_rows) != config.expected_paired_episodes:
         raise RuntimeError("release suite retained paired rows are incomplete")
+    selection_episode_rows = sum(result.selection_episode_rows for result in completed)
+    if selection_episode_rows != config.expected_selection_episodes:
+        raise RuntimeError("release suite retained selection rows are incomplete")
     bootstrap_seed = int.from_bytes(
         hashlib.sha256(f"{config.seed_root}|paired-return-bootstrap-v1".encode()).digest()[:8],
         "little",
@@ -564,10 +726,14 @@ def run_release_suite(
         "candidates_per_run": config.candidates_per_run,
         "expected_candidate_rows": config.expected_candidate_rows,
         "expected_selection_episodes": config.expected_selection_episodes,
+        "retained_selection_episode_rows": selection_episode_rows,
+        "selection_evidence_scope": "complete candidate-by-seed long-form episode rows",
         "environments": list(config.environments),
         "checkpoints_per_environment": config.checkpoints_per_environment,
-        "selection_episodes_per_checkpoint": config.selection_episodes,
+        "selection_episodes_per_candidate": config.selection_episodes,
         "evaluation_episodes_per_checkpoint": config.evaluation_episodes,
+        "certificate_weighting": config.certificate_weighting,
+        "student_occupancy_refinement": config.student_occupancy_refinement,
         "expected_paired_episodes": config.expected_paired_episodes,
         "retained_paired_episodes": len(paired_rows),
         "retained_episode_rows": len(paired_rows) * 2,
@@ -582,7 +748,7 @@ def run_release_suite(
             "mean": observed,
             "ci95_low": interval_low,
             "ci95_high": interval_high,
-            "method": ("paired episodes within checkpoints; checkpoints within fixed environments"),
+            "method": ("tasks; checkpoints within tasks; paired episodes within checkpoints"),
             "repetitions": 10_000,
             "seed": bootstrap_seed,
             "seed_namespace": f"{config.seed_root}|paired-return-bootstrap-v1",

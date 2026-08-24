@@ -37,6 +37,19 @@ class SearchConfig:
 
 
 @dataclass(frozen=True)
+class SelectionEpisodeMetrics:
+    seed: int
+    total_return: float
+    constraint_cost: float
+    action_digest: str
+    steps: int
+    teacher_agreement_count: int
+    certified_count: int
+    certified_mismatch_count: int
+    saturation_count: int
+
+
+@dataclass(frozen=True)
 class SearchRecord:
     metrics: CandidateMetrics
     policy: PolynomialPolicy
@@ -44,6 +57,7 @@ class SearchRecord:
     refinement_rounds: int
     train_samples: int
     saturation_rate: float
+    selection_episodes: tuple[SelectionEpisodeMetrics, ...]
 
 
 class IntegerStudent:
@@ -241,13 +255,50 @@ def search_policies(
         selection = collect_trajectories(teacher.checkpoint.env_id, adapter, selection_seeds)
         quantized_selection = policy.quantize(selection.observations, reject=False)
         teacher_actions = np.argmax(teacher.score(selection.observations), axis=1)
-        agreement = float(np.mean(selection.actions == teacher_actions))
         certificate = certify_actions(
             policy, quantized_selection, global_p_error=config.global_p_error
         )
+        centers = np.asarray(policy.spec.quantizer.center, dtype=np.float64)
+        quantizer_steps = np.asarray(policy.spec.quantizer.step, dtype=np.float64)
+        unbounded = np.rint((selection.observations - centers) / quantizer_steps)
+        saturated = np.any(np.abs(unbounded) > policy.spec.quantizer.qmax, axis=1)
+        certificate_mismatches = certificate.float_actions != certificate.integer_actions
+        if not np.array_equal(selection.actions, certificate.integer_actions):
+            raise RuntimeError("selection actions disagree with exact integer certificate actions")
+        if adapter.saturations != int(np.count_nonzero(saturated)):
+            raise RuntimeError("selection saturation accounting is inconsistent")
+        selection_episodes: list[SelectionEpisodeMetrics] = []
+        for episode_index, episode in enumerate(selection.episodes):
+            mask = selection.episode_ids == episode_index
+            episode_steps = int(np.count_nonzero(mask))
+            if episode_steps != episode.length:
+                raise RuntimeError("selection episode step accounting is inconsistent")
+            selection_episodes.append(
+                SelectionEpisodeMetrics(
+                    seed=episode.seed,
+                    total_return=episode.total_return,
+                    constraint_cost=episode.constraint_cost,
+                    action_digest=episode.action_digest,
+                    steps=episode_steps,
+                    teacher_agreement_count=int(
+                        np.count_nonzero(selection.actions[mask] == teacher_actions[mask])
+                    ),
+                    certified_count=int(np.count_nonzero(certificate.certified[mask])),
+                    certified_mismatch_count=int(
+                        np.count_nonzero(certificate.certified[mask] & certificate_mismatches[mask])
+                    ),
+                    saturation_count=int(np.count_nonzero(saturated[mask])),
+                )
+            )
+        total_steps = sum(episode.steps for episode in selection_episodes)
+        if total_steps < 1:
+            raise RuntimeError("selection evaluation produced no occupied states")
+        agreement_count = sum(episode.teacher_agreement_count for episode in selection_episodes)
+        certified_count = sum(episode.certified_count for episode in selection_episodes)
+        saturation_count = sum(episode.saturation_count for episode in selection_episodes)
         returns = np.asarray(selection.returns, dtype=np.float64)
         costs = np.asarray(selection.constraint_costs, dtype=np.float64)
-        range_valid = adapter.saturations == 0
+        range_valid = saturation_count == 0
         metrics = CandidateMetrics(
             policy_digest=policy.spec.digest,
             degree=degree,
@@ -255,8 +306,8 @@ def search_policies(
             coefficient_bits=coefficient_bits,
             return_mean=float(np.mean(returns)),
             return_std=float(np.std(returns)),
-            teacher_agreement=agreement,
-            certified_coverage=certificate.coverage,
+            teacher_agreement=agreement_count / total_steps,
+            certified_coverage=certified_count / total_steps,
             constraint_cost=float(np.mean(costs)),
             estimated_bit_width=policy.estimated_output_bits,
             encrypted_multiplications=policy.encrypted_multiplications,
@@ -273,6 +324,7 @@ def search_policies(
                     saturation_rate,
                     adapter.saturations / adapter.calls if adapter.calls else 0.0,
                 ),
+                selection_episodes=tuple(selection_episodes),
             )
         )
     return tuple(records)

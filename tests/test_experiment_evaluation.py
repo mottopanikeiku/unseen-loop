@@ -138,3 +138,66 @@ def test_post_selection_metrics_and_rows_use_paired_student_occupancy(
     assert len(seed_plan["selection"]) == evaluation_preset().selection_episodes
     assert len(seed_plan["evaluation"]) == evaluation_preset().evaluation_episodes
     assert set(seed_plan["selection"]).isdisjoint(seed_plan["evaluation"])
+
+    selection_rows = [
+        json.loads(line)
+        for line in (output / "search" / "selection-episodes.jsonl").read_text().splitlines()
+    ]
+    assert len(selection_rows) == summary.candidates * evaluation_preset().selection_episodes
+    assert all(
+        set(row)
+        == {
+            "candidate_digest",
+            "seed",
+            "total_return",
+            "constraint_cost",
+            "range_valid",
+            "steps",
+            "teacher_agreement_count",
+            "certified_count",
+            "certified_mismatch_count",
+            "saturation_count",
+            "action_digest",
+            "mode",
+        }
+        for row in selection_rows
+    )
+    assert all(row["mode"] == "QUANTIZED CLEAR SELECTION" for row in selection_rows)
+    selection_keys = {(row["candidate_digest"], row["seed"]) for row in selection_rows}
+    assert len(selection_keys) == len(selection_rows)
+    candidate_digests = {row["candidate_digest"] for row in selection_rows}
+    candidate_rows = [
+        json.loads(line)
+        for line in (output / "search" / "candidates.jsonl").read_text().splitlines()
+    ]
+    candidate_metrics = {row["metrics"]["policy_digest"]: row["metrics"] for row in candidate_rows}
+    for candidate_digest in candidate_digests:
+        candidate_seeds = {
+            row["seed"] for row in selection_rows if row["candidate_digest"] == candidate_digest
+        }
+        assert candidate_seeds == set(seed_plan["selection"])
+        rows_for_candidate = [
+            row for row in selection_rows if row["candidate_digest"] == candidate_digest
+        ]
+        steps = sum(row["steps"] for row in rows_for_candidate)
+        metrics = candidate_metrics[candidate_digest]
+        assert metrics["teacher_agreement"] == (
+            sum(row["teacher_agreement_count"] for row in rows_for_candidate) / steps
+        )
+        assert metrics["certified_coverage"] == (
+            sum(row["certified_count"] for row in rows_for_candidate) / steps
+        )
+        saturation_count = sum(row["saturation_count"] for row in rows_for_candidate)
+        assert metrics["range_valid"] == (saturation_count == 0)
+        assert all(
+            row["range_valid"] == (row["saturation_count"] == 0) for row in rows_for_candidate
+        )
+        assert sum(row["certified_mismatch_count"] for row in rows_for_candidate) <= sum(
+            row["certified_count"] for row in rows_for_candidate
+        )
+        assert metrics["return_mean"] == pytest.approx(
+            np.mean([row["total_return"] for row in rows_for_candidate])
+        )
+        assert metrics["constraint_cost"] == pytest.approx(
+            np.mean([row["constraint_cost"] for row in rows_for_candidate])
+        )
