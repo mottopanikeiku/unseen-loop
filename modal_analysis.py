@@ -18,7 +18,7 @@ import modal
 APP_NAME = "unseen-loop-release-analysis"
 VOLUME_NAME = "unseen-loop-artifacts"
 STUDY_ROOT = Path("/artifacts/studies")
-OUTPUT_ID = "unseen-loop-release-analysis-003"
+OUTPUT_ID = "unseen-loop-release-analysis-004"
 OUTPUT_ROOT = STUDY_ROOT / OUTPUT_ID
 EXPANDED_ID = "expanded-multitask-modal-002"
 ABLATION_PREFIX = "expanded-cartpole-ablation-modal-004--"
@@ -35,7 +35,11 @@ SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
 
 app = modal.App(APP_NAME)
 artifacts = modal.Volume.from_name(VOLUME_NAME, create_if_missing=False)
-analysis_image = modal.Image.debian_slim(python_version="3.12").uv_pip_install("numpy==1.26.4")
+analysis_image = (
+    modal.Image.debian_slim(python_version="3.12")
+    .uv_pip_install("numpy==1.26.4", "gymnasium==1.3.0")
+    .add_local_python_source("unseen_loop")
+)
 
 
 def _canonical_json(value: Any) -> str:
@@ -303,6 +307,276 @@ def _policy_digest(policy: Mapping[str, Any]) -> str:
     return _sha256(_canonical_json(policy).encode("utf-8"))
 
 
+def _verify_selection_decision(
+    run: Path,
+    summary: Mapping[str, Any],
+    candidates: Sequence[Mapping[str, Any]],
+    selection_by_key: Mapping[tuple[str, int], Mapping[str, Any]],
+    selection_seeds: Sequence[int],
+) -> dict[str, Any]:
+    """Recompute candidate metrics, Pareto flags, and the exact champion decision."""
+    import numpy as np
+
+    from unseen_loop.policy import PolynomialPolicy
+    from unseen_loop.specs import PolicySpec
+    from unseen_loop.teacher import MLPTeacher, TeacherCheckpoint, rollout
+
+    checkpoint_payload = (run / "teacher" / "checkpoint.json").read_text(encoding="utf-8")
+    checkpoint = TeacherCheckpoint.from_json(checkpoint_payload)
+    teacher_digest = checkpoint.digest
+    _require_equal(
+        teacher_digest,
+        summary.get("teacher_digest"),
+        "teacher checkpoint content digest mismatch",
+    )
+    teacher = MLPTeacher(checkpoint)
+    teacher_selection_returns = np.asarray(
+        [
+            rollout(checkpoint.env_id, teacher, seed=int(seed))[0].total_return
+            for seed in selection_seeds
+        ],
+        dtype=np.float64,
+    )
+    if teacher_selection_returns.size != len(selection_seeds) or not np.all(
+        np.isfinite(teacher_selection_returns)
+    ):
+        raise RuntimeError("teacher selection baseline rerun is incomplete or nonfinite")
+    teacher_selection_mean = float(np.mean(teacher_selection_returns))
+
+    verified: list[dict[str, Any]] = []
+    for candidate_index, candidate in enumerate(candidates):
+        metrics = candidate.get("metrics")
+        if not isinstance(metrics, dict):
+            raise RuntimeError(f"candidate {candidate_index} metrics are malformed")
+        digest = _string(metrics.get("policy_digest"), "candidate policy digest")
+        policy_raw = _object(run / "policies" / f"{digest}.json")
+        _require_equal(
+            _policy_digest(policy_raw), digest, "candidate policy content digest mismatch"
+        )
+        policy = PolynomialPolicy(PolicySpec.from_dict(policy_raw))
+        _require_equal(policy.spec.digest, digest, "loaded candidate policy digest mismatch")
+
+        name_match = re.fullmatch(
+            r"d([1-9]\d*)-x([1-9]\d*)-w([1-9]\d*)-r.+",
+            policy.spec.name,
+        )
+        if name_match is None:
+            raise RuntimeError("candidate policy name does not encode its search dimensions")
+        encoded_degree, encoded_input_bits, encoded_coefficient_bits = (
+            int(value) for value in name_match.groups()
+        )
+        _require_equal(policy.spec.degree, encoded_degree, "candidate encoded degree mismatch")
+        _require_equal(metrics.get("degree"), encoded_degree, "candidate metric degree mismatch")
+        _require_equal(
+            metrics.get("input_bits"),
+            encoded_input_bits,
+            "candidate metric input-bit width mismatch",
+        )
+        _require_equal(
+            metrics.get("coefficient_bits"),
+            encoded_coefficient_bits,
+            "candidate metric coefficient-bit width mismatch",
+        )
+        _require_equal(
+            policy.spec.quantizer.input_bits,
+            encoded_input_bits,
+            "candidate quantizer input-bit width mismatch",
+        )
+
+        rows = [selection_by_key[(digest, int(seed))] for seed in selection_seeds]
+        returns: list[float] = []
+        costs: list[float] = []
+        steps = 0
+        agreement = 0
+        certified = 0
+        certified_mismatches = 0
+        saturations = 0
+        for row in rows:
+            _require_equal(
+                row.get("mode"),
+                "QUANTIZED CLEAR SELECTION",
+                "candidate selection mode mismatch",
+            )
+            _string(row.get("action_digest"), "candidate selection action digest")
+            episode_steps = _integer(row.get("steps"), "candidate selection steps", minimum=1)
+            episode_agreement = _integer(
+                row.get("teacher_agreement_count"),
+                "candidate selection teacher-agreement count",
+            )
+            episode_certified = _integer(
+                row.get("certified_count"), "candidate selection certified count"
+            )
+            episode_mismatches = _integer(
+                row.get("certified_mismatch_count"),
+                "candidate selection certified-mismatch count",
+            )
+            episode_saturations = _integer(
+                row.get("saturation_count"), "candidate selection saturation count"
+            )
+            if (
+                episode_agreement > episode_steps
+                or episode_certified > episode_steps
+                or episode_mismatches > episode_certified
+                or episode_saturations > episode_steps
+            ):
+                raise RuntimeError("candidate selection counters exceed their episode denominator")
+            _require_equal(
+                row.get("range_valid"),
+                episode_saturations == 0,
+                "candidate selection range-valid flag mismatch",
+            )
+            returns.append(_number(row.get("total_return"), "candidate selection return"))
+            costs.append(_number(row.get("constraint_cost"), "candidate selection constraint cost"))
+            steps += episode_steps
+            agreement += episode_agreement
+            certified += episode_certified
+            certified_mismatches += episode_mismatches
+            saturations += episode_saturations
+
+        recomputed = {
+            "policy_digest": digest,
+            "degree": policy.spec.degree,
+            "input_bits": encoded_input_bits,
+            "coefficient_bits": encoded_coefficient_bits,
+            "return_mean": float(np.mean(np.asarray(returns, dtype=np.float64))),
+            "return_std": float(np.std(np.asarray(returns, dtype=np.float64))),
+            "teacher_agreement": agreement / steps,
+            "certified_coverage": certified / steps,
+            "constraint_cost": float(np.mean(np.asarray(costs, dtype=np.float64))),
+            "estimated_bit_width": policy.estimated_output_bits,
+            "encrypted_multiplications": policy.encrypted_multiplications,
+            "range_valid": saturations == 0,
+        }
+        for field, expected in recomputed.items():
+            observed = metrics.get(field)
+            if isinstance(expected, float):
+                if (
+                    isinstance(observed, bool)
+                    or not isinstance(observed, (int, float))
+                    or not math.isclose(
+                        float(observed),
+                        expected,
+                        rel_tol=1e-12,
+                        abs_tol=1e-12,
+                    )
+                ):
+                    raise RuntimeError(
+                        f"candidate {digest} metric {field} disagrees with selection rows"
+                    )
+            else:
+                _require_equal(
+                    observed,
+                    expected,
+                    f"candidate {digest} metric {field} mismatch",
+                )
+        verified.append(
+            {
+                "candidate": candidate,
+                "metrics": recomputed,
+                "policy_name": policy.spec.name,
+                "selection_rows": rows,
+                "certified_mismatches": certified_mismatches,
+                "saturation_count": saturations,
+            }
+        )
+
+    def dominates(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+        left_values = (
+            left["return_mean"],
+            left["teacher_agreement"],
+            left["certified_coverage"],
+            -left["constraint_cost"],
+            -left["estimated_bit_width"],
+            -left["encrypted_multiplications"],
+        )
+        right_values = (
+            right["return_mean"],
+            right["teacher_agreement"],
+            right["certified_coverage"],
+            -right["constraint_cost"],
+            -right["estimated_bit_width"],
+            -right["encrypted_multiplications"],
+        )
+        comparisons = tuple(zip(left_values, right_values, strict=True))
+        return all(left_value >= right_value for left_value, right_value in comparisons) and any(
+            left_value > right_value for left_value, right_value in comparisons
+        )
+
+    valid = [item for item in verified if item["metrics"]["range_valid"]]
+    frontier = [
+        item
+        for item in valid
+        if not any(
+            dominates(other["metrics"], item["metrics"]) for other in valid if other is not item
+        )
+    ]
+    frontier.sort(
+        key=lambda item: (
+            -item["metrics"]["certified_coverage"],
+            -item["metrics"]["return_mean"],
+            item["metrics"]["estimated_bit_width"],
+            item["metrics"]["policy_digest"],
+        )
+    )
+    frontier_digests = {item["metrics"]["policy_digest"] for item in frontier}
+    for item in verified:
+        pareto = item["candidate"].get("pareto")
+        if not isinstance(pareto, bool):
+            raise RuntimeError("candidate Pareto flag is malformed")
+        _require_equal(
+            pareto,
+            item["metrics"]["policy_digest"] in frontier_digests,
+            "candidate Pareto flag mismatch",
+        )
+    _require_equal(
+        summary.get("frontier_candidates"),
+        len(frontier),
+        "summary Pareto-front denominator mismatch",
+    )
+    if not frontier:
+        raise RuntimeError("recomputed Pareto frontier is empty")
+
+    tolerance = max(5.0, 0.05 * abs(teacher_selection_mean))
+    viable = [
+        item
+        for item in frontier
+        if item["metrics"]["return_mean"] >= teacher_selection_mean - tolerance
+        and item["metrics"]["certified_coverage"] >= 0.95
+    ]
+    pool = viable or frontier
+    champion = min(
+        pool,
+        key=lambda item: (
+            -item["metrics"]["certified_coverage"],
+            -item["metrics"]["return_mean"],
+            item["metrics"]["estimated_bit_width"],
+            item["metrics"]["encrypted_multiplications"],
+            item["metrics"]["policy_digest"],
+        ),
+    )
+    _require_equal(
+        summary.get("champion_policy_digest"),
+        champion["metrics"]["policy_digest"],
+        "recorded champion differs from exact recomputed selection",
+    )
+    _require_equal(
+        summary.get("champion_name"),
+        champion["policy_name"],
+        "recorded champion name differs from exact recomputed selection",
+    )
+    return {
+        "champion": champion,
+        "teacher_selection_return_mean": teacher_selection_mean,
+        "teacher_selection_episodes": len(teacher_selection_returns),
+        "teacher_selection_return_sha256": _sha256(teacher_selection_returns.tobytes(order="C")),
+        "tolerance": tolerance,
+        "viable_frontier_candidates": len(viable),
+        "frontier_candidates": len(frontier),
+        "candidate_metrics_recomputed": len(verified),
+        "method": "exact persisted selection metrics, Pareto dominance, and _select_champion key",
+    }
+
+
 def _child_data(
     suite: Path,
     run_row: Mapping[str, Any],
@@ -358,25 +632,6 @@ def _child_data(
     if set(selection_seeds) & set(evaluation_seeds):
         raise RuntimeError("selection and evaluation seed namespaces overlap")
 
-    champion_digest = _string(summary.get("champion_policy_digest"), "champion policy digest")
-    champion_candidates = [
-        row
-        for row in candidates
-        if isinstance(row.get("metrics"), dict)
-        and row["metrics"].get("policy_digest") == champion_digest
-    ]
-    _require_equal(len(champion_candidates), 1, "champion candidate row mismatch")
-    champion = champion_candidates[0]
-    metrics = champion["metrics"]
-    if metrics.get("range_valid") is not True:
-        raise RuntimeError("champion is not range valid")
-    policy_path = run / "policies" / f"{champion_digest}.json"
-    policy = _object(policy_path)
-    _require_equal(
-        _policy_digest(policy), champion_digest, "champion policy content digest mismatch"
-    )
-    _require_equal(policy.get("degree"), metrics.get("degree"), "champion degree mismatch")
-
     selection_by_key: dict[tuple[str, int], dict[str, Any]] = {}
     for row in selection_rows:
         digest = _string(row.get("candidate_digest"), "selection candidate digest")
@@ -394,9 +649,17 @@ def _child_data(
     _require_equal(
         set(selection_by_key), expected_selection_keys, "candidate selection keys mismatch"
     )
-    champion_selection = [
-        selection_by_key[(champion_digest, seed_value)] for seed_value in selection_seeds
-    ]
+    selection_decision = _verify_selection_decision(
+        run,
+        summary,
+        candidates,
+        selection_by_key,
+        selection_seeds,
+    )
+    selected = selection_decision["champion"]
+    metrics = selected["metrics"]
+    champion_digest = metrics["policy_digest"]
+    champion_selection = list(selected["selection_rows"])
     selection_steps = 0
     selection_certified = 0
     selection_mismatches = 0
@@ -492,6 +755,19 @@ def _child_data(
     agreement_count = _ratio_count(
         summary.get("teacher_agreement"), observations, "teacher agreement"
     )
+    _require_equal(
+        summary.get("candidates"), len(candidates), "summary candidate denominator mismatch"
+    )
+    _require_equal(
+        summary.get("estimated_output_bits"),
+        metrics["estimated_bit_width"],
+        "summary champion output-bit estimate mismatch",
+    )
+    _require_equal(
+        summary.get("encrypted_multiplications"),
+        metrics["encrypted_multiplications"],
+        "summary champion multiplication count mismatch",
+    )
     return {
         "path": run,
         "summary": summary,
@@ -499,6 +775,9 @@ def _child_data(
         "config": config,
         "paired": paired,
         "champion_selection": champion_selection,
+        "selection_verification": {
+            key: value for key, value in selection_decision.items() if key != "champion"
+        },
         "champion": {
             "policy_digest": champion_digest,
             "teacher_digest": _string(summary.get("teacher_digest"), "teacher digest"),
@@ -621,6 +900,7 @@ def _checkpoint_row(child: Mapping[str, Any], study_id: str) -> dict[str, Any]:
         "teacher_agreement": child["agreement"],
         "action_certificate": child["certificate"],
         "champion_selection": child["selection_certificate"],
+        "selection_decision_verification": child["selection_verification"],
         "champion": child["champion"],
         "child_ledger_sha256": child["ledger"]["ledger_sha256"],
     }
@@ -1256,6 +1536,9 @@ def _suite_evidence(suite: Mapping[str, Any]) -> dict[str, Any]:
     child_ledgers = {
         child["summary"]["run_id"]: child["ledger"]["ledger_sha256"] for child in suite["children"]
     }
+    selection_decisions = {
+        child["summary"]["run_id"]: child["selection_verification"] for child in suite["children"]
+    }
     source = suite["outer"].get("source")
     if not isinstance(source, dict):
         raise RuntimeError("Modal suite source provenance is missing")
@@ -1271,6 +1554,7 @@ def _suite_evidence(suite: Mapping[str, Any]) -> dict[str, Any]:
         **suite["ledger"],
         "child_ledger_count": len(child_ledgers),
         "child_ledger_sha256": child_ledgers,
+        "selection_decision_verification": selection_decisions,
         "backend": "QUANTIZED CLEAR",
         "trust_label": "clear Modal CPU research worker; no privacy evidence",
         "planned": {
@@ -1380,6 +1664,7 @@ def analyze_remote() -> str:
             "backend": "NumPy analysis over persisted evidence",
             "python": "3.12",
             "numpy": np.__version__,
+            "gymnasium": "1.3.0",
             "max_containers": 1,
             "retries": 0,
             "public_endpoint": False,
@@ -1433,6 +1718,11 @@ def analyze_remote() -> str:
                 "where both levels exist"
             ),
             "bootstrap_repetitions": BOOTSTRAP_REPETITIONS,
+            "selection_decision_validation": (
+                "every candidate metric and Pareto flag is recomputed from checksummed "
+                "selection rows; teacher selection returns are rerun from the checksummed "
+                "checkpoint and selection seeds before applying the exact champion rule"
+            ),
             "ablation_return_scope": "post-selection paired evaluation episodes",
             "ablation_bootstrap_certificate_scope": "champion selection-occupancy episode counters",
             "heldout_certificate_limit": (
