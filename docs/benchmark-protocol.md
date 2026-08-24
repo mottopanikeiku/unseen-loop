@@ -1,6 +1,20 @@
 # Preregistered Benchmark Protocol
 
-This document separates the committed quick artifact from the evidence required for a paper-level release. Thresholds must be changed before a run, never after inspecting its outcome.
+This document separates the executed bounded studies from the evidence required for full preregistration completion. Thresholds must be changed before a run, never after inspecting its outcome.
+
+## Executed bounded studies versus this preregistration
+
+The executed publication matrix is bound to [`../artifacts/studies/unseen-loop-release-analysis-003/publication.json`](../artifacts/studies/unseen-loop-release-analysis-003/publication.json), SHA-256 `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`, under ledger SHA-256 `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`. It is a completed expanded study with 3 environments × 5 checkpoints, eight candidates per run, 50 selection episodes per candidate, and 100 disjoint paired evaluation episodes per run, yielding 15/15 runs, 120 candidates, 6,000 selection rows, 1,500 paired evaluations, and 3,000 long-form evaluation rows.
+
+It is **not** completion of this full preregistration. The expanded search has eight candidates per environment/checkpoint and 50 selection episodes per candidate (120 candidates / 6,000 rows total), not all 120 combinations per checkpoint with 100 selection episodes each (1,800 candidates / 180,000 rows total). It also does not complete the 64-row physically remote client/server challenge or the entire stress/range/tie and release-wide gate matrix. Clear expanded and factorial execution provides no privacy evidence.
+
+| Executed expanded environment | Student-minus-teacher paired return Δ, 95% CI | Conclusion bounded to the executed checkpoints |
+|---|---:|---|
+| CartPole-v1 | −29.480 [−71.358, 0.072] | interval includes zero |
+| MountainCar-v0 | +0.796 [−1.620, 3.544] | interval includes zero |
+| Acrobot-v1 | −231.896 [−388.536, −75.831] | retained negative result; interval below zero |
+
+The matched clear CartPole factorial completed all four cells at five checkpoints and 500 paired evaluations per cell. Its occupancy-refinement-bundle main effect is +83.619 [26.144, 145.954], supporting a positive causal conclusion only for that bundle in those matched CartPole cells. Certificate weighting's main effect is −108.461 [−288.649, 68.250], a negative point estimate with an interval spanning zero. These are from `ablation-effects.jsonl` in the same analysis ledger.
 
 ## Workloads
 
@@ -143,6 +157,8 @@ Report mean, standard deviation, median, and IQR per checkpoint from the persist
 
 Use at least four independent warm evaluator containers with 16 shuffled measured requests each for p50/p95. Three warmups per container are recorded but excluded. Do not report p99 from 64 requests.
 
+The checksummed `modal-fhe-timing-003` study executes this warm protocol exactly in four independent colocated Modal contexts: 12 warmups excluded, 64/64 measured successes, server p50/p95 544.536/830.709 ms, and end-to-end p50/p95 550.076/837.010 ms. It satisfies this bounded timing-study denominator, not the separate remote-client challenge, a shared cryptographic context, throughput, or production-service measurement.
+
 ## Statistical reporting
 
 - paired mean return difference with hierarchical 95% bootstrap interval;
@@ -170,9 +186,9 @@ Use at least four independent warm evaluator containers with 16 shuffled measure
 | Modal viability | every request returns; recorded SKU/image; warm end-to-end ≤60 s |
 | Reproducibility | deterministic artifact hashes and summary regenerate from clean commit |
 
-The quick `modal-smoke-001` record does **not** pass the ≥99% post-selection integer-student-occupancy certificate target (95.875%) and has only one teacher checkpoint. Its 25/25 encrypted prefix is conformance evidence; 24/25 reached codes certify. This is not a completed release study or a latency distribution.
+The current evidence now goes materially beyond the quick records: `expanded-multitask-modal-002` completes the 15-run, 1,500-pair clear matrix; the four `expanded-cartpole-ablation-modal-004--…` studies complete the matched 2×2; `modal-nonlinear-qmax2-002` completes 25 domain plus 15 canary `REAL FHE` calls; and `modal-fhe-timing-003` completes 12 warmups plus 64 measured calls across four contexts. Their exact denominators, source/ledger digests, failed gates, and trust labels are preserved by `evidence-index.json`.
 
-The separate `multitask-smoke-2026-08` clear matrix materializes all three environments and five checkpoints each with 120 candidates, 120 paired episodes, and 240 long-form teacher/student episode rows, but uses only eight selection/evaluation episodes and small teachers. Its paired-return interval excludes zero and its Acrobot student regresses sharply; it is transparent conformance evidence, not a pass of these release gates and not FHE evidence.
+Those bounded completions do **not** convert the expanded clear runs into privacy evidence, do not turn colocated FHE into local-client/remote-server secrecy, and do not pass the full preregistration. Outstanding distinctions remain the 120-candidates-per-checkpoint × 100-selection-episodes-per-candidate search (1,800 candidates / 180,000 rows), the 64-row physically remote client/server challenge, and release-wide stress/range/tie and gate completion. The historical `modal-smoke-001` and `multitask-smoke-2026-08` records remain useful quick conformance evidence, but they are no longer the headline executed studies.
 
 ## Invalid comparisons
 

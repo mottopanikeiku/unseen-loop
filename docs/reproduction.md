@@ -102,21 +102,99 @@ python -m http.server 8000
 # open http://127.0.0.1:8000/site/
 ```
 
-## Release suite versus single-checkpoint scale-up
+## Executed Modal publication studies
 
-The committed measured smoke matrix is exactly reproduced with:
+The publication tables are bound to [`../artifacts/studies/unseen-loop-release-analysis-003/publication.json`](../artifacts/studies/unseen-loop-release-analysis-003/publication.json), SHA-256 `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`, and its enclosing ledger, SHA-256 `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`. The following are the exact canonical invocations. They require an authenticated workspace whose `unseen-loop-artifacts` Volume does not already contain these IDs; every runner rejects a nonempty destination rather than overwrite evidence.
 
 ```bash
-uv run unseen-loop suite \
-  --config experiments/multitask-smoke.toml \
-  --backend clear \
-  --output artifacts/multitask-smoke-reproduction
+uv sync --extra cloud --extra fhe
+uv run modal profile current
+
+uv run modal run -w artifacts/expanded-modal-summary.json \
+  modal_studies.py::suite \
+  --config experiments/expanded-multitask.toml \
+  --study-id expanded-multitask-modal-002
+
+uv run modal run -w artifacts/ablation-modal-summary.json \
+  modal_studies.py::ablations \
+  --config-directory experiments \
+  --study-id expanded-cartpole-ablation-modal-004
+
+uv run modal run -w artifacts/nonlinear-modal-summary.json \
+  modal_fhe_studies.py::nonlinear_challenge \
+  --study-id modal-nonlinear-qmax2-002
+
+uv run modal run -w artifacts/timing-modal-summary.json \
+  modal_fhe_studies.py::timing_study \
+  --study-id modal-fhe-timing-003
+
+uv run modal run -w artifacts/analysis-modal-summary.json \
+  modal_analysis.py::main
 ```
 
-It runs three environments × five checkpoints with eight selection and eight disjoint evaluation episodes per checkpoint. It retains 120 paired episodes / 240 long-form rows and is explicitly clear-only conformance evidence.
+The expanded run executes 3 environments × 5 checkpoints × 8 candidates × 50 selection episodes, then 100 disjoint paired evaluation episodes per checkpoint: 15/15 runs, 120 candidates, 6,000 selection rows, 1,500 paired rows, and 3,000 long-form teacher/student rows. The ablation command runs all four matched CartPole cells. The nonlinear command executes 25 complete-domain + 15 canary calls. The timing command executes four independent contexts, each with three excluded warmups and 16 measured requests.
 
+`modal_analysis.py` deliberately binds the seven canonical IDs and refuses to overwrite `unseen-loop-release-analysis-003`. In an already populated workspace, use fresh study IDs for a semantic rerun and keep it separate; do not delete or replace the canonical evidence. The canonical analysis is a bounded publication analysis, not completion of the full preregistration.
 
-The preregistered release path is the typed suite command:
+### Download the canonical Volume evidence
+
+```bash
+mkdir -p artifacts/downloaded-studies
+uv run modal volume get unseen-loop-artifacts \
+  studies/expanded-multitask-modal-002 \
+  artifacts/downloaded-studies/expanded-multitask-modal-002
+uv run modal volume get unseen-loop-artifacts \
+  studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-unweighted-refined \
+  artifacts/downloaded-studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-unweighted-refined
+uv run modal volume get unseen-loop-artifacts \
+  studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-unweighted-unrefined \
+  artifacts/downloaded-studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-unweighted-unrefined
+uv run modal volume get unseen-loop-artifacts \
+  studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-weighted-refined \
+  artifacts/downloaded-studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-weighted-refined
+uv run modal volume get unseen-loop-artifacts \
+  studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-weighted-unrefined \
+  artifacts/downloaded-studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-weighted-unrefined
+uv run modal volume get unseen-loop-artifacts \
+  studies/modal-nonlinear-qmax2-002 \
+  artifacts/downloaded-studies/modal-nonlinear-qmax2-002
+uv run modal volume get unseen-loop-artifacts \
+  studies/modal-fhe-timing-003 \
+  artifacts/downloaded-studies/modal-fhe-timing-003
+uv run modal volume get unseen-loop-artifacts \
+  studies/unseen-loop-release-analysis-003 \
+  artifacts/downloaded-studies/unseen-loop-release-analysis-003
+```
+
+### Verify every ledger and publication binding
+
+```bash
+(cd artifacts/downloaded-studies/expanded-multitask-modal-002/suite && sha256sum --check checksums.sha256)
+(cd artifacts/downloaded-studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-unweighted-refined/suite && sha256sum --check checksums.sha256)
+(cd artifacts/downloaded-studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-unweighted-unrefined/suite && sha256sum --check checksums.sha256)
+(cd artifacts/downloaded-studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-weighted-refined/suite && sha256sum --check checksums.sha256)
+(cd artifacts/downloaded-studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-weighted-unrefined/suite && sha256sum --check checksums.sha256)
+(cd artifacts/downloaded-studies/modal-nonlinear-qmax2-002 && sha256sum --check checksums.sha256)
+(cd artifacts/downloaded-studies/modal-fhe-timing-003 && sha256sum --check checksums.sha256)
+(cd artifacts/downloaded-studies/unseen-loop-release-analysis-003 && sha256sum --check checksums.sha256)
+
+printf '%s  %s\n' \
+  4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3 \
+  artifacts/downloaded-studies/unseen-loop-release-analysis-003/publication.json \
+  | sha256sum --check -
+printf '%s  %s\n' \
+  ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf \
+  artifacts/downloaded-studies/unseen-loop-release-analysis-003/checksums.sha256 \
+  | sha256sum --check -
+```
+
+The suite root ledgers transitively enumerate every child file. `evidence-index.json` additionally binds the exact planned/observed denominators, config/source/ledger digests, failed-gate counts, and trust labels used in the paper.
+
+## Expanded study versus the full preregistration
+
+The expanded study uses eight candidates per environment/checkpoint and 50 selection episodes per candidate (120 candidates / 6,000 selection rows total). The full [`../experiments/release.toml`](../experiments/release.toml) search specifies 120 candidates per environment/checkpoint and 100 selection episodes per candidate (1,800 candidates / 180,000 selection rows total). Both use 100 disjoint paired evaluation episodes per checkpoint. The expanded result does not complete the preregistered 64-row physically remote client/server challenge or the release-wide stress/range/tie gates. Clear expanded and ablation studies make no privacy claim; the nonlinear and timing workers colocate client and server, so they make no local-client/remote-server secrecy claim.
+
+The typed full clear matrix command remains:
 
 ```bash
 uv run unseen-loop suite \
@@ -125,19 +203,7 @@ uv run unseen-loop suite \
   --output artifacts/release
 ```
 
-It consumes `unseen-loop/release-suite-v1` and materializes every declared workload: three environments × five independent checkpoints, 120 candidate rows, 100 selection episodes, and 100 disjoint evaluation episodes per checkpoint. Across 15 child runs this retains 1,800 candidate rows, 1,500 selection episodes, 1,500 paired evaluation episodes, and 3,000 long-form teacher/student episode rows. The root contains the copied `release.toml`, `suite-summary.json`, `suite-runs.jsonl`, paired `suite-episodes.jsonl`, and `checksums.sha256`; children live under `runs/<environment>--checkpoint-NN/`, and the root ledger transitively covers every child file. The command rejects a nonempty output directory rather than mixing stale and current runs. Because the shown command uses `--backend clear`, it makes no privacy claim and does not by itself execute the manifest's real-FHE challenge, stress, ablation, or repeated-container timing requirements.
-
-By contrast, this command scales the single CartPole Modal path only:
-
-```bash
-uv run modal run \
-  -w artifacts/modal-full-single-checkpoint.json \
-  modal_app.py::research \
-  --run-id cartpole-modal-full-single \
-  --full
-```
-
-`--full` expands that one path's GPU population/iterations, candidate search, selection/evaluation episodes, and encrypted canaries. It does **not** read `experiments/release.toml`, run MountainCar or Acrobot, train five checkpoints per environment, or materialize release-suite aggregates. It is intentionally expensive; inspect Modal budgets and `modal_app.py` function limits before launch.
+It materializes clear RL rows only. It does not execute FHE, provide privacy evidence, or discharge the full preregistration by itself. `modal_app.py::research --full` still expands just one CartPole checkpoint and is not the release suite.
 
 ## Artifact schemas
 

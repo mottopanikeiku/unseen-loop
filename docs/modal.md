@@ -19,6 +19,18 @@
 
 All use `min_containers=0` and `buffer_containers=0`, so idle benchmark capacity scales to zero. Exact CPU/memory requests equal limits to reduce hidden resource variance. `evaluate_ciphertext` is deliberately serialized at one container so its Volume-backed replay-ledger claim remains atomic.
 
+The publication-study runners use separate bounded functions:
+
+| Function | CPU | Memory | Max containers | Timeout | Retries |
+|---|---:|---:|---:|---:|---:|
+| expanded / one ablation suite worker | 8 | 16 GiB | 4 across mapped cells | 6 h | 0 |
+| nonlinear challenge worker | 16 | 32 GiB | 1 | 6 h | 0 |
+| timing context worker | 16 | 32 GiB | exactly 4 | 6 h | 0 |
+| timing aggregator | 4 | 8 GiB | 1 | 12 h | 0 |
+| release-analysis worker | 4 | 8 GiB | 1 | 3 h | 0 |
+
+All publication-study destinations are append-once by study ID; a nonempty destination is an error.
+
 ## Smoke workflow
 
 ```bash
@@ -29,7 +41,33 @@ uv run modal run -w artifacts/modal-evidence.json \
 
 The command is synchronous and bounded. It runs one CartPole checkpoint, two randomized canaries, and one 25-step encrypted control prefix. It is a smoke/conformance path, not the three-environment release suite. The result is persisted as a nonsecret checksummed bundle on the named Volume; `--write-result` exports the canonical v2 JSON locally.
 
-Adding `--full` expands only this single-checkpoint Modal path. It does not consume [`../experiments/release.toml`](../experiments/release.toml) or materialize the three-environment/five-checkpoint release matrix. The release orchestrator is `uv run unseen-loop suite --config experiments/release.toml --backend clear --output artifacts/release`; see the [reproduction guide](reproduction.md#release-suite-versus-single-checkpoint-scale-up).
+Adding `--full` expands only this single-checkpoint Modal path. It does not consume [`../experiments/release.toml`](../experiments/release.toml) or materialize the three-environment/five-checkpoint release matrix. The release orchestrator is `uv run unseen-loop suite --config experiments/release.toml --backend clear --output artifacts/release`; see the [reproduction guide](reproduction.md#expanded-study-versus-the-full-preregistration).
+
+## Publication-study workflow
+
+The exact canonical execution sequence is:
+
+```bash
+uv run modal run -w artifacts/expanded-modal-summary.json \
+  modal_studies.py::suite \
+  --config experiments/expanded-multitask.toml \
+  --study-id expanded-multitask-modal-002
+uv run modal run -w artifacts/ablation-modal-summary.json \
+  modal_studies.py::ablations \
+  --config-directory experiments \
+  --study-id expanded-cartpole-ablation-modal-004
+uv run modal run -w artifacts/nonlinear-modal-summary.json \
+  modal_fhe_studies.py::nonlinear_challenge \
+  --study-id modal-nonlinear-qmax2-002
+uv run modal run -w artifacts/timing-modal-summary.json \
+  modal_fhe_studies.py::timing_study \
+  --study-id modal-fhe-timing-003
+uv run modal run -w artifacts/analysis-modal-summary.json modal_analysis.py::main
+```
+
+These IDs are canonical and cannot be reused in the same Volume. The [reproduction guide](reproduction.md#executed-modal-publication-studies) gives exact download and `sha256sum --check` commands. The final `publication.json` digest is `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`; its enclosing ledger digest is `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`.
+
+The expanded and factorial runners are clear and have no privacy claim. The nonlinear runner generates, uses, and destroys one client secret inside a single colocated worker. Each timing worker independently generates and consumes its own colocated client/server context; the aggregator receives no client material. This topology exercises `REAL FHE`, but it is not the local-client/remote-server topology of `modal_app.py::research`.
 
 ## Inspect artifacts
 
@@ -82,17 +120,16 @@ The repository does not deploy a persistent public web FHE endpoint. The static 
 
 The images intentionally duplicate small core dependencies. Combining CUDA and Concrete into one image would increase cold build/pull size, mix trust boundaries, and make dependency conflicts harder to audit.
 
-## Measurement rules
+## Measured publication-study results and rules
 
-- Record first evaluator call as cold and later calls as warm.
-- Do not use dynamic batching for single-request latency.
-- Do not divide batch latency and call it single-query latency.
-- Do not compare GPU teacher time with FHE evaluation time as cryptographic overhead.
-- Record every failed/timeout request; retries are zero in benchmark functions.
-- Store CPU/GPU name, library/CUDA versions, compiler config, call ID, region where available, byte counts, and hashes.
-- Use multiple containers and shuffled requests before reporting p50/p95.
+| Study | Exact denominator | Server evaluation | End-to-end | Valid scope |
+|---|---:|---:|---:|---|
+| `modal-nonlinear-qmax2-002` | 25 exhaustive domain + 15 canary = 40/40 matching calls | p50 362.091 ms; p95 374.514 ms | p50 366.597 ms; p95 378.941 ms | degree-2 `qmax=2` circuit conformance in one colocated context |
+| `modal-fhe-timing-003` | 4 contexts; 12 excluded warmups; 64/64 measured successes | p50 544.536 ms; p95 830.709 ms | p50 550.076 ms; p95 837.010 ms | clustered distribution across four independent colocated contexts |
 
-The current authenticated evaluator is capped at one container to serialize its Volume replay-ledger transaction. Therefore the smoke path cannot satisfy the preregistered four-independent-container timing protocol and its within-trajectory median must not be relabeled p50/p95. A future multi-container timing run needs an atomic shared replay store that does not rely on container serialization.
+The timing study satisfies the preregistered warm denominator: four containers, three recorded/excluded warmups and 16 measured requests each. It uses 2,000 hierarchical container/request bootstrap repetitions and does not report p99 from 64 measurements. Every failure would remain in the denominator; the observed record has none.
+
+Neither table row is throughput, steady-state production-service latency, “real-time” evidence, or a shared cryptographic-context result. Neither proves `global_p_error`. The workers colocate client and server, so they do not demonstrate local-client/remote-server secrecy. The separate expanded and factorial return studies are clear and supply no privacy evidence.
 
 ## Key-separation and envelope audit
 

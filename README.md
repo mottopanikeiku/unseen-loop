@@ -29,46 +29,32 @@ Every candidate is evaluated through the same semantics:
 | `FHE SIMULATED` | Concrete compiler simulation | compiled numerical semantics; **not privacy or latency** |
 | `REAL FHE` | keygen → encrypt → homomorphic evaluate → decrypt | encrypted correctness and measured systems cost |
 
-## Recorded Modal result
+## Checksummed Modal studies
 
-The committed `modal-smoke-001` record was produced by the real end-to-end path on 23 August 2026:
+The publication source is [`artifacts/studies/unseen-loop-release-analysis-003/publication.json`](artifacts/studies/unseen-loop-release-analysis-003/publication.json), SHA-256 `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`. Its enclosing `checksums.sha256` ledger has SHA-256 `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`. Tables below are transcribed from that named, checksummed analysis—not recomputed in Markdown; decimal estimates are rounded to three places for display.
 
-| Measurement | Recorded value |
-|---|---:|
-| GPU teacher search | 2,048 policies × 18 iterations × 12 states on NVIDIA L4 |
-| GPU training wall | 9.668 s |
-| Teacher / quantized student return | 500 / 500 over the same eight post-selection evaluation episodes |
-| Post-selection integer-student-occupancy certificate coverage | 95.875% |
-| Exhaustive integer-box coverage | 98.7534% of 923,521 codes |
-| FHE configuration | Concrete-Python 2.10.0, category 128, `global_p_error=10^-6` |
-| REAL FHE closed-loop prefix | 25 / 25 encrypted steps match integer clear; 24 / 25 reached codes certified |
-| Median across those 25 sequential steps | 11.058 ms server evaluation / 1,795.318 ms client-observed online time |
-| Serialized request / response | 33,592 B / 16,920 B |
+The expanded clear study completed all 15 environment/checkpoint runs: 120 candidate rows, 6,000 selection-episode rows, 1,500 paired post-selection evaluations, and 3,000 long-form teacher/student evaluation rows.
 
-These are smoke measurements, not a latency distribution or multi-task paper result. The latency medians describe one 25-step trajectory with a separate Modal RPC per step; they are not independent-container samples, p50 estimates, or throughput. The selected affine circuit used the Concrete FHE runtime but did not require bootstrapping; no unbounded-depth claim is made.
+| Environment | Checkpoints / pairs | Teacher mean | Integer-student mean | Paired return Δ, 95% bootstrap CI | Action certificate |
+|---|---:|---:|---:|---:|---:|
+| CartPole-v1 | 5 / 500 | 461.488 | 432.008 | −29.480 [−71.358, 0.072] | 214,268 / 216,004 (99.196%) |
+| MountainCar-v0 | 5 / 500 | −194.986 | −194.190 | +0.796 [−1.620, 3.544] | 96,925 / 97,095 (99.825%) |
+| Acrobot-v1 | 5 / 500 | −94.260 | −326.156 | **−231.896 [−388.536, −75.831]** | 163,088 / 163,295 (99.873%) |
 
-The `unseen-loop/modal-evidence-v2` record contains the complete 25-step encrypted prefix, a top-level `authenticated_envelope_protocol` descriptor, and per-call request/response envelope and context digests. It does not persist plaintext private observations or decrypted score vectors. Its nonsecret Modal bundle contains `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and `checksums.sha256`; the ledger checksums the other five files. Inspect the [raw recorded evidence](artifacts/reference/modal-smoke-001.json) and the [paper](docs/paper.md).
+The intervals are deterministic 10,000-repetition checkpoint-then-paired-episode percentile bootstraps. CartPole and MountainCar intervals include zero. Acrobot is a large, precisely retained negative result: the selected integer student lost return relative to its teacher.
 
-## Recorded 15-run clear multi-task smoke
+The matched clear CartPole 2×2 study isolates certificate weighting and the complete occupancy-refinement bundle over five checkpoints and 500 paired evaluations per cell. The refinement-bundle main effect is **+83.619 [26.144, 145.954]** return. This supports a causal statement only for that tested CartPole bundle in these four matched cells. The weighting main-effect estimate is **−108.461 [−288.649, 68.250]**: negative at the point estimate, but its interval includes zero. The interaction is +8.654 [−180.737, 156.256].
 
-The committed [`multitask-smoke-2026-08`](artifacts/multitask-smoke/suite-summary.json) executes CartPole, MountainCar, and Acrobot with five independently seeded checkpoints each, eight selection episodes, eight disjoint paired evaluation episodes, and eight policy candidates per run. Its transitive ledger covers all 15 child artifacts, 120 candidate rows, and 240 retained episode rows.
+Two source-scoped `REAL FHE` studies complete the systems evidence:
 
-| Environment | Mean teacher return | Mean integer-student return | Mean certificate coverage |
-|---|---:|---:|---:|
-| CartPole-v1 | 387.375 | 274.450 | 98.352% |
-| MountainCar-v0 | −200.000 | −200.000 | 100.000% |
-| Acrobot-v1 | −91.725 | −248.725 | 97.926% |
+| Study | Exact accounting | Server evaluation | End-to-end | Scope |
+|---|---:|---:|---:|---|
+| degree-2, two-feature/two-action, `qmax=2` | 25 complete-domain + 15 randomized-canary = 40/40 matching calls | p50 362.091 ms; p95 374.514 ms | p50 366.597 ms; p95 378.941 ms | one colocated Modal client/server worker |
+| repeated timing | 4 independent contexts; 12 excluded warmups; 64/64 measured successes | p50 544.536 ms; p95 830.709 ms | p50 550.076 ms; p95 837.010 ms | four colocated Modal client/server workers |
 
-The task-averaged paired return delta is −89.975 with a checkpoint-then-episode bootstrap interval [−162.134, −24.183]. This is intentionally **clear-only conformance evidence**, not privacy evidence or the preregistered full release. Its poor Acrobot/student and unsolved MountainCar results are retained rather than hidden.
+The nonlinear study exercised three encrypted-encrypted quadratic feature products per inference over the complete declared 25-point domain. The timing study reports a hierarchical container/request bootstrap over non-warmup successes, not throughput, a production service, or a shared cryptographic context. Because client and server were colocated inside each Modal worker, neither study demonstrates local-client/remote-server secrecy. Conversely, the expanded and factorial studies are `QUANTIZED CLEAR` and provide no privacy evidence.
 
-Reproduce that exact measured matrix:
-
-```bash
-uv run unseen-loop suite \
-  --config experiments/multitask-smoke.toml \
-  --backend clear \
-  --output artifacts/multitask-smoke-reproduction
-```
+This is a completed **expanded bounded evidence study**, not completion of the full preregistration. The expanded matrix searched 8 candidates per environment/checkpoint (120 total) with 50 selection episodes per candidate; the full release specifies 120 candidates per environment/checkpoint (1,800 total) with 100 selection episodes each (180,000 selection rows). Still uncompleted are the preregistered 64-row physically remote client/server challenge and the remaining release-wide stress and gate matrix. See the [paper](docs/paper.md), [benchmark protocol](docs/benchmark-protocol.md), and [exact Modal reproduction guide](docs/reproduction.md).
 
 ## One-command paths
 

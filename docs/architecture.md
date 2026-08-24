@@ -43,6 +43,9 @@ GPU TRAINER                    CPU RESEARCH                     FHE DEPLOYMENT
 | `suite.py` | typed `release.toml` loader and multi-environment/checkpoint release-suite materialization |
 | `cli.py` | smoke, research, release-suite, verification, inspection, and report commands |
 | `modal_app.py` | bounded single-checkpoint GPU/CPU/FHE path with local-key entrypoint |
+| `modal_studies.py` | bounded clear expanded-suite and four-cell factorial runners |
+| `modal_fhe_studies.py` | colocated degree-2 complete-domain challenge and four-context timing runners |
+| `modal_analysis.py` | single-container checksum verification, matched bootstrap analysis, evidence index, and publication tables |
 
 ## Semantic invariant
 
@@ -70,6 +73,28 @@ Both paths use the same stable lowest-index argmax on the client. Backend adapte
 `SeedPlan` derives mutually disjoint distillation, refinement, selection, and evaluation namespaces. Candidate policies are fitted/refined without selection or evaluation rows, compared under exact integer-student occupancy on selection seeds, and rejected from Pareto/champion eligibility if their reached observations saturate the declared quantizer range. Only after the champion is frozen does `run_experiment` recompute return, constraint cost, teacher agreement, and certificate coverage on evaluation seeds under that champion's occupancy. It writes paired `FLOAT TEACHER` and `QUANTIZED CLEAR` rows to `evaluation/episodes.jsonl`.
 
 `unseen-loop suite` type-checks `experiments/release.toml` and instantiates all three environments × five checkpoints beneath a checksummed suite root. A clear-backend suite materializes the paired RL matrix but is not FHE privacy evidence and does not execute the separate stress, ablation, or repeated-container timing requirements. `unseen-loop research` and the Modal `research --full` entrypoint remain single-environment/checkpoint paths.
+
+## Executed publication-study topology
+
+The executed studies are separate trust/execution paths joined only by a checksumming analysis worker:
+
+```text
+expanded clear 3×5 ───────┐
+four matched clear cells ─┼─► modal_analysis.py ─► publication.json + evidence-index.json
+degree-2 colocated FHE ────┤                         (no endpoint; max_containers=1)
+four-context colocated FHE ┘
+```
+
+`modal_analysis.py` first verifies every source ledger and exact planned/observed denominator. It then copies source-scoped FHE summaries, aggregates the 15-run clear environments, and computes matched 2×2 CartPole effects. The resulting [`../artifacts/studies/unseen-loop-release-analysis-003/publication.json`](../artifacts/studies/unseen-loop-release-analysis-003/publication.json) has SHA-256 `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`; the enclosing ledger has SHA-256 `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`.
+
+| Path | Exact execution boundary | Evidence boundary |
+|---|---|---|
+| `expanded-multitask-modal-002` | one bounded Modal CPU suite worker; 15/15 clear runs | descriptive paired clear results only; no privacy |
+| `expanded-cartpole-ablation-modal-004--…` | four matched clear suites; 5 checkpoints / 500 pairs each | CartPole factorial effects; causal scope limited to tested refinement bundle |
+| `modal-nonlinear-qmax2-002` | one worker creates and consumes one client/server context; 40/40 `REAL FHE` calls | degree-2 circuit conformance/cost; no local/remote separation or efficacy |
+| `modal-fhe-timing-003` | four workers, each with its own colocated context; 12 warmups + 64/64 measured successes | clustered latency/size distribution; no shared-context, service, throughput, or local/remote claim |
+
+The positive +83.619 [26.144, 145.954] occupancy-refinement-bundle return effect and the negative −108.461 [−288.649, 68.250] weighting point estimate arise from matched clear CartPole evidence. The Acrobot expanded loss, −231.896 [−388.536, −75.831], is retained. None of those return claims crosses into the FHE studies; none of the FHE studies supplies evidence of task efficacy or generalization.
 
 ## Modal topology
 

@@ -8,7 +8,7 @@ Fully Homomorphic Encryption (FHE) can evaluate a policy without revealing its i
 
 The central mechanism is a coefficient-rounding certificate. At a quantized state, if the clear student's top-two score margin exceeds twice an analytical per-score error bound, the error-free integer circuit must choose the same greedy action. Uncertified and mismatched student-occupancy states receive greater weight in the next distillation round. The certificate is composed—never conflated—with Concrete's probabilistic whole-circuit correctness configuration.
 
-A recorded CartPole case study evaluated a 2,048-policy teacher population per CEM iteration on an NVIDIA L4, selected a signed 5-bit-input/10-bit-coefficient affine student on a dedicated selection namespace, and then measured mean return 500 for both student and teacher on the same eight held-out evaluation episodes under exact integer-student occupancy. The post-selection certificate covers 95.875% of that occupancy and 98.7534% of all 923,521 integer codes in the declared $[-15,15]^4$ domain. A 25-step client-key, server-evaluated Modal control prefix matched exact integer-clear actions at every step; 24 of 25 reached codes certified. Within that single trajectory, median server evaluation was 11.058 ms and median client-observed online time—including authenticated-envelope verification, a Volume-backed replay claim, and a separate Modal RPC per step—was 1,795.318 ms. These are artifact smoke measurements, not population-level or production latency claims. The selected bounded affine circuit ran in Concrete's FHE runtime without requiring bootstrapping; we make no unbounded-depth claim.
+The checksummed expanded study completed 15/15 clear runs—five checkpoints each for CartPole, MountainCar, and Acrobot—with 120 candidates, 6,000 selection rows, and 1,500 paired/3,000 long-form post-selection evaluation rows. The occupancy-refinement bundle improved paired CartPole return by +83.619, 95% CI [26.144, 145.954], across a matched 2×2 factorial; certificate weighting's main-effect estimate was −108.461 [−288.649, 68.250]. Expanded paired student-minus-teacher return was −29.480 [−71.358, 0.072] for CartPole, +0.796 [−1.620, 3.544] for MountainCar, and −231.896 [−388.536, −75.831] for Acrobot. A degree-2 two-feature/two-action circuit completed 25 exhaustive-domain and 15 canary `REAL FHE` calls exactly. A separate four-context timing study retained 12 warmups and 64/64 successful measured calls: server p50/p95 were 544.536/830.709 ms and end-to-end p50/p95 were 550.076/837.010 ms. The clear studies provide no privacy evidence; the colocated FHE studies do not demonstrate local-client/remote-server secrecy. These are bounded executed studies, not efficacy across tasks or completion of the full preregistration.
 
 ## 1. Problem
 
@@ -146,7 +146,7 @@ sequenceDiagram
 
 Compilation is remote because `server.zip` is architecture-specific. Key generation, encryption, decryption, and environment transition execute in the local Modal entrypoint process. The evaluator accepts the server artifact, an authenticated request-envelope JSON document, serialized evaluation keys, a per-run HMAC authentication key, and the circuit receipt. It verifies the HMAC, freshness, shape, payload length, and policy/circuit/client-context/evaluation-key digests, then atomically claims the request digest in a Volume replay ledger before FHE deserialization. The serialized evaluator retains claims for ten minutes, beyond the five-minute request-freshness window, including across container restarts. It authenticates the response envelope after `Server.run`. This transcript integrity is not a proof of correct evaluation, and the authentication key is distinct from the FHE secret key.
 
-The recorded champion is affine. Concrete evaluated its bounded encrypted integer dot product with a fully homomorphic scheme/runtime, but the circuit did not need programmable bootstrapping. The 64-byte evaluation-key payload reflects that circuit structure. Quadratic candidates exercise encrypted-encrypted multiplication and are retained in the search surface, but no quadratic real-FHE result is claimed in the recorded artifact.
+The recorded `modal-smoke-001` champion is affine. Concrete evaluated its bounded encrypted integer dot product with a fully homomorphic scheme/runtime, but the circuit did not need programmable bootstrapping. Separately, `modal-nonlinear-qmax2-002` executes a degree-2, two-feature/two-action polynomial with three encrypted-encrypted quadratic feature products per inference. That synthetic complete-domain challenge establishes exact circuit conformance for its declared `qmax=2` domain; it is not evidence that the expanded RL champions are quadratic or that quadratic policies improve return.
 
 ## 7. Experimental protocol
 
@@ -160,48 +160,72 @@ The recorded champion is affine. Concrete evaluated its bounded encrypted intege
 | FHE simulated | integer code | compiler graph in clear | compiled semantics only |
 | Real FHE | serialized ciphertext | encrypt → server run → decrypt | ciphertext correctness and measured cost |
 
-### 7.2 Recorded quick artifact
+### 7.2 Publication evidence and integrity
 
-Run ID: `modal-smoke-001`. Seed namespaces are content-derived and disjoint for teacher training, distillation, refinement, candidate selection, post-selection evaluation, and FHE canaries.
+All values in Sections 7.2–7.5 are copied from [`../artifacts/studies/unseen-loop-release-analysis-003/publication.json`](../artifacts/studies/unseen-loop-release-analysis-003/publication.json), SHA-256 `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`. That digest is recorded in the analysis `checksums.sha256`; the ledger itself has SHA-256 `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`. The source registry is `evidence-index.json` (SHA-256 `10978b849b70e1ec0f9a325251d39d97a0beeb48ddfa5efa73169e54a8451ce8`). Decimal estimates are rounded to three places for display; denominators and digests are exact.
 
-| Field | Recorded value |
-|---|---:|
-| GPU | NVIDIA L4 |
-| Torch / CUDA | 2.7.1+cu126 / 12.6 |
-| CEM population × iterations × initial states | 2,048 × 18 × 12 |
-| GPU training wall | 9.668 s |
-| Teacher post-selection return | 500.0 over 8 evaluation episodes |
-| Quantized student post-selection return | 500.0 over the same 8 episodes |
-| Post-selection teacher action agreement | 82.375% under integer-student occupancy |
-| Post-selection action-certificate coverage | 95.875% under integer-student occupancy |
-| Exhaustive box coverage | 98.7534% of 923,521 codes |
-| Policy | degree 1, signed 5-bit input, signed 10-bit coefficients |
-| Max compiler integer width | 13 bits |
-| Server artifact | 7,158 B |
-| Request / response | 33,592 B / 16,920 B |
-| REAL FHE call accounting | 25-step encrypted prefix + 2 randomized canaries = 27 exact calls |
-| Encrypted control prefix | 25 / 25 exact actions; 24 / 25 certified reached codes |
-| Median across the 25 trajectory steps | 11.058 ms server / 1,795.318 ms client-observed online |
+| Source study | Backend / trust label | Exact observed denominator | Config SHA-256 | Source-summary SHA-256 | Ledger SHA-256 |
+|---|---|---|---|---|---|
+| `expanded-multitask-modal-002` | `QUANTIZED CLEAR`; `clear Modal CPU research worker; no privacy evidence` | 15 runs; 120 candidates; 6,000 selection rows; 1,500 paired / 3,000 long-form evaluation rows | `55e44942918359c0e8cd2a11335bba2bf2b71a64225afc1c11e78c0cbcb98367` | `700fe962d2d6a42da23a36d67e7224e835f04571b71339207140ea98946c0b4d` | `ee1824879d4bb023f92e44b78df861ec578c1c87d564694ffa6a2f574f8d7988` |
+| `expanded-cartpole-ablation-modal-004--ablation-cartpole-unweighted-refined` | `QUANTIZED CLEAR`; `clear Modal CPU research worker; no privacy evidence` | 5 runs; 40 candidates; 2,000 selection rows; 500 paired / 1,000 long-form evaluation rows | `82e0a6449dd608cd88b91ce9c2074d7af1122450e54ec7a1297014b7f4591d52` | `9d0abe904eb67ccce394d6066ce13f2d721ca02e4d541016254d1b97c388ac92` | `7f006ea7ecf358b64601ac9ed6e7663b0339098db14c082f9f1012aecdc8812e` |
+| `expanded-cartpole-ablation-modal-004--ablation-cartpole-unweighted-unrefined` | `QUANTIZED CLEAR`; `clear Modal CPU research worker; no privacy evidence` | 5 runs; 40 candidates; 2,000 selection rows; 500 paired / 1,000 long-form evaluation rows | `1de8253a55c74e068ff6fca808a70206233b5b58cd54f8ee1b94d2938751bdb4` | `19e6b03e798496933467fe77553b9ea93bcee740668a44b15a377f7e10e18cc8` | `9415d48a3de811912017f64cd8bcafd52a3adefb3dbb20ceeb414afabf229f16` |
+| `expanded-cartpole-ablation-modal-004--ablation-cartpole-weighted-refined` | `QUANTIZED CLEAR`; `clear Modal CPU research worker; no privacy evidence` | 5 runs; 40 candidates; 2,000 selection rows; 500 paired / 1,000 long-form evaluation rows | `4ccee71276f6c605c1566336e7ee6e438ff4d68265db4ef7ccc37f78d0190696` | `72b5db1dfb6601abaf87f5e02bfe79d3f274acc8de95e1f8ec17be4915d6f968` | `81431a70ac63d6a8b6182d411ef455f068dfe8b78a1f96e9a18f141a72781e44` |
+| `expanded-cartpole-ablation-modal-004--ablation-cartpole-weighted-unrefined` | `QUANTIZED CLEAR`; `clear Modal CPU research worker; no privacy evidence` | 5 runs; 40 candidates; 2,000 selection rows; 500 paired / 1,000 long-form evaluation rows | `34c314f61274af2417c41866e00d755bc1df3a3e7c18d45d190b536a39665790` | `0a650515b7e93798ef99405a6e087f782b81e52a845d8a44c87b5d2d9df63490` | `13ec7f52044c896c77bab9ecba15ca38b3fca7e049e11dc52cb325d426318dd7` |
+| `modal-nonlinear-qmax2-002` | `REAL FHE`; `colocated Modal client/server research worker` | 40/40 attempts; zero failures | `0c777fa1d56be79f65bf25d5d6afc8ebba7ce916a8405f2286550c42a5a46f6b` | `20bfad9186e2cc25801d550a4c14378ae83e426c4b7274e53af98d12cd683a9c` | `42333d8fb6ff53f9cb1ea6556887bfcaa72975f9415f8243e830cc05d417f1e8` |
+| `modal-fhe-timing-003` | `REAL FHE`; `four independent colocated Modal client/server research contexts` | 76/76 attempts: 12 excluded warmups + 64/64 measured successes; 4 containers | `b03154fd348df52259030f9104c73f51e9401ef8494fb950d5371c8e1b020232` | `79e81d934f05eef82c5f7249330487e79cac5ae6a7eb98bb386efcf40bfed00b` | `92828e92d83256f7b7b64b26576ee0caf68334ef1c4fd05faf03b29e1474df6f` |
 
-### 7.3 Interpretation
+Every planned denominator in this index equals its observed denominator; checksum and incomplete-denominator failures are zero. Three expanded-suite gates and one to three gates in each factorial cell still fail. Completion means evidence completeness, not gate success.
 
-The teacher and selected integer student both reach the environment cap on the disjoint paired evaluation seeds despite 82.375% pointwise teacher action agreement. Return, agreement, and certificate coverage are recomputed under the selected integer student's occupancy; certificate coverage concerns float-student versus integer semantics, not teacher agreement.
+### 7.3 Expanded three-environment result
 
-The latency rows are the median of 25 sequential steps from one closed-loop trajectory, each with a separate Modal RPC and a durable replay-ledger commit. They are not independent container samples and are not reported as p50, p95, throughput, steady-state service latency, or a “real-time” claim. The complete 27-call record—25 prefix steps and two fresh-randomness canaries—cannot empirically validate `global_p_error`. A release study must run the preregistered repeated-container timing protocol and three task regimes described in `benchmark-protocol.md`.
+[`expanded-environments.jsonl`](../artifacts/studies/unseen-loop-release-analysis-003/expanded-environments.jsonl) reports post-selection student-minus-teacher return under exact integer-student occupancy. Intervals use 10,000 deterministic checkpoint-then-paired-episode percentile-bootstrap repetitions.
 
-The `unseen-loop/modal-evidence-v2` privacy record persists a top-level authenticated-envelope descriptor, per-call request/response envelope and context digests, same-input and server-artifact secret-marker audits, and the complete encrypted prefix without plaintext private observations or decrypted score vectors. The accompanying nonsecret Modal bundle comprises `evidence.json`, `receipt.json`, `server.zip`, `client-specs.bin`, `policy.json`, and `checksums.sha256`; the ledger covers the other five files. HMAC authentication detects transcript/context tampering, not incorrect computation by an evaluator that holds the authentication key. The server-archive audit checks filenames for secret markers; it is not a proof that arbitrary archive bytes contain no secret.
+| Environment | Checkpoints / paired episodes | Teacher return, mean | Integer-student return, mean | Paired Δ, 95% CI | Teacher agreement | Action certificate |
+|---|---:|---:|---:|---:|---:|---:|
+| CartPole-v1 | 5 / 500 | 461.488 | 432.008 | −29.480 [−71.358, 0.072] | 174,943 / 216,004 (80.991%) | 214,268 / 216,004 (99.196%); 0 certified mismatches |
+| MountainCar-v0 | 5 / 500 | −194.986 | −194.190 | +0.796 [−1.620, 3.544] | 87,773 / 97,095 (90.399%) | 96,925 / 97,095 (99.825%); 0 certified mismatches |
+| Acrobot-v1 | 5 / 500 | −94.260 | −326.156 | **−231.896 [−388.536, −75.831]** | 112,901 / 163,295 (69.139%) | 163,088 / 163,295 (99.873%); 0 certified mismatches |
 
-### 7.4 Multi-task clear conformance matrix
+CartPole's and MountainCar's intervals include zero: these data do not establish an improvement or regression in either environment. Acrobot is an unambiguous negative result within this study: the selected integer policies lost 231.896 mean return relative to their matched teachers, with the entire interval below zero. High float-student/integer action-certificate coverage did not imply teacher agreement or task efficacy. These 15 clear runs test the bounded distillation/evaluation pipeline; they provide neither privacy evidence nor a generalization claim beyond the measured checkpoints.
 
-To exercise the typed suite beyond one task, we recorded a separate clear-only matrix with three environments, five independently seeded checkpoints per environment, eight selection episodes, eight disjoint paired evaluation episodes, and eight policy candidates per run. The transitive checksum ledger covers 15 complete child artifacts, 120 candidates, and 240 episode rows.
+### 7.4 Matched CartPole 2×2 factorial
 
-| Environment | Mean teacher return | Mean integer-student return | Mean certificate coverage |
-|---|---:|---:|---:|
-| CartPole-v1 | 387.375 | 274.450 | 98.352% |
-| MountainCar-v0 | −200.000 | −200.000 | 100.000% |
-| Acrobot-v1 | −91.725 | −248.725 | 97.926% |
+[`ablation-cells.jsonl`](../artifacts/studies/unseen-loop-release-analysis-003/ablation-cells.jsonl) contains five matched checkpoints and 500 paired post-selection evaluations in each cell. “Refinement” denotes the complete occupancy-refinement bundle, not a single isolated submechanism.
 
-The task-averaged paired return delta is −89.975; the deterministic checkpoint-then-episode bootstrap interval is [−162.134, −24.183]. These results expose, rather than hide, two important failures: the smoke teachers do not solve MountainCar, and the Acrobot polynomial student loses substantial return. The matrix is pipeline/generalization conformance, not privacy evidence, not a powered benchmark, and not a substitute for the full preregistration.
+| Certificate weighting | Occupancy-refinement bundle | Paired return Δ, 95% CI | Selection-occupancy certificate | Post-selection held-out certificate |
+|---|---|---:|---:|---:|
+| off | off | −82.968 [−226.666, 0.916] | 101,858 / 103,671 | 201,770 / 205,855 |
+| off | on | −3.676 [−14.638, 1.572] | 121,192 / 122,402 | 242,990 / 245,501 |
+| on | off | −195.756 [−361.146, −30.122] | 75,387 / 76,454 | 147,368 / 149,461 |
+| on | on | −107.810 [−248.575, 9.772] | 95,419 / 96,653 | 190,971 / 193,434 |
+
+[`ablation-effects.jsonl`](../artifacts/studies/unseen-loop-release-analysis-003/ablation-effects.jsonl) averages matched contrasts across the other factor. Return and selection-certificate intervals are 10,000-repetition matched-checkpoint-then-episode percentile bootstraps. Held-out receipts preserve exact aggregate numerators/denominators but not per-episode certificate rows, so the analysis correctly does not manufacture held-out bootstrap intervals.
+
+| Factorial contrast | Paired-return effect, 95% CI | Selection-certificate-rate effect, 95% CI | Exact interpretation |
+|---|---:|---:|---|
+| Weighting main effect | **−108.461 [−288.649, 68.250]** | +0.000325 [−0.016047, 0.019685] | negative return point estimate; interval includes zero |
+| Occupancy-refinement-bundle main effect | **+83.619 [26.144, 145.954]** | +0.004396 [−0.011036, 0.022976] | positive return effect for this tested matched CartPole bundle |
+| Interaction | +8.654 [−180.737, 156.256] | −0.006414 [−0.038128, 0.026261] | interval includes zero |
+
+The positive causal claim is deliberately narrow: enabling the represented occupancy-refinement bundle caused higher paired return across these matched clear CartPole cells. It is not a claim about other environments, different teachers/search grids, any one component inside the bundle, or privacy. Certificate weighting has a negative point estimate but is statistically inconclusive here; it must not be advertised as beneficial.
+
+### 7.5 Nonlinear circuit and timing
+
+[`scoped-fhe-summaries.json`](../artifacts/studies/unseen-loop-release-analysis-003/scoped-fhe-summaries.json) copies the two checksummed source summaries exactly.
+
+| Measurement | Degree-2 complete-domain challenge | Four-context timing study |
+|---|---:|---:|
+| Circuit / context | 2 features, 2 actions, degree 2, `qmax=2`; 3 quadratic products/inference | same fixed bounded timing circuit in 4 independent contexts |
+| Exact accounting | 25 complete-domain + 15 canary = 40/40 matching `REAL FHE` calls; 0 failures | 4 containers × (3 excluded warmups + 16 measured); 64/64 measured successes; 0 failures |
+| Simulation | 25/25 complete-domain rows match | not the reported timing population |
+| Encrypt p50 / p95 | 3.147 / 3.214 ms | 3.636 / 4.142 ms |
+| Server evaluate p50 / p95 | 362.091 / 374.514 ms | **544.536 / 830.709 ms** |
+| Decrypt p50 / p95 | 1.266 / 1.308 ms | 1.603 / 2.277 ms |
+| End-to-end p50 / p95 | 366.597 / 378.941 ms | **550.076 / 837.010 ms** |
+| Evaluation key | digest `0f34877acac4e9f66c6338120c4144bb556b88ec1c558ef5b359028e1b17c475` | 472,645,952 B p50/p95 |
+| Request / response | source bundle retains raw serialized calls | 131,336 B / 131,336 B p50/p95 |
+
+The nonlinear result proves exact agreement over the complete declared 25-point integer domain and 15 randomized canaries for this source-scoped circuit. It does not establish policy efficacy. The timing quantiles condition on all 64 measured requests having succeeded; confidence intervals use a 2,000-repetition hierarchical container/request bootstrap, and p99 is not reported. They describe four independent colocated research contexts—not a shared context, production endpoint, throughput result, or “real-time” service. In both studies the secret key stayed within its dedicated worker, but client and server were colocated there: these records are `REAL FHE` circuit/cost evidence, not local-client/remote-server secrecy evidence.
 
 ## 8. Threat model
 
@@ -215,18 +239,18 @@ Suh and Tanaka study encrypted RL and comparison-free relative-entropy-regulariz
 
 Accordingly, Unseen Loop does not claim novelty in “FHE + RL,” policy distillation, bit-width search, or the margin inequality alone. Its research unit is the integration of student-induced closed-loop evaluation, deployed-circuit coefficient bounds, counterexample feedback, exact discrete-domain enumeration, and real client/server ciphertext traces in one reproducible artifact.
 
-## 10. Limitations and next experiments
+## 10. Limitations and remaining preregistration
 
-1. The encrypted case study is CartPole only and uses one teacher checkpoint. The clear 15-run matrix exercises three environments but uses deliberately small smoke teachers and is not a powered release study.
-2. The champion circuit is affine. Quadratic and TLU baselines require matched real-FHE measurements before circuit-family claims.
-3. Certificate coverage is not 100%; behavior at uncertified states remains an empirical property.
-4. The current domain certificate enumerates integer codes, not a continuous reachable-set proof.
-5. Client-side argmax reveals both scores to the client. In-circuit argmax would change leakage, cost, and circuit semantics.
-6. Remote correctness is trusted. Verifiable FHE evaluation is future work, not hidden behind authentication.
-7. Timing needs independent containers, shuffled repetitions, peak RSS, and confidence intervals.
-8. Model extraction must be evaluated as a query-budget curve before any model-privacy statement.
+1. The expanded efficacy evidence comprises five checkpoints per environment, eight policy candidates per checkpoint, and 50 selection episodes per candidate: 120 candidates and 6,000 selection rows in total. It does not execute the preregistered 120 candidates per checkpoint × 100 selection episodes per candidate: 1,800 candidates and 180,000 selection rows across 15 runs.
+2. The expanded and factorial studies execute in clear. Their return, agreement, and certificate measurements provide no privacy or confidentiality evidence.
+3. Acrobot regresses sharply, while the CartPole and MountainCar paired-return intervals include zero. The data do not support a cross-environment efficacy or generalization claim.
+4. The positive factorial result is for the complete occupancy-refinement bundle in matched CartPole cells. It cannot identify one component as the cause or extend the effect to other tasks.
+5. Certificate coverage is not 100%; behavior at uncertified states remains empirical. The domain certificate enumerates integer codes, not a continuous reachable-set proof.
+6. The nonlinear and timing studies colocate client and server within each Modal worker. They exercise real ciphertext computation and cost, but not physical local-client/remote-server secrecy.
+7. The four-context timing study completes the specified 12-warmup/64-measurement distribution. It does not measure a shared-context service, cold production traffic, throughput, peak RSS, or network separation.
+8. Client-side argmax reveals returned scores to the client. Remote correctness remains trusted; authentication is not verifiable computation.
 
-The preregistered protocol in [`../experiments/release.toml`](../experiments/release.toml) requires CartPole, MountainCar, and Acrobot; five independently trained checkpoints each; 100 selection and 100 disjoint paired evaluation episodes per checkpoint; certificate-disabled and occupancy-disabled ablations; repeated real-FHE challenges; range and tie stress suites; and cold/warm latency distributions. `uv run unseen-loop suite --config experiments/release.toml --backend clear --output artifacts/release` type-checks the manifest and materializes the 15 clear environment/checkpoint runs plus paired aggregate rows. That clear command provides no privacy evidence and does not by itself discharge the manifest's FHE, stress, timing, or ablation requirements. The Modal `research --full` entrypoint remains a scaled single-checkpoint path, not the release suite.
+The executed expanded study is therefore distinct from completion of [`../experiments/release.toml`](../experiments/release.toml). Still outstanding are the full 120-candidates-per-checkpoint × 100-selection-episodes-per-candidate search (1,800 candidates / 180,000 selection rows), the preregistered 64-row physically remote client/server challenge, and the remaining stress/range/tie and release-wide gate matrix. A clear release-suite run provides no privacy evidence, and `modal_app.py::research --full` scales only one environment/checkpoint path. Exact executed-study, download, ledger-verification, and analysis commands are in [`reproduction.md`](reproduction.md).
 
 ## References
 
