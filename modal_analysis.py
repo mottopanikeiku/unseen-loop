@@ -18,7 +18,7 @@ import modal
 APP_NAME = "unseen-loop-release-analysis"
 VOLUME_NAME = "unseen-loop-artifacts"
 STUDY_ROOT = Path("/artifacts/studies")
-OUTPUT_ID = "unseen-loop-release-analysis-002"
+OUTPUT_ID = "unseen-loop-release-analysis-003"
 OUTPUT_ROOT = STUDY_ROOT / OUTPUT_ID
 EXPANDED_ID = "expanded-multitask-modal-002"
 ABLATION_PREFIX = "expanded-cartpole-ablation-modal-004--"
@@ -1462,6 +1462,15 @@ def analyze_remote() -> str:
             "release_label": "bounded evidence analysis only",
         },
     }
+    publication = {
+        "schema_version": "unseen-loop/publication-evidence-v1",
+        "analysis": analysis,
+        "expanded_environments": expanded_environment_rows,
+        "ablation_cells": cell_rows,
+        "ablation_effects": effect_rows,
+        "scoped_fhe": scoped_fhe,
+        "evidence_index": evidence_index,
+    }
 
     _write_jsonl(OUTPUT_ROOT / "expanded-checkpoints.jsonl", expanded_checkpoint_rows)
     _write_jsonl(OUTPUT_ROOT / "expanded-environments.jsonl", expanded_environment_rows)
@@ -1471,6 +1480,7 @@ def analyze_remote() -> str:
     _write_json(OUTPUT_ROOT / "scoped-fhe-summaries.json", scoped_fhe)
     _write_json(OUTPUT_ROOT / "analysis.json", analysis)
     _write_json(OUTPUT_ROOT / "evidence-index.json", evidence_index)
+    _write_json(OUTPUT_ROOT / "publication.json", publication)
     _write_csv(OUTPUT_ROOT / "expanded-checkpoints.csv", expanded_checkpoint_rows)
     _write_csv(OUTPUT_ROOT / "expanded-environments.csv", expanded_environment_rows)
     _write_csv(OUTPUT_ROOT / "ablation-cells.csv", cell_rows)
