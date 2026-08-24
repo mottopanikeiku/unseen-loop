@@ -136,7 +136,7 @@ def test_expanded_configs_have_matched_budgets_and_all_variants() -> None:
             (8, 10),
             (0.001,),
             3,
-            2.0,
+            10.0,
             64,
             12,
             2,

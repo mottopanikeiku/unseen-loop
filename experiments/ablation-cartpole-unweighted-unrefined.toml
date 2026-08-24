@@ -18,7 +18,7 @@ input_bits = [5, 6]
 coefficient_bits = [8, 10]
 ridge = [1e-3]
 refinement_rounds = 3
-calibration_padding = 2.0
+calibration_padding = 10.0
 certificate_weighting = false
 student_occupancy_refinement = false
 
