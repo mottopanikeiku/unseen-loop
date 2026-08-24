@@ -1,0 +1,10 @@
+{
+  "certified_mismatches": 0,
+  "claim": "integer action equals float-student action when certificate is true, conditional on correct FHE evaluation",
+  "coverage": 1.0,
+  "global_p_error": 1e-06,
+  "horizon_union_bound": 0.02,
+  "mismatches": 0,
+  "observations": 20000,
+  "policy_digest": "cf8677a8c3d82249eb4edf0e5a273a762aec7d22c5196264918fb9f578f532a2"
+}

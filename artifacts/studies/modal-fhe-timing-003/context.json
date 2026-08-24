@@ -1,0 +1,312 @@
+{
+  "aggregation_unit": "independent colocated client/server research context",
+  "configuration": {
+    "circuit": {
+      "calibration": "exhaustive signed integer domain",
+      "family": "degree-2 two-feature two-action integer polynomial",
+      "global_p_error": 1e-06,
+      "policy_factory": "unseen_loop.challenge.challenge_policy_spec",
+      "qmax": 2,
+      "security_level": 128,
+      "single_query_input": [
+        1,
+        -2
+      ]
+    },
+    "image": {
+      "packages": [
+        "numpy==1.26.4",
+        "concrete-python==2.10.0",
+        "setuptools==75.3.0"
+      ],
+      "python": "3.12"
+    },
+    "metrics": {
+      "byte_metrics": [
+        "evaluation_key_bytes",
+        "request_bytes",
+        "response_bytes"
+      ],
+      "timing_ns": [
+        "encrypt_ns",
+        "server_evaluate_ns",
+        "decrypt_ns",
+        "end_to_end_ns"
+      ],
+      "warmups_excluded_from_quantiles": true
+    },
+    "resources_per_worker": {
+      "cpu": 16.0,
+      "max_containers": 4,
+      "memory_mib": 32768,
+      "retries": 0,
+      "timeout_seconds": 21600
+    },
+    "schedule": {
+      "containers": 4,
+      "input_concurrency_per_container": 1,
+      "logical_container_slots": [
+        "slot-0",
+        "slot-1",
+        "slot-2",
+        "slot-3"
+      ],
+      "measured_requests_per_container": 16,
+      "query_batch_size": 1,
+      "total_real_fhe_attempts": 76,
+      "warmups_per_container": 3
+    },
+    "schema_version": "unseen-loop/modal-fhe-timing-config-v1",
+    "source_provenance": {
+      "entrypoint_sha256": "b705cb879821f7c13a199b8e5252f21fd25b1d72b35005926924d18030547069",
+      "git_commit": "9cc3dc1153fb5c842a09f5e0bbd9825dc9557f08",
+      "git_dirty": false,
+      "modal_sdk_version": "1.5.4"
+    },
+    "study_id": "modal-fhe-timing-003",
+    "trust_scope": {
+      "aggregation_claim": "performance distribution clustered by four independent Modal contexts; not a shared cryptographic client/server context",
+      "client_material_sent_to_aggregator": false,
+      "client_secret_key_generated_in": "its dedicated Modal timing worker",
+      "client_secret_key_leaves_worker": false,
+      "context_model": "four independent colocated client/server research contexts",
+      "local_client_remote_server_secrecy_claim": false
+    }
+  },
+  "container_contexts": [
+    {
+      "attempts": 19,
+      "circuit_receipt": {
+        "backend": "Concrete-Python TFHE",
+        "calibration_rows": 25,
+        "calibration_sha256": "970ad6add72577d3b6e0792c8d6731a81b1c4d4ce3c08f6d8db58ec5b2fd1f37",
+        "calibration_strategy": "exhaustive signed integer domain",
+        "client_specs_bytes": 2037,
+        "client_specs_sha256": "93877c1843b91cfc29914f8559f94d99069f6f779003325ebc37625dd8fe02bc",
+        "compile_ns": 386305803,
+        "complexity": 3012029154.0,
+        "concrete_python_version": "2.10.0",
+        "domain_points": 25,
+        "global_p_error": 1e-06,
+        "input_max": [
+          2,
+          2
+        ],
+        "input_min": [
+          -2,
+          -2
+        ],
+        "input_shape": [
+          2
+        ],
+        "integer_output_bound": [
+          25,
+          27
+        ],
+        "maximum_integer_bit_width": 6,
+        "mlir_sha256": "2d7de1a63654412e57bad8d51e13fb802dbbaf0da71b40a2d82f44336624161a",
+        "mode": "COMPILED",
+        "policy_digest": "8b13ca247fea0ab7f71e0b3c047c83fa9da62bfe305a9ee00137b49cbbb4a827",
+        "schema_version": "unseen-loop/circuit-receipt-v1",
+        "security_level": 128,
+        "server_artifact_bytes": 13654,
+        "server_artifact_sha256": "6fd05e114306f809b5a362ae5e3e1a809be60f93157bc8b9bec6eb5cc80f220b",
+        "server_secret_key_markers": []
+      },
+      "client_context_sha256": "93877c1843b91cfc29914f8559f94d99069f6f779003325ebc37625dd8fe02bc",
+      "client_keygen_ns": 2953273220,
+      "container_id": "slot-0-1dbe5bb94c40373a",
+      "container_instance_sha256": "1dbe5bb94c40373a2ad2790347aa7418f81d0e5c42ec8c7ea860ff8913e2f548",
+      "evaluation_key_sha256": "5c880e3abf78e86956eba70306893caafa3c8b6685717b34756a90de33a75d1c",
+      "hostname_retained": false,
+      "logical_slot": 0,
+      "policy_digest": "8b13ca247fea0ab7f71e0b3c047c83fa9da62bfe305a9ee00137b49cbbb4a827",
+      "trust_scope": {
+        "aggregation_claim": "performance distribution clustered by four independent Modal contexts; not a shared cryptographic client/server context",
+        "client_material_sent_to_aggregator": false,
+        "client_secret_key_generated_in": "its dedicated Modal timing worker",
+        "client_secret_key_leaves_worker": false,
+        "context_model": "four independent colocated client/server research contexts",
+        "local_client_remote_server_secrecy_claim": false
+      }
+    },
+    {
+      "attempts": 19,
+      "circuit_receipt": {
+        "backend": "Concrete-Python TFHE",
+        "calibration_rows": 25,
+        "calibration_sha256": "970ad6add72577d3b6e0792c8d6731a81b1c4d4ce3c08f6d8db58ec5b2fd1f37",
+        "calibration_strategy": "exhaustive signed integer domain",
+        "client_specs_bytes": 2037,
+        "client_specs_sha256": "93877c1843b91cfc29914f8559f94d99069f6f779003325ebc37625dd8fe02bc",
+        "compile_ns": 328665521,
+        "complexity": 3012029154.0,
+        "concrete_python_version": "2.10.0",
+        "domain_points": 25,
+        "global_p_error": 1e-06,
+        "input_max": [
+          2,
+          2
+        ],
+        "input_min": [
+          -2,
+          -2
+        ],
+        "input_shape": [
+          2
+        ],
+        "integer_output_bound": [
+          25,
+          27
+        ],
+        "maximum_integer_bit_width": 6,
+        "mlir_sha256": "2d7de1a63654412e57bad8d51e13fb802dbbaf0da71b40a2d82f44336624161a",
+        "mode": "COMPILED",
+        "policy_digest": "8b13ca247fea0ab7f71e0b3c047c83fa9da62bfe305a9ee00137b49cbbb4a827",
+        "schema_version": "unseen-loop/circuit-receipt-v1",
+        "security_level": 128,
+        "server_artifact_bytes": 13654,
+        "server_artifact_sha256": "6fd05e114306f809b5a362ae5e3e1a809be60f93157bc8b9bec6eb5cc80f220b",
+        "server_secret_key_markers": []
+      },
+      "client_context_sha256": "93877c1843b91cfc29914f8559f94d99069f6f779003325ebc37625dd8fe02bc",
+      "client_keygen_ns": 2622961371,
+      "container_id": "slot-1-3a084958bee68695",
+      "container_instance_sha256": "3a084958bee686957eeb61b07338ca525a3adac069c1e7a0d49184269f8125a5",
+      "evaluation_key_sha256": "2225ca17cade62878cf9073e76b9fe89f009bcbf9fb7c6669ff3e34410f3fa7b",
+      "hostname_retained": false,
+      "logical_slot": 1,
+      "policy_digest": "8b13ca247fea0ab7f71e0b3c047c83fa9da62bfe305a9ee00137b49cbbb4a827",
+      "trust_scope": {
+        "aggregation_claim": "performance distribution clustered by four independent Modal contexts; not a shared cryptographic client/server context",
+        "client_material_sent_to_aggregator": false,
+        "client_secret_key_generated_in": "its dedicated Modal timing worker",
+        "client_secret_key_leaves_worker": false,
+        "context_model": "four independent colocated client/server research contexts",
+        "local_client_remote_server_secrecy_claim": false
+      }
+    },
+    {
+      "attempts": 19,
+      "circuit_receipt": {
+        "backend": "Concrete-Python TFHE",
+        "calibration_rows": 25,
+        "calibration_sha256": "970ad6add72577d3b6e0792c8d6731a81b1c4d4ce3c08f6d8db58ec5b2fd1f37",
+        "calibration_strategy": "exhaustive signed integer domain",
+        "client_specs_bytes": 2037,
+        "client_specs_sha256": "93877c1843b91cfc29914f8559f94d99069f6f779003325ebc37625dd8fe02bc",
+        "compile_ns": 477256929,
+        "complexity": 3012029154.0,
+        "concrete_python_version": "2.10.0",
+        "domain_points": 25,
+        "global_p_error": 1e-06,
+        "input_max": [
+          2,
+          2
+        ],
+        "input_min": [
+          -2,
+          -2
+        ],
+        "input_shape": [
+          2
+        ],
+        "integer_output_bound": [
+          25,
+          27
+        ],
+        "maximum_integer_bit_width": 6,
+        "mlir_sha256": "2d7de1a63654412e57bad8d51e13fb802dbbaf0da71b40a2d82f44336624161a",
+        "mode": "COMPILED",
+        "policy_digest": "8b13ca247fea0ab7f71e0b3c047c83fa9da62bfe305a9ee00137b49cbbb4a827",
+        "schema_version": "unseen-loop/circuit-receipt-v1",
+        "security_level": 128,
+        "server_artifact_bytes": 13654,
+        "server_artifact_sha256": "0d8df5eef2b897bb3f991a481df847a69343ca1b11892318bcf08ea545e9aa24",
+        "server_secret_key_markers": []
+      },
+      "client_context_sha256": "93877c1843b91cfc29914f8559f94d99069f6f779003325ebc37625dd8fe02bc",
+      "client_keygen_ns": 3038953509,
+      "container_id": "slot-2-da8cdac027e49016",
+      "container_instance_sha256": "da8cdac027e49016f3644f18e756de18b5df4dcbc60566250d1b5c9ab5ee5ecd",
+      "evaluation_key_sha256": "1252f669bce89616c8d934f29ead71fb225e36cbfe184b06b83cd6e963611269",
+      "hostname_retained": false,
+      "logical_slot": 2,
+      "policy_digest": "8b13ca247fea0ab7f71e0b3c047c83fa9da62bfe305a9ee00137b49cbbb4a827",
+      "trust_scope": {
+        "aggregation_claim": "performance distribution clustered by four independent Modal contexts; not a shared cryptographic client/server context",
+        "client_material_sent_to_aggregator": false,
+        "client_secret_key_generated_in": "its dedicated Modal timing worker",
+        "client_secret_key_leaves_worker": false,
+        "context_model": "four independent colocated client/server research contexts",
+        "local_client_remote_server_secrecy_claim": false
+      }
+    },
+    {
+      "attempts": 19,
+      "circuit_receipt": {
+        "backend": "Concrete-Python TFHE",
+        "calibration_rows": 25,
+        "calibration_sha256": "970ad6add72577d3b6e0792c8d6731a81b1c4d4ce3c08f6d8db58ec5b2fd1f37",
+        "calibration_strategy": "exhaustive signed integer domain",
+        "client_specs_bytes": 2037,
+        "client_specs_sha256": "93877c1843b91cfc29914f8559f94d99069f6f779003325ebc37625dd8fe02bc",
+        "compile_ns": 326550603,
+        "complexity": 3012029154.0,
+        "concrete_python_version": "2.10.0",
+        "domain_points": 25,
+        "global_p_error": 1e-06,
+        "input_max": [
+          2,
+          2
+        ],
+        "input_min": [
+          -2,
+          -2
+        ],
+        "input_shape": [
+          2
+        ],
+        "integer_output_bound": [
+          25,
+          27
+        ],
+        "maximum_integer_bit_width": 6,
+        "mlir_sha256": "2d7de1a63654412e57bad8d51e13fb802dbbaf0da71b40a2d82f44336624161a",
+        "mode": "COMPILED",
+        "policy_digest": "8b13ca247fea0ab7f71e0b3c047c83fa9da62bfe305a9ee00137b49cbbb4a827",
+        "schema_version": "unseen-loop/circuit-receipt-v1",
+        "security_level": 128,
+        "server_artifact_bytes": 13471,
+        "server_artifact_sha256": "d13eb49da1ae66bfb94909551afad477de88ec542730678f1a958638c1b27026",
+        "server_secret_key_markers": []
+      },
+      "client_context_sha256": "93877c1843b91cfc29914f8559f94d99069f6f779003325ebc37625dd8fe02bc",
+      "client_keygen_ns": 2680179963,
+      "container_id": "slot-3-0bd0113b9afe9bed",
+      "container_instance_sha256": "0bd0113b9afe9bedd1b008a82342a87b83613a194c2d68fe9d9bdfab0e851c34",
+      "evaluation_key_sha256": "412673cc90cb2002e288d8925d502bb9e9526051a46020caf4dd40f461e43235",
+      "hostname_retained": false,
+      "logical_slot": 3,
+      "policy_digest": "8b13ca247fea0ab7f71e0b3c047c83fa9da62bfe305a9ee00137b49cbbb4a827",
+      "trust_scope": {
+        "aggregation_claim": "performance distribution clustered by four independent Modal contexts; not a shared cryptographic client/server context",
+        "client_material_sent_to_aggregator": false,
+        "client_secret_key_generated_in": "its dedicated Modal timing worker",
+        "client_secret_key_leaves_worker": false,
+        "context_model": "four independent colocated client/server research contexts",
+        "local_client_remote_server_secrecy_claim": false
+      }
+    }
+  ],
+  "context_digest": "53ffe592a5cd2f73ed6d628e094bdd6ca55380b5464fbc1f0bc5f324d8589c97",
+  "cryptographic_contexts_pooled_as_one": false,
+  "schema_version": "unseen-loop/modal-fhe-timing-context-v1",
+  "source_provenance": {
+    "entrypoint_sha256": "b705cb879821f7c13a199b8e5252f21fd25b1d72b35005926924d18030547069",
+    "git_commit": "9cc3dc1153fb5c842a09f5e0bbd9825dc9557f08",
+    "git_dirty": false,
+    "modal_sdk_version": "1.5.4"
+  },
+  "study_id": "modal-fhe-timing-003"
+}

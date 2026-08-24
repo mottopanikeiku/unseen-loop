@@ -1,0 +1,55 @@
+{
+  "actions": 2,
+  "coefficient_scale": 1.0,
+  "degree": 2,
+  "env_id": "SyntheticDegree2-v0",
+  "float_coefficients": [
+    [
+      3.0,
+      -2.0,
+      1.0,
+      1.0,
+      2.0,
+      -1.0
+    ],
+    [
+      -1.0,
+      1.0,
+      -2.0,
+      -2.0,
+      1.0,
+      2.0
+    ]
+  ],
+  "integer_coefficients": [
+    [
+      3,
+      -2,
+      1,
+      1,
+      2,
+      -1
+    ],
+    [
+      -1,
+      1,
+      -2,
+      -2,
+      1,
+      2
+    ]
+  ],
+  "name": "nonlinear-real-fhe-exhaustive-challenge",
+  "quantizer": {
+    "center": [
+      0.0,
+      0.0
+    ],
+    "qmax": 2,
+    "step": [
+      1.0,
+      1.0
+    ]
+  },
+  "schema_version": "unseen-loop/policy-v1"
+}

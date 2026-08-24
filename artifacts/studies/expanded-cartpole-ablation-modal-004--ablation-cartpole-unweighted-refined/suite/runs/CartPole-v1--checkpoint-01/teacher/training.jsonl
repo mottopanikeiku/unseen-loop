@@ -1,0 +1,12 @@
+{"best_return":88.5,"elite_mean_return":64.95,"iteration":0,"population_mean_return":22.234375,"sigma_mean":0.9358719622585253}
+{"best_return":99.0,"elite_mean_return":39.3,"iteration":1,"population_mean_return":15.2734375,"sigma_mean":0.8613119881199542}
+{"best_return":108.0,"elite_mean_return":49.45,"iteration":2,"population_mean_return":18.3046875,"sigma_mean":0.7775293344089031}
+{"best_return":150.0,"elite_mean_return":87.65,"iteration":3,"population_mean_return":25.4921875,"sigma_mean":0.724388168316217}
+{"best_return":176.0,"elite_mean_return":143.3,"iteration":4,"population_mean_return":44.2890625,"sigma_mean":0.6637758282257721}
+{"best_return":274.0,"elite_mean_return":190.9,"iteration":5,"population_mean_return":76.1640625,"sigma_mean":0.6234750345372916}
+{"best_return":391.0,"elite_mean_return":239.7,"iteration":6,"population_mean_return":93.3046875,"sigma_mean":0.5977539187395368}
+{"best_return":442.5,"elite_mean_return":280.35,"iteration":7,"population_mean_return":130.6953125,"sigma_mean":0.527267285452398}
+{"best_return":451.5,"elite_mean_return":322.35,"iteration":8,"population_mean_return":147.484375,"sigma_mean":0.4788003437008374}
+{"best_return":500.0,"elite_mean_return":362.5,"iteration":9,"population_mean_return":160.125,"sigma_mean":0.43042735565320034}
+{"best_return":500.0,"elite_mean_return":412.75,"iteration":10,"population_mean_return":185.859375,"sigma_mean":0.3957322279474329}
+{"best_return":500.0,"elite_mean_return":500.0,"iteration":11,"population_mean_return":279.53125,"sigma_mean":0.34324100602102614}

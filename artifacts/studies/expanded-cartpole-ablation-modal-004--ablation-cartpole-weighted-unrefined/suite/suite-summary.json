@@ -1,0 +1,40 @@
+{
+  "all_champions_range_valid": true,
+  "all_runs_complete": true,
+  "all_suite_gates_passed": false,
+  "backend": "clear",
+  "candidates_per_run": 8,
+  "certificate_weighting": true,
+  "checkpoints_per_environment": 5,
+  "completed_runs": 5,
+  "config_sha256": "34c314f61274af2417c41866e00d755bc1df3a3e7c18d45d190b536a39665790",
+  "environments": [
+    "CartPole-v1"
+  ],
+  "evaluation_episodes_per_checkpoint": 100,
+  "expected_candidate_rows": 40,
+  "expected_paired_episodes": 500,
+  "expected_runs": 5,
+  "expected_selection_episodes": 2000,
+  "name": "ablation-cartpole-weighted-unrefined-2026-08",
+  "paired_return_delta": {
+    "ci95_high": -29.719400000000007,
+    "ci95_low": -361.1023,
+    "mean": -195.75600000000003,
+    "method": "tasks; checkpoints within tasks; paired episodes within checkpoints",
+    "repetitions": 10000,
+    "seed": 9706731530955775821,
+    "seed_namespace": "expanded-cartpole-ablation-2026-08|paired-return-bootstrap-v1"
+  },
+  "retained_episode_rows": 1000,
+  "retained_paired_episodes": 500,
+  "retained_selection_episode_rows": 2000,
+  "schema_version": "unseen-loop/release-suite-v1",
+  "selection_episodes_per_candidate": 50,
+  "selection_evidence_scope": "complete candidate-by-seed long-form episode rows",
+  "student_occupancy_refinement": false,
+  "suite_gate_scope": [
+    "minimum_certified_occupancy",
+    "maximum_certified_mismatches"
+  ]
+}

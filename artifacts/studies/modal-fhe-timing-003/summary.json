@@ -1,0 +1,345 @@
+{
+  "artifact_path": "/artifacts/studies/modal-fhe-timing-003",
+  "bundle_files": [
+    "checksums.sha256",
+    "context.json",
+    "raw.jsonl",
+    "summary.json"
+  ],
+  "context_digest": "53ffe592a5cd2f73ed6d628e094bdd6ca55380b5464fbc1f0bc5f324d8589c97",
+  "execution": {
+    "actual_distinct_containers": 4,
+    "all_attempts_remote": true,
+    "location": "Modal",
+    "measured_attempts": 64,
+    "real_fhe_attempts": 76,
+    "remote_worker_function": "timing_container_remote",
+    "warmup_attempts": 12
+  },
+  "release_quality": true,
+  "release_quality_required": true,
+  "schema_version": "unseen-loop/modal-fhe-timing-study-v1",
+  "source_provenance": {
+    "entrypoint_sha256": "b705cb879821f7c13a199b8e5252f21fd25b1d72b35005926924d18030547069",
+    "git_commit": "9cc3dc1153fb5c842a09f5e0bbd9825dc9557f08",
+    "git_dirty": false,
+    "modal_sdk_version": "1.5.4"
+  },
+  "study_id": "modal-fhe-timing-003",
+  "timing_summary": {
+    "byte_metrics": {
+      "evaluation_key_bytes": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "method": "hierarchical_container_request_bootstrap",
+          "p50": [
+            472645952,
+            472645952
+          ],
+          "p95": [
+            472645952,
+            472645952
+          ],
+          "replicates": 2000
+        },
+        "container_count": 4,
+        "minimum_p95_samples": 20,
+        "n": 64,
+        "p50": 472645952,
+        "p95": 472645952,
+        "p95_status": "reported",
+        "unit": "bytes"
+      },
+      "request_bytes": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "method": "hierarchical_container_request_bootstrap",
+          "p50": [
+            131336,
+            131336
+          ],
+          "p95": [
+            131336,
+            131336
+          ],
+          "replicates": 2000
+        },
+        "container_count": 4,
+        "minimum_p95_samples": 20,
+        "n": 64,
+        "p50": 131336,
+        "p95": 131336,
+        "p95_status": "reported",
+        "unit": "bytes"
+      },
+      "response_bytes": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "method": "hierarchical_container_request_bootstrap",
+          "p50": [
+            131336,
+            131336
+          ],
+          "p95": [
+            131336,
+            131336
+          ],
+          "replicates": 2000
+        },
+        "container_count": 4,
+        "minimum_p95_samples": 20,
+        "n": 64,
+        "p50": 131336,
+        "p95": 131336,
+        "p95_status": "reported",
+        "unit": "bytes"
+      }
+    },
+    "context_digest": "53ffe592a5cd2f73ed6d628e094bdd6ca55380b5464fbc1f0bc5f324d8589c97",
+    "denominators": {
+      "attempted_measured_requests": 64,
+      "failed_measured_requests": 0,
+      "success_fraction": "64/64",
+      "successful_measured_requests": 64
+    },
+    "failures": [],
+    "grouping": {
+      "container_count": 4,
+      "containers": [
+        {
+          "container_id": "slot-0-1dbe5bb94c40373a",
+          "failed": 0,
+          "failures_retained": 0,
+          "measured": 16,
+          "successful": 16,
+          "total": 19,
+          "trial_count": 1,
+          "trials": [
+            {
+              "failed": 0,
+              "failures_retained": 0,
+              "measured": 16,
+              "successful": 16,
+              "total": 19,
+              "trial_id": "trial-0",
+              "warmup_excluded": 3,
+              "warmup_failed": 0
+            }
+          ],
+          "warmup_excluded": 3,
+          "warmup_failed": 0
+        },
+        {
+          "container_id": "slot-1-3a084958bee68695",
+          "failed": 0,
+          "failures_retained": 0,
+          "measured": 16,
+          "successful": 16,
+          "total": 19,
+          "trial_count": 1,
+          "trials": [
+            {
+              "failed": 0,
+              "failures_retained": 0,
+              "measured": 16,
+              "successful": 16,
+              "total": 19,
+              "trial_id": "trial-1",
+              "warmup_excluded": 3,
+              "warmup_failed": 0
+            }
+          ],
+          "warmup_excluded": 3,
+          "warmup_failed": 0
+        },
+        {
+          "container_id": "slot-2-da8cdac027e49016",
+          "failed": 0,
+          "failures_retained": 0,
+          "measured": 16,
+          "successful": 16,
+          "total": 19,
+          "trial_count": 1,
+          "trials": [
+            {
+              "failed": 0,
+              "failures_retained": 0,
+              "measured": 16,
+              "successful": 16,
+              "total": 19,
+              "trial_id": "trial-2",
+              "warmup_excluded": 3,
+              "warmup_failed": 0
+            }
+          ],
+          "warmup_excluded": 3,
+          "warmup_failed": 0
+        },
+        {
+          "container_id": "slot-3-0bd0113b9afe9bed",
+          "failed": 0,
+          "failures_retained": 0,
+          "measured": 16,
+          "successful": 16,
+          "total": 19,
+          "trial_count": 1,
+          "trials": [
+            {
+              "failed": 0,
+              "failures_retained": 0,
+              "measured": 16,
+              "successful": 16,
+              "total": 19,
+              "trial_id": "trial-3",
+              "warmup_excluded": 3,
+              "warmup_failed": 0
+            }
+          ],
+          "warmup_excluded": 3,
+          "warmup_failed": 0
+        }
+      ],
+      "trial_count": 4
+    },
+    "method": {
+      "bootstrap": "resample_containers_then_requests",
+      "bootstrap_samples": 2000,
+      "confidence_level": 0.95,
+      "minimum_p95_samples": 20,
+      "order_statistic": "nearest_rank",
+      "quantiles_conditioning": "all_measured_requests_succeeded",
+      "seed": 0,
+      "statistics_population": "non_warmup_successful_requests",
+      "warmups_excluded": true
+    },
+    "release_quality": {
+      "eligible": true,
+      "ineligibility_reasons": [],
+      "observed": {
+        "failed_requests": 0,
+        "measured_containers": 4,
+        "measured_requests": 64,
+        "minimum_excluded_warmups_per_container": 3,
+        "minimum_successful_requests_per_container": 16,
+        "successful_requests": 64,
+        "warmup_failures": 0
+      },
+      "requirements": {
+        "minimum_excluded_warmups_per_container": 3,
+        "minimum_measured_containers": 4,
+        "minimum_measured_requests": 64,
+        "minimum_successful_requests_per_container": 16,
+        "zero_measured_failures": true,
+        "zero_warmup_failures": true
+      }
+    },
+    "row_counts": {
+      "failed": 0,
+      "failures_retained": 0,
+      "measured": 64,
+      "successful": 64,
+      "total": 76,
+      "warmup_excluded": 12,
+      "warmup_failed": 0
+    },
+    "schema_version": "unseen-loop/timing-summary-v1",
+    "timing_ns": {
+      "decrypt_ns": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "method": "hierarchical_container_request_bootstrap",
+          "p50": [
+            1481210,
+            2013929
+          ],
+          "p95": [
+            1639091,
+            5989257
+          ],
+          "replicates": 2000
+        },
+        "container_count": 4,
+        "minimum_p95_samples": 20,
+        "n": 64,
+        "p50": 1602823,
+        "p95": 2277310,
+        "p95_status": "reported",
+        "unit": "ns"
+      },
+      "encrypt_ns": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "method": "hierarchical_container_request_bootstrap",
+          "p50": [
+            3361420,
+            3913447
+          ],
+          "p95": [
+            3673440,
+            6234894
+          ],
+          "replicates": 2000
+        },
+        "container_count": 4,
+        "minimum_p95_samples": 20,
+        "n": 64,
+        "p50": 3635922,
+        "p95": 4142078,
+        "p95_status": "reported",
+        "unit": "ns"
+      },
+      "end_to_end_ns": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "method": "hierarchical_container_request_bootstrap",
+          "p50": [
+            476048135,
+            645440330
+          ],
+          "p95": [
+            554303074,
+            915680301
+          ],
+          "replicates": 2000
+        },
+        "container_count": 4,
+        "minimum_p95_samples": 20,
+        "n": 64,
+        "p50": 550075827,
+        "p95": 837010163,
+        "p95_status": "reported",
+        "unit": "ns"
+      },
+      "server_evaluate_ns": {
+        "confidence_interval": {
+          "confidence_level": 0.95,
+          "method": "hierarchical_container_request_bootstrap",
+          "p50": [
+            471055426,
+            639085354
+          ],
+          "p95": [
+            544535983,
+            903469528
+          ],
+          "replicates": 2000
+        },
+        "container_count": 4,
+        "minimum_p95_samples": 20,
+        "n": 64,
+        "p50": 544535983,
+        "p95": 830708674,
+        "p95_status": "reported",
+        "unit": "ns"
+      }
+    }
+  },
+  "trust_scope": {
+    "aggregation_claim": "performance distribution clustered by four independent Modal contexts; not a shared cryptographic client/server context",
+    "client_material_sent_to_aggregator": false,
+    "client_secret_key_generated_in": "its dedicated Modal timing worker",
+    "client_secret_key_leaves_worker": false,
+    "context_model": "four independent colocated client/server research contexts",
+    "local_client_remote_server_secrecy_claim": false
+  }
+}

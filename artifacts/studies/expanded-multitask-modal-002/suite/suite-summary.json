@@ -1,0 +1,42 @@
+{
+  "all_champions_range_valid": true,
+  "all_runs_complete": true,
+  "all_suite_gates_passed": false,
+  "backend": "clear",
+  "candidates_per_run": 8,
+  "certificate_weighting": true,
+  "checkpoints_per_environment": 5,
+  "completed_runs": 15,
+  "config_sha256": "55e44942918359c0e8cd2a11335bba2bf2b71a64225afc1c11e78c0cbcb98367",
+  "environments": [
+    "CartPole-v1",
+    "MountainCar-v0",
+    "Acrobot-v1"
+  ],
+  "evaluation_episodes_per_checkpoint": 100,
+  "expected_candidate_rows": 120,
+  "expected_paired_episodes": 1500,
+  "expected_runs": 15,
+  "expected_selection_episodes": 6000,
+  "name": "expanded-multitask-3x5-50x100-2026-08",
+  "paired_return_delta": {
+    "ci95_high": 0.6866666666666666,
+    "ci95_low": -232.33728333333335,
+    "mean": -86.86000000000001,
+    "method": "tasks; checkpoints within tasks; paired episodes within checkpoints",
+    "repetitions": 10000,
+    "seed": 15983785869087865728,
+    "seed_namespace": "expanded-multitask-2026-08|paired-return-bootstrap-v1"
+  },
+  "retained_episode_rows": 3000,
+  "retained_paired_episodes": 1500,
+  "retained_selection_episode_rows": 6000,
+  "schema_version": "unseen-loop/release-suite-v1",
+  "selection_episodes_per_candidate": 50,
+  "selection_evidence_scope": "complete candidate-by-seed long-form episode rows",
+  "student_occupancy_refinement": true,
+  "suite_gate_scope": [
+    "minimum_certified_occupancy",
+    "maximum_certified_mismatches"
+  ]
+}

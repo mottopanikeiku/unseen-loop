@@ -1,0 +1,116 @@
+{
+  "artifact_path": "/artifacts/studies/modal-nonlinear-qmax2-002",
+  "bundle_files": [
+    "client-specs.bin",
+    "policy.json",
+    "raw.jsonl",
+    "receipt.json",
+    "server.zip",
+    "summary.json",
+    "checksums.sha256"
+  ],
+  "challenge_summary": {
+    "backend": "REAL FHE",
+    "calibration_strategy": "exhaustive signed integer domain",
+    "canary_codes": 3,
+    "canary_distinct_request_hashes": 15,
+    "canary_randomness_passed": true,
+    "canary_repetitions_per_code": 5,
+    "canary_rows": 15,
+    "circuit_family": "degree-2 two-feature two-action integer polynomial",
+    "claim": "encrypted-encrypted multiplication exercised over the complete declared domain",
+    "client_context_sha256": "93877c1843b91cfc29914f8559f94d99069f6f779003325ebc37625dd8fe02bc",
+    "client_keygen_ns": 2575468127,
+    "domain_order_sha256": "970ad6add72577d3b6e0792c8d6731a81b1c4d4ce3c08f6d8db58ec5b2fd1f37",
+    "domain_points": 25,
+    "evaluation_key_sha256": "0f34877acac4e9f66c6338120c4144bb556b88ec1c558ef5b359028e1b17c475",
+    "execution_boundary": "serialized Concrete client/server",
+    "policy_digest": "8b13ca247fea0ab7f71e0b3c047c83fa9da62bfe305a9ee00137b49cbbb4a827",
+    "qmax": 2,
+    "quadratic_feature_products_per_inference": 3,
+    "real_domain_rows": 25,
+    "real_fhe_all_match": true,
+    "real_fhe_rows": 40,
+    "schema_version": "unseen-loop/nonlinear-fhe-challenge-v1",
+    "server_secret_key_marker_present": false,
+    "simulation_all_match": true,
+    "simulation_rows": 25,
+    "single_client_key_context": true,
+    "timing_distributions": {
+      "decrypt_ns": {
+        "p50_minimum_samples": 2,
+        "p50_ns": 1265635.5,
+        "p95_minimum_samples": 20,
+        "p95_ns": 1308309.0,
+        "percentile_method": "linear interpolation between ordered observations",
+        "samples": 40
+      },
+      "encrypt_ns": {
+        "p50_minimum_samples": 2,
+        "p50_ns": 3147208.5,
+        "p95_minimum_samples": 20,
+        "p95_ns": 3213541.5,
+        "percentile_method": "linear interpolation between ordered observations",
+        "samples": 40
+      },
+      "end_to_end_ns": {
+        "p50_minimum_samples": 2,
+        "p50_ns": 366597326.0,
+        "p95_minimum_samples": 20,
+        "p95_ns": 378941258.8,
+        "percentile_method": "linear interpolation between ordered observations",
+        "samples": 40
+      },
+      "server_evaluate_ns": {
+        "p50_minimum_samples": 2,
+        "p50_ns": 362091151.5,
+        "p95_minimum_samples": 20,
+        "p95_ns": 374514490.8,
+        "percentile_method": "linear interpolation between ordered observations",
+        "samples": 40
+      }
+    }
+  },
+  "configuration": {
+    "canary_repetitions": 5,
+    "expected_real_fhe_calls": 40,
+    "global_p_error": 1e-06,
+    "image": {
+      "packages": [
+        "numpy==1.26.4",
+        "concrete-python==2.10.0",
+        "setuptools==75.3.0"
+      ],
+      "python": "3.12"
+    },
+    "qmax": 2,
+    "resources": {
+      "cpu": 16.0,
+      "max_containers": 1,
+      "memory_mib": 32768,
+      "retries": 0,
+      "timeout_seconds": 21600
+    },
+    "schema_version": "unseen-loop/modal-nonlinear-challenge-config-v1",
+    "security_level": 128,
+    "trust_scope": {
+      "client_and_server_location": "one dedicated Modal research worker",
+      "client_secret_key_leaves_worker": false,
+      "local_client_remote_server_secrecy_claim": false
+    }
+  },
+  "execution": {
+    "all_calls_remote": true,
+    "location": "Modal",
+    "real_fhe_calls": 40,
+    "remote_function": "nonlinear_challenge_remote"
+  },
+  "schema_version": "unseen-loop/modal-nonlinear-challenge-study-v1",
+  "source_provenance": {
+    "entrypoint_sha256": "a58803519e1e65fdbbae3c0b86485f7c7cda6d35c287b14712441b89cf21b1e0",
+    "git_commit": "b282584271ce1a14a14ac7f72488983c4283dd9f",
+    "git_dirty": false,
+    "modal_sdk_version": "1.5.4"
+  },
+  "study_id": "modal-nonlinear-qmax2-002"
+}

@@ -1,0 +1,18 @@
+{
+  "certified_mismatches": 0,
+  "certified_points": 961,
+  "global_p_error": 1e-06,
+  "input_digest": "1aea5e162f8a79c616be4960aaee393498a7a7ddb20dbc74f1eab777c41cf07e",
+  "lower": [
+    -15,
+    -15
+  ],
+  "maximum_error_bound": 0.46978421842018064,
+  "minimum_margin": 5.39790250836988,
+  "mismatches": 0,
+  "points": 961,
+  "upper": [
+    15,
+    15
+  ]
+}

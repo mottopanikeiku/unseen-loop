@@ -25,6 +25,8 @@ artifacts/*/
 !artifacts/reference/modal-smoke-001/**
 !artifacts/multitask-smoke/
 !artifacts/multitask-smoke/**
+!artifacts/studies/
+!artifacts/studies/**
 artifacts/modal-evidence.json
 artifacts/gpu-result.json
 artifacts/*-modal-summary.json
