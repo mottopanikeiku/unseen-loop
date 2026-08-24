@@ -65,7 +65,7 @@ uv run modal run -w artifacts/timing-modal-summary.json \
 uv run modal run -w artifacts/analysis-modal-summary.json modal_analysis.py::main
 ```
 
-These IDs are canonical and cannot be reused in the same Volume. The [reproduction guide](reproduction.md#executed-modal-publication-studies) gives exact download and `sha256sum --check` commands. The final `publication.json` digest is `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`; its enclosing ledger digest is `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`.
+These IDs are canonical and cannot be reused in the same Volume. The [reproduction guide](reproduction.md#executed-modal-publication-studies) gives exact download and `sha256sum --check` commands. The final `publication.json` digest is `7a8c4ee7fd8f5d27778b94c98913b292b120172b136dcffe936b2591f5811536`; its enclosing ledger digest is `3dd9ac68c0e2db09449b228180707b3f459f094606cb1bd7953e9a2f3a70e823`.
 
 The expanded and factorial runners are clear and have no privacy claim. The nonlinear runner generates, uses, and destroys one client secret inside a single colocated worker. Each timing worker independently generates and consumes its own colocated client/server context; the aggregator receives no client material. This topology exercises `REAL FHE`, but it is not the local-client/remote-server topology of `modal_app.py::research`.
 

@@ -85,7 +85,7 @@ degree-2 colocated FHE ────┤                         (no endpoint; max
 four-context colocated FHE ┘
 ```
 
-`modal_analysis.py` first verifies every source ledger and exact planned/observed denominator. It then copies source-scoped FHE summaries, aggregates the 15-run clear environments, and computes matched 2×2 CartPole effects. The resulting [`../artifacts/studies/unseen-loop-release-analysis-003/publication.json`](../artifacts/studies/unseen-loop-release-analysis-003/publication.json) has SHA-256 `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`; the enclosing ledger has SHA-256 `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`.
+`modal_analysis.py` first verifies every source ledger and exact planned/observed denominator. It then copies source-scoped FHE summaries, aggregates the 15-run clear environments, and computes matched 2×2 CartPole effects. The resulting [`../artifacts/studies/unseen-loop-release-analysis-004/publication.json`](../artifacts/studies/unseen-loop-release-analysis-004/publication.json) has SHA-256 `7a8c4ee7fd8f5d27778b94c98913b292b120172b136dcffe936b2591f5811536`; the enclosing ledger has SHA-256 `3dd9ac68c0e2db09449b228180707b3f459f094606cb1bd7953e9a2f3a70e823`.
 
 | Path | Exact execution boundary | Evidence boundary |
 |---|---|---|

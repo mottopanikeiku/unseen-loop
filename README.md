@@ -31,7 +31,7 @@ Every candidate is evaluated through the same semantics:
 
 ## Checksummed Modal studies
 
-The publication source is [`artifacts/studies/unseen-loop-release-analysis-003/publication.json`](artifacts/studies/unseen-loop-release-analysis-003/publication.json), SHA-256 `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`. Its enclosing `checksums.sha256` ledger has SHA-256 `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`. Tables below are transcribed from that named, checksummed analysis—not recomputed in Markdown; decimal estimates are rounded to three places for display.
+The publication source is [`artifacts/studies/unseen-loop-release-analysis-004/publication.json`](artifacts/studies/unseen-loop-release-analysis-004/publication.json), SHA-256 `7a8c4ee7fd8f5d27778b94c98913b292b120172b136dcffe936b2591f5811536`. Its enclosing `checksums.sha256` ledger has SHA-256 `3dd9ac68c0e2db09449b228180707b3f459f094606cb1bd7953e9a2f3a70e823`. Tables below are transcribed from that named, checksummed analysis—not recomputed in Markdown; decimal estimates are rounded to three places for display.
 
 The expanded clear study completed all 15 environment/checkpoint runs: 120 candidate rows, 6,000 selection-episode rows, 1,500 paired post-selection evaluations, and 3,000 long-form teacher/student evaluation rows.
 

@@ -104,7 +104,7 @@ python -m http.server 8000
 
 ## Executed Modal publication studies
 
-The publication tables are bound to [`../artifacts/studies/unseen-loop-release-analysis-003/publication.json`](../artifacts/studies/unseen-loop-release-analysis-003/publication.json), SHA-256 `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`, and its enclosing ledger, SHA-256 `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`. The following are the exact canonical invocations. They require an authenticated workspace whose `unseen-loop-artifacts` Volume does not already contain these IDs; every runner rejects a nonempty destination rather than overwrite evidence.
+The publication tables are bound to [`../artifacts/studies/unseen-loop-release-analysis-004/publication.json`](../artifacts/studies/unseen-loop-release-analysis-004/publication.json), SHA-256 `7a8c4ee7fd8f5d27778b94c98913b292b120172b136dcffe936b2591f5811536`, and its enclosing ledger, SHA-256 `3dd9ac68c0e2db09449b228180707b3f459f094606cb1bd7953e9a2f3a70e823`. The following are the exact canonical invocations. They require an authenticated workspace whose `unseen-loop-artifacts` Volume does not already contain these IDs; every runner rejects a nonempty destination rather than overwrite evidence.
 
 ```bash
 uv sync --extra cloud --extra fhe
@@ -134,7 +134,7 @@ uv run modal run -w artifacts/analysis-modal-summary.json \
 
 The expanded run executes 3 environments × 5 checkpoints × 8 candidates × 50 selection episodes, then 100 disjoint paired evaluation episodes per checkpoint: 15/15 runs, 120 candidates, 6,000 selection rows, 1,500 paired rows, and 3,000 long-form teacher/student rows. The ablation command runs all four matched CartPole cells. The nonlinear command executes 25 complete-domain + 15 canary calls. The timing command executes four independent contexts, each with three excluded warmups and 16 measured requests.
 
-`modal_analysis.py` deliberately binds the seven canonical IDs and refuses to overwrite `unseen-loop-release-analysis-003`. In an already populated workspace, use fresh study IDs for a semantic rerun and keep it separate; do not delete or replace the canonical evidence. The canonical analysis is a bounded publication analysis, not completion of the full preregistration.
+`modal_analysis.py` deliberately binds the seven canonical IDs and refuses to overwrite `unseen-loop-release-analysis-004`. In an already populated workspace, use fresh study IDs for a semantic rerun and keep it separate; do not delete or replace the canonical evidence. The canonical analysis is a bounded publication analysis, not completion of the full preregistration.
 
 ### Download the canonical Volume evidence
 
@@ -162,8 +162,8 @@ uv run modal volume get unseen-loop-artifacts \
   studies/modal-fhe-timing-003 \
   artifacts/downloaded-studies/modal-fhe-timing-003
 uv run modal volume get unseen-loop-artifacts \
-  studies/unseen-loop-release-analysis-003 \
-  artifacts/downloaded-studies/unseen-loop-release-analysis-003
+  studies/unseen-loop-release-analysis-004 \
+  artifacts/downloaded-studies/unseen-loop-release-analysis-004
 ```
 
 ### Verify every ledger and publication binding
@@ -176,15 +176,15 @@ uv run modal volume get unseen-loop-artifacts \
 (cd artifacts/downloaded-studies/expanded-cartpole-ablation-modal-004--ablation-cartpole-weighted-unrefined/suite && sha256sum --check checksums.sha256)
 (cd artifacts/downloaded-studies/modal-nonlinear-qmax2-002 && sha256sum --check checksums.sha256)
 (cd artifacts/downloaded-studies/modal-fhe-timing-003 && sha256sum --check checksums.sha256)
-(cd artifacts/downloaded-studies/unseen-loop-release-analysis-003 && sha256sum --check checksums.sha256)
+(cd artifacts/downloaded-studies/unseen-loop-release-analysis-004 && sha256sum --check checksums.sha256)
 
 printf '%s  %s\n' \
-  4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3 \
-  artifacts/downloaded-studies/unseen-loop-release-analysis-003/publication.json \
+  7a8c4ee7fd8f5d27778b94c98913b292b120172b136dcffe936b2591f5811536 \
+  artifacts/downloaded-studies/unseen-loop-release-analysis-004/publication.json \
   | sha256sum --check -
 printf '%s  %s\n' \
-  ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf \
-  artifacts/downloaded-studies/unseen-loop-release-analysis-003/checksums.sha256 \
+  3dd9ac68c0e2db09449b228180707b3f459f094606cb1bd7953e9a2f3a70e823 \
+  artifacts/downloaded-studies/unseen-loop-release-analysis-004/checksums.sha256 \
   | sha256sum --check -
 ```
 

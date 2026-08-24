@@ -1,5 +1,5 @@
 const publicationUrl = "data/release-analysis.json";
-const checksumLedgerPublicationSha256 = "4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3";
+const checksumLedgerPublicationSha256 = "7a8c4ee7fd8f5d27778b94c98913b292b120172b136dcffe936b2591f5811536";
 const publicationUnavailable = "NOT VERIFIED";
 
 const studyFormat = {

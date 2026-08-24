@@ -162,7 +162,7 @@ The recorded `modal-smoke-001` champion is affine. Concrete evaluated its bounde
 
 ### 7.2 Publication evidence and integrity
 
-All values in Sections 7.2–7.5 are copied from [`../artifacts/studies/unseen-loop-release-analysis-003/publication.json`](../artifacts/studies/unseen-loop-release-analysis-003/publication.json), SHA-256 `4a38c55363a7c442c9322a7d12b49e8761cb3813746dca66ba9d1fb12ba94aa3`. That digest is recorded in the analysis `checksums.sha256`; the ledger itself has SHA-256 `ccafb13012ff678555c7de6370f79147412661d693b3327c44fbffa967f20fcf`. The source registry is `evidence-index.json` (SHA-256 `10978b849b70e1ec0f9a325251d39d97a0beeb48ddfa5efa73169e54a8451ce8`). Decimal estimates are rounded to three places for display; denominators and digests are exact.
+All values in Sections 7.2–7.5 are copied from [`../artifacts/studies/unseen-loop-release-analysis-004/publication.json`](../artifacts/studies/unseen-loop-release-analysis-004/publication.json), SHA-256 `7a8c4ee7fd8f5d27778b94c98913b292b120172b136dcffe936b2591f5811536`. That digest is recorded in the analysis `checksums.sha256`; the ledger itself has SHA-256 `3dd9ac68c0e2db09449b228180707b3f459f094606cb1bd7953e9a2f3a70e823`. The source registry is `evidence-index.json` (SHA-256 `6e7176284db10dbb51ab0e4e00066fcf51c39876cb3027e0581757829b2a92fa`). Decimal estimates are rounded to three places for display; denominators and digests are exact.
 
 | Source study | Backend / trust label | Exact observed denominator | Config SHA-256 | Source-summary SHA-256 | Ledger SHA-256 |
 |---|---|---|---|---|---|
@@ -178,7 +178,7 @@ Every planned denominator in this index equals its observed denominator; checksu
 
 ### 7.3 Expanded three-environment result
 
-[`expanded-environments.jsonl`](../artifacts/studies/unseen-loop-release-analysis-003/expanded-environments.jsonl) reports post-selection student-minus-teacher return under exact integer-student occupancy. Intervals use 10,000 deterministic checkpoint-then-paired-episode percentile-bootstrap repetitions.
+[`expanded-environments.jsonl`](../artifacts/studies/unseen-loop-release-analysis-004/expanded-environments.jsonl) reports post-selection student-minus-teacher return under exact integer-student occupancy. Intervals use 10,000 deterministic checkpoint-then-paired-episode percentile-bootstrap repetitions.
 
 | Environment | Checkpoints / paired episodes | Teacher return, mean | Integer-student return, mean | Paired Δ, 95% CI | Teacher agreement | Action certificate |
 |---|---:|---:|---:|---:|---:|---:|
@@ -190,7 +190,7 @@ CartPole's and MountainCar's intervals include zero: these data do not establish
 
 ### 7.4 Matched CartPole 2×2 factorial
 
-[`ablation-cells.jsonl`](../artifacts/studies/unseen-loop-release-analysis-003/ablation-cells.jsonl) contains five matched checkpoints and 500 paired post-selection evaluations in each cell. “Refinement” denotes the complete occupancy-refinement bundle, not a single isolated submechanism.
+[`ablation-cells.jsonl`](../artifacts/studies/unseen-loop-release-analysis-004/ablation-cells.jsonl) contains five matched checkpoints and 500 paired post-selection evaluations in each cell. “Refinement” denotes the complete occupancy-refinement bundle, not a single isolated submechanism.
 
 | Certificate weighting | Occupancy-refinement bundle | Paired return Δ, 95% CI | Selection-occupancy certificate | Post-selection held-out certificate |
 |---|---|---:|---:|---:|
@@ -199,7 +199,7 @@ CartPole's and MountainCar's intervals include zero: these data do not establish
 | on | off | −195.756 [−361.146, −30.122] | 75,387 / 76,454 | 147,368 / 149,461 |
 | on | on | −107.810 [−248.575, 9.772] | 95,419 / 96,653 | 190,971 / 193,434 |
 
-[`ablation-effects.jsonl`](../artifacts/studies/unseen-loop-release-analysis-003/ablation-effects.jsonl) averages matched contrasts across the other factor. Return and selection-certificate intervals are 10,000-repetition matched-checkpoint-then-episode percentile bootstraps. Held-out receipts preserve exact aggregate numerators/denominators but not per-episode certificate rows, so the analysis correctly does not manufacture held-out bootstrap intervals.
+[`ablation-effects.jsonl`](../artifacts/studies/unseen-loop-release-analysis-004/ablation-effects.jsonl) averages matched contrasts across the other factor. Return and selection-certificate intervals are 10,000-repetition matched-checkpoint-then-episode percentile bootstraps. Held-out receipts preserve exact aggregate numerators/denominators but not per-episode certificate rows, so the analysis correctly does not manufacture held-out bootstrap intervals.
 
 | Factorial contrast | Paired-return effect, 95% CI | Selection-certificate-rate effect, 95% CI | Exact interpretation |
 |---|---:|---:|---|
@@ -211,7 +211,7 @@ The positive causal claim is deliberately narrow: enabling the represented occup
 
 ### 7.5 Nonlinear circuit and timing
 
-[`scoped-fhe-summaries.json`](../artifacts/studies/unseen-loop-release-analysis-003/scoped-fhe-summaries.json) copies the two checksummed source summaries exactly.
+[`scoped-fhe-summaries.json`](../artifacts/studies/unseen-loop-release-analysis-004/scoped-fhe-summaries.json) copies the two checksummed source summaries exactly.
 
 | Measurement | Degree-2 complete-domain challenge | Four-context timing study |
 |---|---:|---:|
