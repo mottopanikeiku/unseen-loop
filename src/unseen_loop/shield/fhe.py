@@ -33,7 +33,7 @@ from unseen_loop.shield.certificate import (
 )
 from unseen_loop.shield.shield import SelectionResult
 from unseen_loop.shield.shield import select_action as select_core_action
-from unseen_loop.shield.types import Action, DynamicsConfig, SafetyLimits, ShieldState
+from unseen_loop.shield.types import Action, DynamicsConfig, Obstacle, SafetyLimits, ShieldState
 
 QMAX = 2
 STATE_SHAPE = (6,)
@@ -84,7 +84,7 @@ class StateQuantizer:
     """Public affine map from each signed domain coordinate to a physical state."""
 
     offsets: tuple[float, ...] = (0.0, 0.0, 0.0, 0.0, 0.5, 0.0)
-    steps: tuple[float, ...] = (5.0, 5.0, 1.25, 1.25, 0.25, 0.25)
+    steps: tuple[float, ...] = (2.0, 2.0, 0.5, 0.5, 0.25, 0.25)
     qmax: int = QMAX
 
     def __post_init__(self) -> None:
@@ -131,12 +131,36 @@ class StateQuantizer:
         }
 
 
+def _fhe_dynamics_default() -> DynamicsConfig:
+    return DynamicsConfig(
+        drag=1.0,
+        accel=1.0,
+        base_drain=0.0,
+        motion_drain=0.25,
+        tilt_decay=1.0,
+        tilt_gain=0.25,
+    )
+
+
+def _fhe_limits_default() -> SafetyLimits:
+    return SafetyLimits(
+        obstacles=(Obstacle(0.0, 0.0, 1.0),),
+        max_speed=2.0,
+        max_abs_tilt=0.5,
+        min_battery=0.0,
+        x_bounds=(-5.0, 5.0),
+        y_bounds=(-5.0, 5.0),
+        vehicle_radius=0.0,
+        obstacle_clearance=0.0,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class ShieldIntegerSpec:
     """Frozen public clear specification compiled into the integer circuit."""
 
-    dynamics: DynamicsConfig = field(default_factory=DynamicsConfig)
-    limits: SafetyLimits = field(default_factory=SafetyLimits)
+    dynamics: DynamicsConfig = field(default_factory=_fhe_dynamics_default)
+    limits: SafetyLimits = field(default_factory=_fhe_limits_default)
     quantizer: StateQuantizer = field(default_factory=StateQuantizer)
 
     @property
