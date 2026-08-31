@@ -41,7 +41,7 @@ MARGIN_SHAPE = (5, 2, 4)
 OUTPUT_ORDER = ("action", "horizon", "family")
 FAMILY_ORDER = ("obstacle", "speed", "tilt", "battery")
 DOMAIN_POINTS = (2 * QMAX + 1) ** STATE_SHAPE[0]
-SCHEMA_VERSION = "unseen-loop/shield-concrete-v2"
+SCHEMA_VERSION = "unseen-loop/shield-concrete-v3"
 SPATIAL_MARGIN_CLIP = 127
 
 
@@ -295,6 +295,7 @@ class IntegerMarginProgram:
     family_coefficients: npt.NDArray[np.int64]
     margin_scale: int
     spatial_margin_clip: int
+    output_encoding_offset: int
 
     @property
     def spatial_constraints(self) -> int:
@@ -401,11 +402,17 @@ def integer_margin_program(spec: ShieldIntegerSpec) -> IntegerMarginProgram:
         ],
         dtype=np.int64,
     )
+    output_encoding_offset = _output_encoding_offset(
+        spatial_array,
+        family_array,
+        spec.spatial_margin_clip,
+    )
     return IntegerMarginProgram(
         spatial_array,
         family_array,
         margin_scale,
         spec.spatial_margin_clip,
+        output_encoding_offset,
     )
 
 
@@ -436,6 +443,37 @@ def _integer_monomials(quantized: npt.ArrayLike) -> npt.NDArray[np.int64]:
         int(values[left]) * int(values[right]) for left in range(6) for right in range(left, 6)
     )
     return np.asarray(result, dtype=np.int64)
+
+
+def _output_encoding_offset(
+    spatial_coefficients: npt.NDArray[np.int64],
+    family_coefficients: npt.NDArray[np.int64],
+    spatial_margin_clip: int,
+) -> int:
+    """Place every encoded output in one unsigned power-of-two bin."""
+
+    minimum: int | None = None
+    maximum: int | None = None
+    for quantized in exhaustive_inputset():
+        monomials = _integer_monomials(quantized)
+        spatial = np.clip(
+            np.min(spatial_coefficients @ monomials, axis=2),
+            -spatial_margin_clip,
+            spatial_margin_clip,
+        )
+        margins = np.concatenate(
+            (spatial[..., None], family_coefficients @ monomials),
+            axis=2,
+        )
+        row_minimum = int(np.min(margins))
+        row_maximum = int(np.max(margins))
+        minimum = row_minimum if minimum is None else min(minimum, row_minimum)
+        maximum = row_maximum if maximum is None else max(maximum, row_maximum)
+    if minimum is None or maximum is None:
+        raise AssertionError("shield protocol domain cannot be empty")
+    span = maximum - minimum
+    bin_floor = 1 << max(1, span.bit_length())
+    return bin_floor - minimum
 
 
 def clear_margin_tensor(
@@ -507,8 +545,8 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
                 output.append(spatial_minimum)
                 family_values = family_coefficients[action, horizon] @ monomials
                 output.extend(family_values[index] for index in range(3))
-        normalized = [fhe.hint(value, bit_width=16) for value in output]
-        return fhe.array(normalized).reshape(MARGIN_SHAPE)
+        encoded = [value + program.output_encoding_offset for value in output]
+        return fhe.array(encoded).reshape(MARGIN_SHAPE)
 
     return fhe.compiler({"x": "encrypted"})(kernel)
 
@@ -558,6 +596,7 @@ class ShieldCircuitReceipt:
     output_min: tuple[int, ...]
     output_max: tuple[int, ...]
     margin_scale: int
+    output_encoding_offset: int
     requested_p_error: float | None
     requested_global_p_error: float | None
     compiled_p_error: float
@@ -670,10 +709,10 @@ class ShieldFHEClient:
 
         fhe = _import_fhe()
         value = fhe.Value.deserialize(serialized_response)
-        margins = np.asarray(self._client.decrypt(value), dtype=np.int64)
-        if margins.shape != MARGIN_SHAPE:
+        encrypted_margins = np.asarray(self._client.decrypt(value), dtype=np.int64)
+        if encrypted_margins.shape != MARGIN_SHAPE:
             raise ValueError("decrypted shield response does not have shape (5, 2, 4)")
-        return margins
+        return encrypted_margins - self._program.output_encoding_offset
 
     def select_action(
         self,
@@ -744,10 +783,10 @@ class CompiledShield:
 
     def simulate(self, quantized: npt.ArrayLike) -> npt.NDArray[np.int64]:
         values = _validate_quantized(quantized)
-        result = np.asarray(self.circuit.simulate(values), dtype=np.int64)
-        if result.shape != MARGIN_SHAPE:
+        encrypted = np.asarray(self.circuit.simulate(values), dtype=np.int64)
+        if encrypted.shape != MARGIN_SHAPE:
             raise ValueError("simulated shield response does not have shape (5, 2, 4)")
-        return result
+        return encrypted - self.program.output_encoding_offset
 
     def client(self) -> ShieldFHEClient:
         return ShieldFHEClient.from_path(self.client_specs_path, self.spec)
@@ -872,6 +911,7 @@ def compile_shield(
         output_min=output_min,
         output_max=output_max,
         margin_scale=program.margin_scale,
+        output_encoding_offset=program.output_encoding_offset,
         requested_p_error=p_error,
         requested_global_p_error=global_p_error,
         compiled_p_error=compiled_p_error,

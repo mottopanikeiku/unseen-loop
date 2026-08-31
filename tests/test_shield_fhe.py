@@ -81,6 +81,23 @@ def test_exact_integer_oracle_matches_frozen_saturated_margin_spec() -> None:
     assert np.allclose(integer_margins / program.margin_scale, expected, rtol=0, atol=1e-12)
 
 
+def test_output_encoding_places_all_margins_in_one_unsigned_bit_width() -> None:
+    spec = ShieldIntegerSpec()
+    program = integer_margin_program(spec)
+    encoded = np.asarray(
+        [
+            clear_margin_tensor(spec, quantized, program=program)
+            + program.output_encoding_offset
+            for quantized in exhaustive_inputset()
+        ],
+        dtype=np.int64,
+    )
+
+    assert int(encoded.min()) > 0
+    bit_widths = {int(value).bit_length() for value in encoded.reshape(-1)}
+    assert len(bit_widths) == 1
+
+
 def test_spec_digest_binds_public_spec_and_output_order() -> None:
     original = ShieldIntegerSpec()
     changed = replace(
