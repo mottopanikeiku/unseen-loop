@@ -755,6 +755,8 @@ def iter_stage_jobs(manifest: FlagshipManifest, stage: str) -> Iterator[PlannedJ
             yield _job(manifest, stage, kind="fhe_invalid", batch=batch)
     elif stage == "integration":
         spec = manifest.integration
+        # Materialize and commit every client trajectory release before any OPE
+        # job can load a 64-trajectory batch from the shared Volume.
         for scenario in range(spec.scenarios):
             for mode in spec.shield_modes:
                 for trajectory in range(spec.behavior_trajectories_per_cell):
@@ -775,7 +777,9 @@ def iter_stage_jobs(manifest: FlagshipManifest, stage: str) -> Iterator[PlannedJ
                         shield_mode=mode,
                         trajectory=trajectory,
                     )
-                batch_count = spec.behavior_trajectories_per_cell // spec.ope_batch_trajectories
+        batch_count = spec.behavior_trajectories_per_cell // spec.ope_batch_trajectories
+        for scenario in range(spec.scenarios):
+            for mode in spec.shield_modes:
                 for outcome in spec.outcomes:
                     for batch in range(batch_count):
                         yield _job(

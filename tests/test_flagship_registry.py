@@ -27,6 +27,7 @@ from unseen_loop.flagship.registry import (
 )
 
 FLAGSHIP = Path(__file__).parents[1] / "experiments" / "flagship.toml"
+SMOKE = Path(__file__).parents[1] / "experiments" / "flagship-smoke.toml"
 DIGEST_A = "a" * 64
 DIGEST_B = "b" * 64
 DIGEST_C = "c" * 64
@@ -115,6 +116,27 @@ def test_every_configured_denominator_expands_to_explicit_stable_jobs() -> None:
     assert planned_job_ids(manifest, "analysis") == (
         next(iter_stage_jobs(manifest, "analysis")).job_id,
     )
+
+
+def test_integration_commits_all_trajectory_jobs_before_ope_consumers() -> None:
+    manifest = load_manifest(SMOKE)
+    seen_ope = False
+    trajectory_jobs = 0
+    ope_jobs = 0
+    for job in iter_stage_jobs(manifest, "integration"):
+        kind = job.coordinate_dict()["kind"]
+        if kind == "real_fhe_ope":
+            seen_ope = True
+            ope_jobs += 1
+        else:
+            assert not seen_ope
+            trajectory_jobs += 1
+
+    assert trajectory_jobs == (
+        manifest.integration.expected_behavior_trajectories
+        + manifest.integration.expected_direct_trajectories
+    )
+    assert ope_jobs == manifest.integration.expected_real_fhe_calls
 
 
 def test_registry_is_append_only_and_does_not_replace_failures(tmp_path: Path) -> None:
