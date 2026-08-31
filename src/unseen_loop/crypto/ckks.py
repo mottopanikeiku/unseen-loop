@@ -62,6 +62,8 @@ class CKKSContextReceipt:
     client_context_sha256: str
     server_context_sha256: str
     server_context_is_private: bool
+    effective_security_level: str
+    security_enforced: bool
     backend: str = "TenSEAL CKKS"
     mode: str = "REAL FHE (approximate arithmetic)"
     trust_scope: str = (
@@ -69,7 +71,8 @@ class CKKSContextReceipt:
         "relinearization, and Galois key material"
     )
     security_claim: str = (
-        "cryptographic parameters are recorded; this module asserts no numeric security level"
+        "Microsoft SEAL default security validation was inspected at runtime and "
+        "effective sec_level must equal tc128"
     )
     packing_scope: str = (
         "one logical real vector per ciphertext; inputs above degree/2 slots are rejected"
@@ -394,6 +397,7 @@ def generate_contexts(parameters: CKKSParameters | None = None) -> CKKSContextAr
         poly_modulus_degree=parameters.poly_modulus_degree,
         coeff_mod_bit_sizes=list(parameters.coeff_mod_bit_sizes),
     )
+    effective_security_level = _require_tc128_security(context, tenseal)
     context.global_scale = parameters.global_scale
     context.auto_relin = True
     context.auto_rescale = True
@@ -419,6 +423,8 @@ def generate_contexts(parameters: CKKSParameters | None = None) -> CKKSContextAr
         client_context_sha256=hashlib.sha256(client_context).hexdigest(),
         server_context_sha256=hashlib.sha256(server_context).hexdigest(),
         server_context_is_private=server_is_private,
+        effective_security_level=effective_security_level,
+        security_enforced=True,
     )
     return CKKSContextArtifacts(client_context, server_context, receipt)
 
@@ -443,6 +449,22 @@ def _import_tenseal() -> Any:
             "TenSEAL is not installed; CKKS execution is unavailable and no clear backend "
             "will be substituted. Install a compatible TenSEAL build explicitly."
         ) from error
+
+
+def _require_tc128_security(context: Any, tenseal: Any) -> str:
+    """Fail closed unless the effective Microsoft SEAL context reports tc128."""
+
+    try:
+        wrapped = context.seal_context()
+        seal_context = getattr(wrapped, "data", wrapped)
+        qualifiers = seal_context.key_context_data().qualifiers()
+        observed = qualifiers.sec_level
+        expected = tenseal.sealapi.SEC_LEVEL_TYPE.TC128
+    except (AttributeError, TypeError) as error:
+        raise RuntimeError("unable to inspect the effective CKKS security level") from error
+    if observed != expected:
+        raise RuntimeError(f"CKKS context security is {observed!s}, expected tc128")
+    return "tc128"
 
 
 def _serialize_context(context: Any, *, save_secret_key: bool) -> bytes:
