@@ -41,7 +41,7 @@ MARGIN_SHAPE = (5, 2, 4)
 OUTPUT_ORDER = ("action", "horizon", "family")
 FAMILY_ORDER = ("obstacle", "speed", "tilt", "battery")
 DOMAIN_POINTS = (2 * QMAX + 1) ** STATE_SHAPE[0]
-SCHEMA_VERSION = "unseen-loop/shield-concrete-v5"
+SCHEMA_VERSION = "unseen-loop/shield-concrete-v6"
 SPATIAL_MARGIN_CLIP = 127
 MONOMIAL_ENCODING_OFFSET = 20
 
@@ -557,6 +557,18 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
     fhe = _import_fhe()
     spatial_coefficients = program.spatial_coefficients
     family_coefficients = program.family_coefficients
+    output_coefficients = np.asarray(
+        [
+            coefficient
+            for action in range(5)
+            for horizon in range(2)
+            for coefficient in (
+                spatial_coefficients[action, horizon, 0],
+                *family_coefficients[action, horizon],
+            )
+        ],
+        dtype=np.int64,
+    )
     saturate_spatial = fhe.univariate(
         lambda value: np.clip(
             value,
@@ -579,6 +591,9 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
             ]
         )
         monomials = encoded_monomials - MONOMIAL_ENCODING_OFFSET
+        if program.spatial_constraints == 1:
+            encoded_output = output_coefficients @ monomials + program.output_encoding_offset
+            return encoded_output.reshape(MARGIN_SHAPE)
         output = []
         for action in range(5):
             for horizon in range(2):
