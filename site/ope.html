@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Inspect horizon-aware off-policy estimates, encrypted sufficient statistics, uncertainty provenance, and support diagnostics.">
+  <title>Off-policy evidence explorer — Unseen Loop</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="flagship.js" defer></script>
+</head>
+<body data-page="ope" data-flagship-sha256="PENDING">
+  <a class="skip-link" href="#main">Skip to OPE evidence</a>
+  <header class="site-head shell">
+    <a class="brand" href="index.html" aria-label="Unseen Loop home">
+      <svg viewBox="0 0 64 28" aria-hidden="true"><path d="M27 5H15C6 5 6 23 15 23h12" fill="none" stroke="currentColor" stroke-width="2"/><path d="M37 5h12c9 0 9 18 0 18H37" fill="none" stroke="currentColor" stroke-width="2"/><rect x="27" y="9" width="10" height="10" fill="currentColor"/></svg>
+      <span>Unseen Loop</span><span class="plate">UL / 03</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="index.html">Overview</a><a href="control-room.html">Safety control</a><a href="ope.html" aria-current="page">OPE</a><a href="studies.html">Studies</a><a href="run.html">Trace</a><a href="artifact.html">Reproduce</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero shell flagship-hero">
+      <p class="eyebrow">Private horizon-aware off-policy evaluation</p>
+      <div class="status-line"><span class="status-dot" aria-hidden="true"></span><span data-flagship-status role="status">Verifying copied release bytes…</span></div>
+      <h1>An estimate assembled after decryption.</h1>
+      <p class="dek">The evaluator computes per-horizon numerators, denominators, and counts over an encrypted fixed-shape logged batch. The client decrypts the 3H statistics, divides per horizon, and sums.</p>
+      <div class="qualifier"><strong>LIMIT</strong><span>The target policy and estimator are public. Training is clear. Clipping changes the estimand and cannot repair missing support. The bootstrap interval has its own clear-reference label.</span></div>
+    </section>
+
+    <section class="study-band" aria-label="OPE protocol scope"><div class="shell scope-ledger"><span><b data-ope-scope="trajectories">—</b> trajectories</span><span><b data-ope-scope="horizon">—</b> horizons</span><span><b>3H</b> returned integers</span><span data-field="ope-mode">NOT VERIFIED</span></div></section>
+
+    <section class="section shell" aria-labelledby="estimate-heading">
+      <div class="section-head"><div><p class="eyebrow">Client-derived result</p><h2 id="estimate-heading">Read one contribution at a time.</h2></div><p>Browser controls select recorded, checksum-closed variants. They do not run OPE or send a batch.</p></div>
+      <div class="ope-controls"><label for="ope-variant">Recorded estimator<select id="ope-variant" data-ope-variant disabled><option>Evidence unavailable</option></select></label><label for="ope-horizon">Inspect through horizon <output data-ope-horizon-output>—</output><input id="ope-horizon" data-ope-horizon type="range" min="1" max="1" value="1" disabled></label></div>
+      <div class="estimate-headline"><div><span class="label">Estimator</span><strong data-estimate="label">—</strong></div><div><span class="label">Client-derived estimate</span><strong data-estimate="value">—</strong></div><div><span class="label">Clip</span><strong data-estimate="clip">—</strong></div><div><span class="label">Execution</span><strong data-estimate="mode">—</strong></div></div>
+      <figure class="estimate-figure"><svg data-ope-plot viewBox="0 0 900 420" role="img" aria-labelledby="ope-plot-title ope-plot-desc"><title id="ope-plot-title">Per-horizon OPE contributions</title><desc id="ope-plot-desc">Evidence unavailable until the publication validates.</desc><g data-ope-plot-layer></g></svg><figcaption>Bars: numerator[h] ÷ denominator[h]. Line: cumulative client-derived estimate. Exact values remain in the table.</figcaption></figure>
+      <div class="table-scroll"><table><caption>Returned 3H sufficient statistics and client division</caption><thead><tr><th>Horizon</th><th>Numerator</th><th>Denominator</th><th>Count</th><th>Contribution</th><th>Cumulative</th><th>Source</th></tr></thead><tbody data-ope-stat-rows><tr><td colspan="7">Evidence not verified.</td></tr></tbody></table></div>
+    </section>
+
+    <section class="section shell" aria-labelledby="uncertainty-heading">
+      <div class="section-head"><div><p class="eyebrow">Separate provenance</p><h2 id="uncertainty-heading">The interval has its own trust label.</h2></div><p>A clear trajectory-percentile bootstrap summarizes resampling variation only. It does not repair clipping bias, overlap failure, or model misspecification.</p></div>
+      <div class="uncertainty-panel"><div class="interval-track" data-interval-track><span class="interval-line"></span><i class="interval-point"></i></div><div class="interval-values"><span>Low <b data-uncertainty="lower">—</b></span><span>Estimate <b data-uncertainty="estimate">—</b></span><span>High <b data-uncertainty="upper">—</b></span></div><p data-uncertainty="method">CLEAR REFERENCE / provenance unavailable.</p></div>
+      <div class="diagnostic-grid"><div><span class="label">Minimum ESS</span><strong data-diagnostic="ess">—</strong><p>Client-released clear aggregate.</p></div><div><span class="label">Support failures</span><strong data-diagnostic="support">—</strong><p>Zero-support rows invalidate an estimate.</p></div><div><span class="label">Clipped fraction</span><strong data-diagnostic="clipped">—</strong><p>Clipping sensitivity must be preregistered.</p></div></div>
+    </section>
+
+    <section class="section shell" aria-labelledby="stats-heading">
+      <div class="section-head"><div><p class="eyebrow">Encrypted sufficient statistics</p><h2 id="stats-heading">The server returns 3H integers.</h2></div><p>No server-side division. No raw logged row in the publication view model.</p></div>
+      <ol class="rule-ledger"><li>Client validates and encrypts states, requested actions, rewards, and behavior propensities.</li><li>Server evaluates the public target propensity model and clipped cumulative weights.</li><li>Server returns encrypted numerator[H], denominator[H], count[H].</li><li>Client decrypts, applies declared scales, divides, and sums.</li></ol>
+      <div class="receipt-grid"><div class="receipt-cell"><span class="label">Output contract</span><strong data-receipt="output">3 × H</strong><p>Three encrypted horizon vectors.</p></div><div class="receipt-cell"><span class="label">Multiplicative depth</span><strong data-receipt="depth">—</strong><p>Backend receipt, not an inferred value.</p></div><div class="receipt-cell"><span class="label">Security</span><strong data-receipt="security">—</strong><p>Required classical security level.</p></div><div class="receipt-cell"><span class="label">Statistic agreement</span><strong data-receipt="agreement">—</strong><p>Integer vectors compared before division.</p></div></div>
+      <div class="source-ribbon"><span class="mode-shape real" aria-hidden="true"></span><span>Target policy</span><code data-field="ope-policy">NOT VERIFIED</code><span>Receipt</span><code data-field="ope-receipt">NOT VERIFIED</code></div>
+    </section>
+
+    <section class="section shell" aria-labelledby="limits-heading">
+      <div class="section-head"><div><p class="eyebrow">Claim boundary</p><h2 id="limits-heading">Support assumptions remain.</h2></div><p>Encrypted arithmetic changes who sees the rows. It does not create overlap, identify causal effects, or prove honest execution.</p></div>
+      <div class="claim-ledger"><div class="claim-column"><p class="label">Allowed</p><ul><li>Recorded clipped estimator under its frozen target, clip, horizon, and batch.</li><li>Exact integer clear/Concrete agreement when a REAL FHE receipt closes.</li><li>Approximate CKKS error under its separately named polynomial semantics.</li><li>Clear trajectory-bootstrap uncertainty with repetitions and seed.</li></ul></div><div class="claim-column limitation"><p class="label">Forbidden</p><ul><li>No private training or malicious-server integrity claim.</li><li>No unbiasedness claim without the estimator assumptions.</li><li>No claim that clipping repairs support.</li><li>No REAL FHE label for clear or simulation rows.</li></ul></div></div>
+    </section>
+  </main>
+
+  <footer class="site-foot shell"><div class="foot-grid"><div><p class="label">Private OPE / UL 03</p><h3>Statistics first. Division client-side.</h3></div><p>Inspect the <a href="control-room.html">action-time safety control</a>, then close both tracks to source and checksums under Reproduce.</p></div></footer>
+</body>
+</html>
