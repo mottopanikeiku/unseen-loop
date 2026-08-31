@@ -185,7 +185,13 @@ def ope_validation_worker(
     return _execute_remote(executor_module, manifest, job, run_root)
 
 
-@app.function(image=integration_image, max_containers=32, **_COMMON)
+@app.function(
+    image=integration_image,
+    cpu=4.0,
+    memory=16_384,
+    max_containers=8,
+    **_COMMON,
+)
 def integration_worker(
     executor_module: str, manifest: dict[str, object], job: dict[str, object], run_root: str
 ) -> dict[str, str | None]:

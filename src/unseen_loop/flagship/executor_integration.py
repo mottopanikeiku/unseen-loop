@@ -15,11 +15,13 @@ import math
 import re
 import tempfile
 from collections.abc import Mapping, Sequence
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
+from unseen_loop.crypto.ckks import CKKSContextArtifacts, CKKSParameters, generate_contexts
 from unseen_loop.flagship.integration import (
     FrozenRequestedPolicy,
     Outcome,
@@ -37,7 +39,6 @@ from unseen_loop.ope.ckks import (
     PolynomialApproxOPEReceipt,
     PolynomialApproxOPESpec,
     executable_ckks_parameters,
-    generate_ope_contexts,
 )
 from unseen_loop.ope.fhe import compile_ope_circuit
 from unseen_loop.ope.types import (
@@ -445,19 +446,32 @@ def _ckks_receipt(spec: PolynomialApproxOPESpec) -> PolynomialApproxOPEReceipt:
     return spec.receipt(parameters)
 
 
+@lru_cache(maxsize=2)
+def _cached_ckks_contexts(parameters: CKKSParameters) -> CKKSContextArtifacts:
+    artifacts = generate_contexts(parameters)
+    if (
+        not artifacts.receipt.security_enforced
+        or artifacts.receipt.effective_security_level != "tc128"
+        or artifacts.receipt.server_context_is_private
+    ):
+        raise RuntimeError("integration CKKS context failed tc128 public-server validation")
+    return artifacts
+
+
 def _run_ckks(
     spec: PolynomialApproxOPESpec,
     batch: TrajectoryBatch,
     receipt: PolynomialApproxOPEReceipt,
 ) -> tuple[SufficientStatistics, list[dict[str, Any]]]:
-    contexts = generate_ope_contexts(spec, receipt.parameters)
+    receipt.require_executable()
+    artifacts = _cached_ckks_contexts(receipt.parameters)
     client = OPECKKSClient.from_serialized(
-        contexts.ckks.client_context,
+        artifacts.client_context,
         parameters=receipt.parameters,
         spec=spec,
     )
     server = OPECKKSServer.from_serialized(
-        contexts.ckks.server_context,
+        artifacts.server_context,
         parameters=receipt.parameters,
         spec=spec,
     )
@@ -753,6 +767,7 @@ def _run_ope_job(
                 "Concrete client and server execute in one Modal worker; REAL FHE attests backend "
                 "execution but does not claim input privacy from the colocated worker"
             ),
+            "context_scope": "one compiled Concrete context for this bounded canary call",
             "ckks_failure_label": ckks_failure_label,
         }
         effect_behavior = canary_behavior_outcomes
@@ -768,6 +783,7 @@ def _run_ope_job(
                 "TenSEAL client and server execute in one Modal worker; REAL FHE attests backend "
                 "execution but does not claim input privacy from the colocated worker"
             ),
+            "context_scope": "one parameter-set CKKS context cached per Modal worker",
             "ckks_failure_label": None,
         }
         effect_behavior = behavior_outcomes

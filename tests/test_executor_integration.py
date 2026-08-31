@@ -289,6 +289,7 @@ def test_unexecutable_ckks_runs_exact_fake_concrete_canary_with_distinct_label(
     assert int(captured["calibration_rows"]) > 0
     assert artifact["backend"] == {
         "ckks_failure_label": "ckks.insufficient-multiplicative-depth",
+        "context_scope": "one compiled Concrete context for this bounded canary call",
         "label": "CONCRETE_EXACT_SMALL_CANARY",
         "real_fhe": True,
         "statistics_scope": "4 trajectories x 4 horizons canary; not a clear substitute",
