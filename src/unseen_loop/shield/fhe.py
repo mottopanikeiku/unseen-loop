@@ -457,6 +457,7 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
     fhe = _import_fhe()
     spatial_coefficients = program.spatial_coefficients
     family_coefficients = program.family_coefficients
+    minimum = fhe.multivariate(lambda left, right: np.minimum(left, right))
 
     def kernel(x: Any) -> Any:
         monomials = fhe.array(
@@ -470,10 +471,9 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
         for action in range(5):
             for horizon in range(2):
                 candidates = spatial_coefficients[action, horizon] @ monomials
-                spatial_minimum = fhe.hint(candidates[0], bit_width=16)
+                spatial_minimum = candidates[0]
                 for index in range(1, program.spatial_constraints):
-                    candidate = fhe.hint(candidates[index], bit_width=16)
-                    spatial_minimum = np.minimum(spatial_minimum, candidate)
+                    spatial_minimum = minimum(spatial_minimum, candidates[index])
                 output.append(spatial_minimum)
                 family_values = family_coefficients[action, horizon] @ monomials
                 output.extend(family_values[index] for index in range(3))
