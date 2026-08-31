@@ -41,7 +41,8 @@ MARGIN_SHAPE = (5, 2, 4)
 OUTPUT_ORDER = ("action", "horizon", "family")
 FAMILY_ORDER = ("obstacle", "speed", "tilt", "battery")
 DOMAIN_POINTS = (2 * QMAX + 1) ** STATE_SHAPE[0]
-SCHEMA_VERSION = "unseen-loop/shield-concrete-v1"
+SCHEMA_VERSION = "unseen-loop/shield-concrete-v2"
+SPATIAL_MARGIN_CLIP = 127
 
 
 class ShieldFHEUnavailableError(RuntimeError):
@@ -162,6 +163,11 @@ class ShieldIntegerSpec:
     dynamics: DynamicsConfig = field(default_factory=_fhe_dynamics_default)
     limits: SafetyLimits = field(default_factory=_fhe_limits_default)
     quantizer: StateQuantizer = field(default_factory=StateQuantizer)
+    spatial_margin_clip: int = SPATIAL_MARGIN_CLIP
+
+    def __post_init__(self) -> None:
+        if self.spatial_margin_clip != SPATIAL_MARGIN_CLIP:
+            raise ValueError("the shield conformance protocol fixes spatial_margin_clip=127")
 
     @property
     def spec_digest(self) -> str:
@@ -199,6 +205,7 @@ class ShieldIntegerSpec:
             "output_shape": list(MARGIN_SHAPE),
             "output_order": list(OUTPUT_ORDER),
             "family_order": list(FAMILY_ORDER),
+            "spatial_margin_clip": self.spatial_margin_clip,
         }
 
 
@@ -282,11 +289,12 @@ _MONOMIAL_INDEX = {exponent: index for index, exponent in enumerate(_MONOMIAL_EX
 
 @dataclass(frozen=True, slots=True)
 class IntegerMarginProgram:
-    """Exact integer coefficients for all four families and spatial submargins."""
+    """Exact integer coefficients with sign-preserving saturated spatial outputs."""
 
     spatial_coefficients: npt.NDArray[np.int64]
     family_coefficients: npt.NDArray[np.int64]
     margin_scale: int
+    spatial_margin_clip: int
 
     @property
     def spatial_constraints(self) -> int:
@@ -393,7 +401,12 @@ def integer_margin_program(spec: ShieldIntegerSpec) -> IntegerMarginProgram:
         ],
         dtype=np.int64,
     )
-    return IntegerMarginProgram(spatial_array, family_array, margin_scale)
+    return IntegerMarginProgram(
+        spatial_array,
+        family_array,
+        margin_scale,
+        spec.spatial_margin_clip,
+    )
 
 
 def _validate_quantized(quantized: npt.ArrayLike) -> npt.NDArray[np.int64]:
@@ -431,12 +444,21 @@ def clear_margin_tensor(
     *,
     program: IntegerMarginProgram | None = None,
 ) -> npt.NDArray[np.int64]:
-    """Evaluate the exact integer oracle returned by the compiled circuit."""
+    """Evaluate the exact saturated integer oracle returned by the compiled circuit.
+
+    Spatial margins saturate at ``±127`` after the minimum.  Saturation preserves
+    every strict-positive safety decision while bounding each binary minimum LUT
+    to Concrete's supported 16-bit combined input.
+    """
 
     integer_program = program or integer_margin_program(spec)
     monomials = _integer_monomials(quantized)
     spatial_values = integer_program.spatial_coefficients @ monomials
-    spatial_minimum = np.min(spatial_values, axis=2)
+    spatial_minimum = np.clip(
+        np.min(spatial_values, axis=2),
+        -integer_program.spatial_margin_clip,
+        integer_program.spatial_margin_clip,
+    )
     other_families = integer_program.family_coefficients @ monomials
     return np.asarray(
         np.concatenate((spatial_minimum[..., None], other_families), axis=2),
@@ -457,6 +479,13 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
     fhe = _import_fhe()
     spatial_coefficients = program.spatial_coefficients
     family_coefficients = program.family_coefficients
+    saturate_spatial = fhe.univariate(
+        lambda value: np.clip(
+            value,
+            -program.spatial_margin_clip,
+            program.spatial_margin_clip,
+        )
+    )
     minimum = fhe.multivariate(lambda left, right: np.minimum(left, right))
 
     def kernel(x: Any) -> Any:
@@ -471,9 +500,10 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
         for action in range(5):
             for horizon in range(2):
                 candidates = spatial_coefficients[action, horizon] @ monomials
-                spatial_minimum = candidates[0]
+                spatial_minimum = saturate_spatial(candidates[0])
                 for index in range(1, program.spatial_constraints):
-                    spatial_minimum = minimum(spatial_minimum, candidates[index])
+                    candidate = saturate_spatial(candidates[index])
+                    spatial_minimum = minimum(spatial_minimum, candidate)
                 output.append(spatial_minimum)
                 family_values = family_coefficients[action, horizon] @ monomials
                 output.extend(family_values[index] for index in range(3))

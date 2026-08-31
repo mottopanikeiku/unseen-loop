@@ -42,7 +42,7 @@ def test_exhaustive_inputset_is_complete_qmax2_domain() -> None:
     assert np.array_equal(np.max(domain, axis=0), np.full(6, 2))
 
 
-def test_exact_integer_oracle_matches_frozen_clear_margin_spec() -> None:
+def test_exact_integer_oracle_matches_frozen_saturated_margin_spec() -> None:
     spec = ShieldIntegerSpec(
         limits=SafetyLimits(
             obstacles=(Obstacle(x=1.0, y=-2.0, radius=0.75),),
@@ -71,6 +71,11 @@ def test_exact_integer_oracle_matches_frozen_clear_margin_spec() -> None:
                 report.tilt_margin,
                 report.battery_margin,
             )
+    expected[..., 0] = np.clip(
+        expected[..., 0],
+        -program.spatial_margin_clip / program.margin_scale,
+        program.spatial_margin_clip / program.margin_scale,
+    )
 
     assert integer_margins.shape == MARGIN_SHAPE
     assert np.allclose(integer_margins / program.margin_scale, expected, rtol=0, atol=1e-12)

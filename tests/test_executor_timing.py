@@ -167,7 +167,7 @@ def test_scale_executes_each_requested_cell_with_its_exact_shape(
 ) -> None:
     manifest = load_manifest(
         SMOKE
-        if trajectories != 1024 or horizon != 64
+        if (trajectories, horizon) == (64, 8)
         else Path(__file__).parents[1] / "experiments" / "flagship.toml"
     )
     job = _job(manifest, "scale", trajectories=trajectories, horizon=horizon, container=0)

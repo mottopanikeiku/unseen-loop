@@ -331,7 +331,7 @@ def _ckks_parameters(trajectories: int, horizon: int) -> CKKSParameters:
 
     if trajectories < 1 or horizon < 1 or horizon > 64:
         raise UnsupportedTimingCell("timing.ckks_shape_unsupported")
-    required_depth = horizon + 5
+    required_depth = horizon + 6
     scale_bits = 20
     modulus_bits = 80 + required_depth * scale_bits
     security_limits = ((8192, 218), (16384, 438), (32768, 881))
