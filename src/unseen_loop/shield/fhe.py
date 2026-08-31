@@ -43,6 +43,7 @@ FAMILY_ORDER = ("obstacle", "speed", "tilt", "battery")
 DOMAIN_POINTS = (2 * QMAX + 1) ** STATE_SHAPE[0]
 SCHEMA_VERSION = "unseen-loop/shield-concrete-v3"
 SPATIAL_MARGIN_CLIP = 127
+MONOMIAL_ENCODING_OFFSET = 20
 
 
 class ShieldFHEUnavailableError(RuntimeError):
@@ -527,13 +528,18 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
     minimum = fhe.multivariate(lambda left, right: np.minimum(left, right))
 
     def kernel(x: Any) -> Any:
-        monomials = fhe.array(
+        encoded_monomials = fhe.array(
             [
-                1,
-                *(x[index] for index in range(6)),
-                *(x[left] * x[right] for left in range(6) for right in range(left, 6)),
+                1 + MONOMIAL_ENCODING_OFFSET,
+                *(x[index] + MONOMIAL_ENCODING_OFFSET for index in range(6)),
+                *(
+                    x[left] * x[right] + MONOMIAL_ENCODING_OFFSET
+                    for left in range(6)
+                    for right in range(left, 6)
+                ),
             ]
         )
+        monomials = encoded_monomials - MONOMIAL_ENCODING_OFFSET
         output = []
         for action in range(5):
             for horizon in range(2):
