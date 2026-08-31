@@ -41,7 +41,7 @@ MARGIN_SHAPE = (5, 2, 4)
 OUTPUT_ORDER = ("action", "horizon", "family")
 FAMILY_ORDER = ("obstacle", "speed", "tilt", "battery")
 DOMAIN_POINTS = (2 * QMAX + 1) ** STATE_SHAPE[0]
-SCHEMA_VERSION = "unseen-loop/shield-concrete-v3"
+SCHEMA_VERSION = "unseen-loop/shield-concrete-v4"
 SPATIAL_MARGIN_CLIP = 127
 MONOMIAL_ENCODING_OFFSET = 20
 
@@ -150,8 +150,8 @@ def _fhe_limits_default() -> SafetyLimits:
         max_speed=2.0,
         max_abs_tilt=0.5,
         min_battery=0.0,
-        x_bounds=(-5.0, 5.0),
-        y_bounds=(-5.0, 5.0),
+        x_bounds=(-1000.0, 1000.0),
+        y_bounds=(-1000.0, 1000.0),
         vehicle_radius=0.0,
         obstacle_clearance=0.0,
     )
@@ -297,6 +297,7 @@ class IntegerMarginProgram:
     margin_scale: int
     spatial_margin_clip: int
     output_encoding_offset: int
+    spatial_active_indices: tuple[tuple[int, ...], ...]
 
     @property
     def spatial_constraints(self) -> int:
@@ -403,6 +404,7 @@ def integer_margin_program(spec: ShieldIntegerSpec) -> IntegerMarginProgram:
         ],
         dtype=np.int64,
     )
+    spatial_array, spatial_active_indices = _prune_spatial_coefficients(spatial_array)
     output_encoding_offset = _output_encoding_offset(
         spatial_array,
         family_array,
@@ -414,6 +416,7 @@ def integer_margin_program(spec: ShieldIntegerSpec) -> IntegerMarginProgram:
         margin_scale,
         spec.spatial_margin_clip,
         output_encoding_offset,
+        spatial_active_indices,
     )
 
 
@@ -444,6 +447,41 @@ def _integer_monomials(quantized: npt.ArrayLike) -> npt.NDArray[np.int64]:
         int(values[left]) * int(values[right]) for left in range(6) for right in range(left, 6)
     )
     return np.asarray(result, dtype=np.int64)
+
+
+def _prune_spatial_coefficients(
+    coefficients: npt.NDArray[np.int64],
+) -> tuple[npt.NDArray[np.int64], tuple[tuple[int, ...], ...]]:
+    """Remove spatial candidates that never attain the exact discrete-domain minimum."""
+
+    monomials = np.asarray(
+        [_integer_monomials(quantized) for quantized in exhaustive_inputset()],
+        dtype=np.int64,
+    )
+    active: list[tuple[int, ...]] = []
+    for action in range(5):
+        for horizon in range(2):
+            values = coefficients[action, horizon] @ monomials.T
+            minima = np.min(values, axis=0)
+            active.append(
+                tuple(
+                    index
+                    for index in range(values.shape[0])
+                    if bool(np.any(values[index] == minima))
+                )
+            )
+    active_widths = {len(indices) for indices in active}
+    if len(active_widths) != 1:
+        all_indices = tuple(range(coefficients.shape[2]))
+        return coefficients, (all_indices,) * 10
+    pruned = np.asarray(
+        [
+            [coefficients[action, horizon, active[action * 2 + horizon]] for horizon in range(2)]
+            for action in range(5)
+        ],
+        dtype=np.int64,
+    )
+    return pruned, tuple(active)
 
 
 def _output_encoding_offset(
@@ -597,6 +635,7 @@ class ShieldCircuitReceipt:
     domain_points: int
     domain_sha256: str
     range_sha256: str
+    spatial_active_indices: tuple[tuple[int, ...], ...]
     input_min: tuple[int, ...]
     input_max: tuple[int, ...]
     output_min: tuple[int, ...]
@@ -918,6 +957,7 @@ def compile_shield(
         output_max=output_max,
         margin_scale=program.margin_scale,
         output_encoding_offset=program.output_encoding_offset,
+        spatial_active_indices=program.spatial_active_indices,
         requested_p_error=p_error,
         requested_global_p_error=global_p_error,
         compiled_p_error=compiled_p_error,

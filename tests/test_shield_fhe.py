@@ -98,6 +98,13 @@ def test_output_encoding_places_all_margins_in_one_unsigned_bit_width() -> None:
     assert len(bit_widths) == 1
 
 
+def test_default_spatial_pruning_proves_one_active_obstacle_per_output() -> None:
+    program = integer_margin_program(ShieldIntegerSpec())
+
+    assert program.spatial_constraints == 1
+    assert program.spatial_active_indices == ((4,),) * 10
+
+
 def test_spec_digest_binds_public_spec_and_output_order() -> None:
     original = ShieldIntegerSpec()
     changed = replace(
