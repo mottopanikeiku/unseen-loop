@@ -151,6 +151,8 @@ def exact_ope_canary(study_id: str) -> str:
             "execution": "Modal REAL FHE",
             "simulation_matches_real": simulated.integer_statistics == real.integer_statistics,
             "receipt": json.loads(compiled.receipt.to_json()),
+            "client_released_integer_statistics": asdict(real.integer_statistics),
+            "client_released_statistics": asdict(real.client_statistics),
             "call": (
                 None if real.call_evidence is None else json.loads(real.call_evidence.to_json())
             ),
@@ -244,6 +246,9 @@ def ckks_ope_canary(study_id: str) -> str:
         "context_receipt": json.loads(contexts.ckks.receipt.to_json()),
         "computation_receipt": json.loads(contexts.computation.to_json()),
         "max_numerator_error": max(errors),
+        "client_released_statistics": asdict(statistics),
+        "clear_statistics": asdict(clear),
+        "absolute_numerator_errors": list(errors),
         "transport": [
             json.loads(encrypt_receipt.to_json()),
             json.loads(evaluate_receipt.to_json()),
