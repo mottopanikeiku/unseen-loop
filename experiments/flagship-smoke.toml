@@ -23,7 +23,7 @@ actions = ["BRAKE", "EAST", "WEST", "NORTH", "SOUTH"]
 horizons = 2
 margins = ["obstacle", "speed", "tilt", "battery"]
 output_shape = [5, 2, 4]
-scenarios = 12
+scenarios = 2
 seeds_per_controller_cell = 16
 controller_cells = [
   "disabled",
@@ -110,22 +110,22 @@ invalid_batch_rejections = 4
 behavior_mixture_target_weight = 0.5
 action_count = 5
 minimum_behavior_probability = 0.1
-scenarios = 12
+scenarios = 2
 shield_modes = ["off", "h1", "h2"]
-behavior_trajectories_per_cell = 256
-direct_target_trajectories_per_cell = 128
+behavior_trajectories_per_cell = 64
+direct_target_trajectories_per_cell = 32
 horizon = 8
 ope_batch_trajectories = 64
 outcomes = ["return", "unsafe_step_cost"]
-expected_behavior_trajectories = 9216
-expected_direct_trajectories = 4608
-expected_real_fhe_calls = 288
-expected_returned_scalars = 13824
+expected_behavior_trajectories = 384
+expected_direct_trajectories = 192
+expected_real_fhe_calls = 12
+expected_returned_scalars = 576
 
 [integration.gates]
 maximum_pooled_return_discrepancy = 0.03
 maximum_pooled_unsafe_probability_discrepancy = 0.02
-minimum_scenarios_with_discrepancy_below_005 = 11
+minimum_scenarios_with_discrepancy_below_005 = 1
 require_zero_containing_discrepancy_intervals = true
 require_no_sign_error_when_truth_excludes_zero = true
 

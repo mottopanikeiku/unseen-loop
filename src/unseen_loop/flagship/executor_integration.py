@@ -20,7 +20,6 @@ from typing import Any
 
 import numpy as np
 
-from unseen_loop.crypto.ckks import CKKSParameters
 from unseen_loop.flagship.integration import (
     FrozenRequestedPolicy,
     Outcome,
@@ -37,6 +36,7 @@ from unseen_loop.ope.ckks import (
     OPECKKSServer,
     PolynomialApproxOPEReceipt,
     PolynomialApproxOPESpec,
+    executable_ckks_parameters,
     generate_ope_contexts,
 )
 from unseen_loop.ope.fhe import compile_ope_circuit
@@ -438,7 +438,11 @@ def _ckks_spec(batch: TrajectoryBatch) -> PolynomialApproxOPESpec:
 
 
 def _ckks_receipt(spec: PolynomialApproxOPESpec) -> PolynomialApproxOPEReceipt:
-    return spec.receipt(CKKSParameters())
+    parameters = executable_ckks_parameters(
+        spec.trajectories.trajectories,
+        spec.trajectories.horizon,
+    )
+    return spec.receipt(parameters)
 
 
 def _run_ckks(

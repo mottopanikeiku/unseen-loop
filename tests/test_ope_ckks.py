@@ -14,10 +14,22 @@ from unseen_loop.ope.ckks import (
     OPECKKSServer,
     PolynomialApproxOPESpec,
     clear_oracle,
+    executable_ckks_parameters,
     generate_ope_contexts,
     plan_chunks,
 )
 from unseen_loop.ope.types import PolynomialPolicySpec, TrajectoryBatch, TrajectorySpec
+
+
+def test_executable_parameters_cover_h8_and_reject_unsupported_depth() -> None:
+    parameters = executable_ckks_parameters(64, 8)
+
+    assert parameters.poly_modulus_degree == 16_384
+    assert len(parameters.coeff_mod_bit_sizes) == 16
+    assert sum(parameters.coeff_mod_bit_sizes) == 416
+    assert parameters.slot_capacity == 8_192
+    with pytest.raises(ValueError, match="tc128 frontier"):
+        executable_ckks_parameters(256, 32)
 
 
 def _fixture(

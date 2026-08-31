@@ -178,11 +178,11 @@ def exact_ope_canary(study_id: str) -> str:
 )
 def ckks_ope_canary(study_id: str) -> str:
     from unseen_loop.crypto.ckks import CKKSClient, CKKSServer
-    from unseen_loop.flagship.executor_timing import _ckks_parameters
     from unseen_loop.ope.ckks import (
         OPECKKSClient,
         OPECKKSServer,
         PolynomialApproxOPESpec,
+        executable_ckks_parameters,
         generate_ope_contexts,
     )
     from unseen_loop.ope.types import PolynomialPolicySpec, TrajectoryBatch, TrajectorySpec
@@ -229,7 +229,7 @@ def ckks_ope_canary(study_id: str) -> str:
         weight_clip=128.0,
         minimum_behavior_propensity=0.5,
     )
-    parameters = _ckks_parameters(trajectories, horizon)
+    parameters = executable_ckks_parameters(trajectories, horizon)
     contexts = generate_ope_contexts(spec, parameters)
     client = OPECKKSClient(
         CKKSClient.from_serialized(contexts.ckks.client_context, parameters=parameters), spec

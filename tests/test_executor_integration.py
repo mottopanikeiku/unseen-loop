@@ -21,6 +21,7 @@ from unseen_loop.ope.types import SufficientStatistics
 def _manifest(*, horizon: int = 8) -> dict[str, Any]:
     payload = load_manifest("experiments/flagship-smoke.toml").canonical_payload()
     integration = payload["integration"]
+    integration["scenarios"] = 12
     integration["behavior_trajectories_per_cell"] = 64
     integration["direct_target_trajectories_per_cell"] = 1
     integration["horizon"] = horizon

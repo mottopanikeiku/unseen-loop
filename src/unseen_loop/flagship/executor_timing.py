@@ -327,22 +327,14 @@ class _RealCKKSSession:
 def _ckks_parameters(trajectories: int, horizon: int) -> CKKSParameters:
     """Choose a tc128-compatible chain or reject a cell before claiming execution."""
 
-    from unseen_loop.crypto.ckks import CKKSParameters
+    from unseen_loop.ope.ckks import executable_ckks_parameters
 
     if trajectories < 1 or horizon < 1 or horizon > 64:
         raise UnsupportedTimingCell("timing.ckks_shape_unsupported")
-    required_depth = horizon + 6
-    scale_bits = 24
-    modulus_bits = 80 + required_depth * scale_bits
-    security_limits = ((8192, 218), (16384, 438), (32768, 881))
-    for degree, limit in security_limits:
-        if trajectories <= degree // 2 and modulus_bits <= limit:
-            return CKKSParameters(
-                poly_modulus_degree=degree,
-                coeff_mod_bit_sizes=(40, *((scale_bits,) * required_depth), 40),
-                global_scale=float(2**scale_bits),
-            )
-    raise UnsupportedTimingCell("timing.ckks_depth_unsupported")
+    try:
+        return executable_ckks_parameters(trajectories, horizon)
+    except ValueError as error:
+        raise UnsupportedTimingCell("timing.ckks_depth_unsupported") from error
 
 
 def _hardware_digest() -> str:

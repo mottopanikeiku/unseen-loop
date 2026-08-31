@@ -47,6 +47,32 @@ SOFT_CLIP_COEFFICIENTS = (0.0, 1.0, -0.25)
 SOFT_CLIP_NORMALIZED_DOMAIN = (0.0, 2.0)
 
 
+def executable_ckks_parameters(trajectories: int, horizon: int) -> CKKSParameters:
+    """Choose the smallest supported tc128 chain for the frozen OPE depth."""
+
+    if (
+        isinstance(trajectories, bool)
+        or not isinstance(trajectories, int)
+        or trajectories < 1
+        or isinstance(horizon, bool)
+        or not isinstance(horizon, int)
+        or horizon < 1
+        or horizon > 64
+    ):
+        raise ValueError("CKKS OPE trajectories and horizon are outside the supported shape")
+    required_depth = horizon + 6
+    scale_bits = 24
+    modulus_bits = 80 + required_depth * scale_bits
+    for degree, limit in ((8192, 218), (16384, 438), (32768, 881)):
+        if trajectories <= degree // 2 and modulus_bits <= limit:
+            return CKKSParameters(
+                poly_modulus_degree=degree,
+                coeff_mod_bit_sizes=(40, *((scale_bits,) * required_depth), 40),
+                global_scale=float(2**scale_bits),
+            )
+    raise ValueError("CKKS OPE depth or packed trajectory count exceeds the tc128 frontier")
+
+
 @dataclass(frozen=True)
 class OPECKKSChunk:
     """A contiguous trajectory interval that fits one CKKS ciphertext."""
