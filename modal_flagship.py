@@ -163,7 +163,7 @@ def clear_shield_worker(
     image=fhe_image,
     cpu=16.0,
     memory=32_768,
-    max_containers=8,
+    max_containers=1,
     **_COMMON,
 )
 def shield_fhe_worker(

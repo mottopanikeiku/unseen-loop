@@ -125,8 +125,11 @@ def _shield_publication(canary: dict[str, Any], canary_digest: str) -> dict[str,
                 },
             }
         )
-    retained = sum(item["requested_action"] == item["selected_action"] for item in decisions)
     emergency = sum(bool(item["emergency_fallback"]) for item in decisions)
+    retained = sum(
+        not item["emergency_fallback"] and item["requested_action"] == item["selected_action"]
+        for item in decisions
+    )
     override = len(decisions) - retained - emergency
     scenario_payload = scenario.to_dict()
     scenario_payload.pop("initial_state", None)
@@ -152,7 +155,7 @@ def _shield_publication(canary: dict[str, Any], canary_digest: str) -> dict[str,
             "backend": compile_receipt.get("backend"),
             "domain_points": compile_receipt.get("domain_points"),
             "output_shape": compile_receipt.get("output_shape"),
-            "exact_complete_domain": canary.get("conformance", {}).get("exact"),
+            "exact_complete_domain": canary.get("simulation", {}).get("exact"),
             "real_call": canary.get("real"),
             "receipt": compile_receipt,
             "source_sha256": canary_digest,
