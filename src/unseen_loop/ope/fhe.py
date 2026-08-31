@@ -44,6 +44,7 @@ from unseen_loop.ope.types import SufficientStatistics, TrajectoryBatch
 CANARY_TRAJECTORIES = 4
 CANARY_HORIZON = 4
 CANARY_STATE_DIM = 6
+MINIMAL_CANARY_SHAPE = (1, 2, 1)
 MAX_CALIBRATION_ROWS = 1_000_000
 MAX_COMPILED_INTEGER_BITS = 63
 MAX_ENCRYPTED_OPERATION_BITS = 16
@@ -224,9 +225,12 @@ def _input_layout(spec: OPECircuitSpec) -> _InputLayout:
 def _require_canary(spec: OPECircuitSpec) -> None:
     shape = spec.trajectories
     actual = (shape.trajectories, shape.horizon, shape.state_dim)
-    expected = (CANARY_TRAJECTORIES, CANARY_HORIZON, CANARY_STATE_DIM)
-    if actual != expected:
-        raise ValueError(f"exact Concrete OPE is restricted to the N,H,state_dim canary {expected}")
+    primary = (CANARY_TRAJECTORIES, CANARY_HORIZON, CANARY_STATE_DIM)
+    if actual not in {primary, MINIMAL_CANARY_SHAPE}:
+        raise ValueError(
+            "exact Concrete OPE is restricted to the declared N,H,state_dim "
+            f"canaries {primary} or {MINIMAL_CANARY_SHAPE}"
+        )
     numerator_bounds, denominator_bounds, raw_bounds = spec._overflow_bounds()
     maximum = max((*numerator_bounds, *denominator_bounds, *raw_bounds))
     if maximum.bit_length() > MAX_COMPILED_INTEGER_BITS:
