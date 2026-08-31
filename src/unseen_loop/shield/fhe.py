@@ -14,7 +14,8 @@ import json
 import math
 import time
 import zipfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 from fractions import Fraction
@@ -997,19 +998,37 @@ def compile_shield(
     return CompiledShield(spec, circuit, server_path, client_specs_path, receipt, program)
 
 
-def exhaustive_simulation_conformance(compiled: CompiledShield) -> SimulationConformance:
+def exhaustive_simulation_conformance(
+    compiled: CompiledShield,
+    *,
+    workers: int = 1,
+) -> SimulationConformance:
     """Check all 15,625 points against Concrete simulation, with no sampling."""
 
+    if isinstance(workers, bool) or not isinstance(workers, int) or workers < 1:
+        raise ValueError("workers must be a positive integer")
     inputset = exhaustive_inputset()
     clear_hash = hashlib.sha256()
     simulation_hash = hashlib.sha256()
     matches = 0
-    for row in inputset:
-        clear = compiled.clear(row)
-        simulated = compiled.simulate(row)
-        clear_hash.update(clear.tobytes(order="C"))
-        simulation_hash.update(simulated.tobytes(order="C"))
-        matches += int(np.array_equal(clear, simulated))
+
+    def evaluate(row: npt.NDArray[np.int64]) -> tuple[npt.NDArray[np.int64], ...]:
+        return compiled.clear(row), compiled.simulate(row)
+
+    def consume(
+        results: Iterable[tuple[npt.NDArray[np.int64], ...]],
+    ) -> None:
+        nonlocal matches
+        for clear, simulated in results:
+            clear_hash.update(clear.tobytes(order="C"))
+            simulation_hash.update(simulated.tobytes(order="C"))
+            matches += int(np.array_equal(clear, simulated))
+
+    if workers == 1:
+        consume(map(evaluate, inputset))
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            consume(executor.map(evaluate, inputset))
     return SimulationConformance(
         mode=ShieldFHEMode.SIMULATION,
         domain_points=DOMAIN_POINTS,

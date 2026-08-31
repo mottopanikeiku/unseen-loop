@@ -72,7 +72,7 @@ def shield_canary(study_id: str) -> str:
         print("shield-canary: compiling", flush=True)
         compiled = compile_shield(ShieldIntegerSpec(), temporary, global_p_error=1e-6)
         print("shield-canary: compile complete", flush=True)
-        simulation = exhaustive_simulation_conformance(compiled)
+        simulation = exhaustive_simulation_conformance(compiled, workers=16)
         print("shield-canary: complete-domain simulation complete", flush=True)
         real = real_fhe_canary(
             compiled,

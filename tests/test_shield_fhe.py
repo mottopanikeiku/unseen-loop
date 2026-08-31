@@ -167,7 +167,7 @@ def test_simulation_conformance_checks_every_domain_point() -> None:
         def simulate(self, quantized: Any) -> np.ndarray[Any, np.dtype[np.int64]]:
             return self.clear(quantized)
 
-    result = exhaustive_simulation_conformance(ExactSimulation())  # type: ignore[arg-type]
+    result = exhaustive_simulation_conformance(ExactSimulation(), workers=4)  # type: ignore[arg-type]
 
     assert result.mode is ShieldFHEMode.SIMULATION
     assert result.domain_points == 15_625
