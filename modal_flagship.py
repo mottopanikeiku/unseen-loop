@@ -159,14 +159,26 @@ def clear_shield_worker(
     return _execute_remote(executor_module, manifest, job, run_root)
 
 
-@app.function(image=fhe_image, max_containers=8, **_COMMON)
+@app.function(
+    image=fhe_image,
+    cpu=16.0,
+    memory=32_768,
+    max_containers=8,
+    **_COMMON,
+)
 def shield_fhe_worker(
     executor_module: str, manifest: dict[str, object], job: dict[str, object], run_root: str
 ) -> dict[str, str | None]:
     return _execute_remote(executor_module, manifest, job, run_root)
 
 
-@app.function(image=integration_image, max_containers=32, **_COMMON)
+@app.function(
+    image=integration_image,
+    cpu=4.0,
+    memory=16_384,
+    max_containers=32,
+    **_COMMON,
+)
 def ope_validation_worker(
     executor_module: str, manifest: dict[str, object], job: dict[str, object], run_root: str
 ) -> dict[str, str | None]:
@@ -180,7 +192,13 @@ def integration_worker(
     return _execute_remote(executor_module, manifest, job, run_root)
 
 
-@app.function(image=integration_image, max_containers=8, **_COMMON)
+@app.function(
+    image=integration_image,
+    cpu=4.0,
+    memory=16_384,
+    max_containers=8,
+    **_COMMON,
+)
 def timing_worker(
     executor_module: str, manifest: dict[str, object], job: dict[str, object], run_root: str
 ) -> dict[str, str | None]:
