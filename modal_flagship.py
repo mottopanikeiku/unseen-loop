@@ -195,6 +195,7 @@ def ope_validation_worker(
 def integration_worker(
     executor_module: str, manifest: dict[str, object], job: dict[str, object], run_root: str
 ) -> dict[str, str | None]:
+    evidence_volume.reload()
     return _execute_remote(executor_module, manifest, job, run_root)
 
 
@@ -215,6 +216,7 @@ def timing_worker(
 def analysis_worker(
     executor_module: str, manifest: dict[str, object], job: dict[str, object], run_root: str
 ) -> dict[str, str | None]:
+    evidence_volume.reload()
     return _execute_remote(executor_module, manifest, job, run_root)
 
 
@@ -291,6 +293,7 @@ def _result_transition(job: PlannedJob, result: object) -> Transition:
 )
 def evidence_finalizer(run_id: str, manifest_digest: str) -> str:
     """Close the immutable registry and create the sole root evidence index."""
+    evidence_volume.reload()
     if RUN_ID.fullmatch(run_id) is None:
         raise ValueError("invalid run_id")
     run_root = VOLUME_ROOT / run_id
