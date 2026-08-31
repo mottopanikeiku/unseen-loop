@@ -30,6 +30,18 @@ Two deliberately distinct backends prevent an approximation claim from masquerad
 
 The shield is part of the logged MDP. Integration evidence therefore logs `requested_action` with its behavior propensity separately from `executed_action`; it never substitutes post-shield executed-action propensity after the many-to-one shield map.
 
+### Checksum-closed flagship canaries
+
+The browser publication is [`site/data/flagship-evidence.json`](site/data/flagship-evidence.json), SHA-256 `c19d256ee6fe6fc301e715155c3538cf3fdac28946b1e99eda3a0f4473aa5407`. Modal built it from three immutable canary summaries; the browser independently verifies the copied byte digest and every displayed certificate/division invariant before rendering measurements.
+
+| Canary | Exact declared accounting | Server evaluation | End-to-end | Transport |
+|---|---:|---:|---:|---:|
+| CipherShield Concrete, `qmax=2` | 15,625/15,625 simulations match + 1/1 REAL FHE tensor match | 73.916 s | 77.491 s | 758,473,160 B evaluation keys; 492,056 B request; 3,278,720 B response |
+| exact Concrete OPE, `(N=1,H=2,D=1)` | simulation = REAL = integer reference | 1.866 s | 6.329 s | 589,084,056 B evaluation keys; 124,032 B request; 115,480 B response |
+| CKKS OPE, `(N=64,H=8,D=1)` | 24 approximate output ciphertexts; distinct clear approximation | 7.465 s | client phase receipts reported separately | 813,936,378 B public server context; 86,405,050 B request; 25,943,816 B response |
+
+These are colocated Modal cryptographic canaries, not production latency, throughput, remote-network secrecy, or empirical policy-value results. The CKKS maximum released numerator error was 8.409 under a declared conservative soft-clip absolute-error bound of 32. The exact OPE shape is intentionally tiny; the former `(4,4,6)` graph exceeded a 32 GiB worker.
+
 ## Research thesis
 
 Ordinary FHE inference benchmarks stop at per-example accuracy. A control policy is sequential: one changed action changes every later state. Unseen Loop therefore optimizes and measures four coupled properties:

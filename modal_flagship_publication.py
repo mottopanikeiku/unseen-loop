@@ -143,6 +143,15 @@ def _shield_publication(canary: dict[str, Any], canary_digest: str) -> dict[str,
         or real["call"].get("output_matches_clear") is not True
     ):
         raise RuntimeError("shield canary REAL FHE call did not match the exact clear tensor")
+    simulation = canary.get("simulation")
+    if (
+        not isinstance(simulation, dict)
+        or simulation.get("domain_points") != 15_625
+        or simulation.get("matches") != 15_625
+        or simulation.get("mismatches") != 0
+        or simulation.get("clear_outputs_sha256") != simulation.get("simulated_outputs_sha256")
+    ):
+        raise RuntimeError("shield complete-domain Concrete simulation did not close exactly")
     return {
         "schema_version": "unseen-loop/shield-publication-v1",
         "state_features": ["x", "y", "vx", "vy", "battery", "tilt"],
@@ -162,7 +171,7 @@ def _shield_publication(canary: dict[str, Any], canary_digest: str) -> dict[str,
             "backend": compile_receipt.get("backend"),
             "domain_points": compile_receipt.get("domain_points"),
             "output_shape": compile_receipt.get("output_shape"),
-            "exact_complete_domain": canary.get("simulation", {}).get("exact"),
+            "exact_complete_domain": True,
             "real_call": canary.get("real"),
             "receipt": compile_receipt,
             "source_sha256": canary_digest,
@@ -421,12 +430,10 @@ def main(
     shield_canary_id: str,
     exact_ope_canary_id: str,
     ckks_ope_canary_id: str,
-) -> None:
-    print(
-        build_publication.remote(
-            publication_id,
-            shield_canary_id,
-            exact_ope_canary_id,
-            ckks_ope_canary_id,
-        )
+) -> str:
+    return build_publication.remote(
+        publication_id,
+        shield_canary_id,
+        exact_ope_canary_id,
+        ckks_ope_canary_id,
     )

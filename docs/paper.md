@@ -281,6 +281,18 @@ The shield changes the transition kernel and is therefore part of the evaluated 
 
 The integration experiment compares OPE estimates against paired direct online target-policy truth within each shield-defined MDP. Return effects and unsafe-event effects are noncompensating outcomes; encrypted execution evidence does not substitute for statistical validity, and statistical evidence does not substitute for privacy evidence.
 
+### 8.4 Executed cryptographic canaries
+
+The digest-pinned browser source is [`../site/data/flagship-evidence.json`](../site/data/flagship-evidence.json), SHA-256 `c19d256ee6fe6fc301e715155c3538cf3fdac28946b1e99eda3a0f4473aa5407`. Modal built it from immutable summaries `flagship-shield-canary-014`, `flagship-exact-ope-canary-004`, and `flagship-ckks-ope-canary-006`.
+
+| Canary | Semantic check | Server evaluation | End-to-end / public context |
+|---|---|---:|---:|
+| CipherShield Concrete | 15,625/15,625 complete-domain simulations and 1/1 REAL FHE tensor match | 73.916 s | 77.491 s |
+| exact Concrete OPE `(1,2,1)` | simulation = REAL = integer reference | 1.866 s | 6.329 s |
+| CKKS OPE `(64,8,1)` | separately named approximation; 24 output ciphertexts | 7.465 s | 813,936,378 B public server context |
+
+CipherShield used 758,473,160 B of evaluation keys, a 492,056 B request, and a 3,278,720 B response. Exact OPE used 589,084,056 B of evaluation keys, a 124,032 B request, and a 115,480 B response. CKKS used an 86,405,050 B request and 25,943,816 B response; the maximum released numerator error was 8.409 under a conservative declared soft-clip absolute-error bound of 32. These are cryptographic semantics/cost canaries, not empirical task efficacy or production systems results.
+
 ## 9. Threat model
 
 The evaluator is honest-but-curious, runs a pinned data-independent circuit, and may observe policy/version, tensor shapes, parameter set, ciphertext and evaluation-key sizes, request timing/volume/status, and linkable evaluation-key identity. Assuming secure scheme parameters, fresh client randomness, uncompromised endpoints, and no decryption oracle, FHE computationally hides observation and encrypted-score values.
