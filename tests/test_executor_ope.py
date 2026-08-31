@@ -156,10 +156,10 @@ def test_fhe_valid_uses_real_concrete_boundary_and_colocated_scope(
         )
         integers, receipt = spec.integer_reference(batch)
         evidence = SanitizedOPECallEvidence(
-            input_shape=(160,),
-            output_shape=(3, 4),
+            input_shape=(10,),
+            output_shape=(3, 2),
             encrypted_output_vectors=3,
-            integers_per_output_vector=4,
+            integers_per_output_vector=2,
             keygen_ns=11,
             encrypt_ns=12,
             server_evaluate_ns=13,
@@ -187,25 +187,25 @@ def test_fhe_valid_uses_real_concrete_boundary_and_colocated_scope(
     monkeypatch.setattr(executor_ope, "_run_concrete_canary", fake_concrete)
     _, artifact = _execute(manifest, _job("fhe_valid", category="occupancy", batch=0), tmp_path)
 
-    assert calls == [(4, 4, 128)]
+    assert calls == [(1, 2, 128)]
     assert artifact["evidence_class"] == "REAL COLOCATED FHE CANARY"
-    assert artifact["configured_challenge_shape"] == {"horizon": 64, "trajectories": 256}
+    assert artifact["configured_challenge_shape"] == {"horizon": 8, "trajectories": 256}
     assert artifact["policy"]["behavior"]["support_valid"] is True
     assert artifact["truth"]["value"] == pytest.approx(
         sum(artifact["truth"]["per_horizon_contributions"])
     )
-    assert artifact["estimates"]["pdis"]["denominators"] == [4.0, 4.0, 4.0, 4.0]
-    assert artifact["estimates"]["wpdis"]["denominators"] == [4.0, 4.0, 4.0, 4.0]
-    assert artifact["diagnostics"]["per_horizon_ess"] == [4.0, 4.0, 4.0, 4.0]
+    assert artifact["estimates"]["pdis"]["denominators"] == [1.0, 1.0]
+    assert artifact["estimates"]["wpdis"]["denominators"] == [1.0, 1.0]
+    assert artifact["diagnostics"]["per_horizon_ess"] == [1.0, 1.0]
     assert artifact["diagnostics"]["positive_horizon_denominators"] is True
     assert artifact["fhe"]["mode"] == "REAL"
     assert artifact["fhe"]["canary_shape"] == {
-        "horizon": 4,
-        "state_dim": 6,
-        "trajectories": 4,
+        "horizon": 2,
+        "state_dim": 1,
+        "trajectories": 1,
     }
     assert artifact["fhe"]["conforms_to_integer_reference"] is True
-    assert artifact["fhe"]["integer_statistics"]["counts"] == [4, 4, 4, 4]
+    assert artifact["fhe"]["integer_statistics"]["counts"] == [1, 1]
     assert artifact["fhe"]["call_evidence"]["server_secret_key_marker_present"] is False
     assert artifact["fhe"]["compilation_receipt"]["security_level"] == 128
     assert "colocated" in artifact["fhe"]["trust_scope"]

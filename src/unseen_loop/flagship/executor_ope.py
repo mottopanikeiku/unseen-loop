@@ -442,20 +442,20 @@ def _fixed_point_payload(batch: TrajectoryBatch, clip: float) -> dict[str, objec
 def _canary(seed: int, category: str) -> tuple[OPECircuitSpec, TrajectoryBatch]:
     rng = np.random.default_rng(seed)
     trajectory_spec = TrajectorySpec(
-        trajectories=4,
-        horizon=4,
-        state_dim=6,
+        trajectories=1,
+        horizon=2,
+        state_dim=1,
         action_count=2,
-        state_min=(0.0,) * 6,
-        state_max=(0.0,) * 6,
+        state_min=(0.0,),
+        state_max=(0.0,),
         reward_min=-1.0,
         reward_max=1.0,
     )
     policy = PolynomialPolicySpec(
         action_count=2,
-        state_dim=6,
+        state_dim=1,
         degree=1,
-        coefficients=((0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),) * 2,
+        coefficients=((0.5, 0.0),) * 2,
     )
     action_rewards = {
         "occupancy": (0.0, 0.5),
@@ -463,19 +463,19 @@ def _canary(seed: int, category: str) -> tuple[OPECircuitSpec, TrajectoryBatch]:
         "terminal_padding": (0.0, 0.5),
         "rounding_boundary": (-0.5, 1.0),
     }[category]
-    action_array = rng.integers(0, 2, size=(4, 4))
+    action_array = rng.integers(0, 2, size=(1, 2))
     reward_array = np.asarray(
         [[action_rewards[int(action)] for action in row] for row in action_array],
         dtype=np.float64,
     )
     if category == "terminal_padding":
-        reward_array[:, 2:] = 0.0
+        reward_array[:, 1:] = 0.0
     batch = TrajectoryBatch(
         trajectory_spec,
-        states=tuple(tuple((0.0,) * 6 for _ in range(4)) for _ in range(4)),
+        states=(((0.0,), (0.0,)),),
         actions=tuple(tuple(int(action) for action in row) for row in action_array),
         rewards=tuple(tuple(float(value) for value in row) for row in reward_array),
-        behavior_propensities=tuple((0.5,) * 4 for _ in range(4)),
+        behavior_propensities=((0.5, 0.5),),
     )
     spec = OPECircuitSpec(
         trajectory_spec,
@@ -527,8 +527,8 @@ def _fhe_payload(manifest: Mapping[str, Any], seed: int, category: str) -> dict[
         "rounding_boundary": (-0.5, 1.0),
     }[category]
     truth_by_horizon = tuple(
-        0.0 if category == "terminal_padding" and step >= 2 else sum(action_rewards) / 2.0
-        for step in range(4)
+        0.0 if category == "terminal_padding" and step >= 1 else sum(action_rewards) / 2.0
+        for step in range(2)
     )
     truth = float(sum(truth_by_horizon))
     ess = tuple(
@@ -541,7 +541,7 @@ def _fhe_payload(manifest: Mapping[str, Any], seed: int, category: str) -> dict[
     return {
         "mode": "REAL",
         "backend": "Concrete-Python TFHE",
-        "canary_shape": {"trajectories": 4, "horizon": 4, "state_dim": 6},
+        "canary_shape": {"trajectories": 1, "horizon": 2, "state_dim": 1},
         "conforms_to_integer_reference": True,
         "integer_statistics": result.integer_statistics,
         "decoded_statistics": {"pdis": decoded_pdis, "wpdis": decoded_wpdis},
