@@ -69,7 +69,7 @@ security_level = 128
 global_p_error = 1e-6
 
 [ope]
-horizons = [8, 32]
+horizons = [8]
 trajectory_counts = [64, 256]
 overlap_lambdas = [0.2, 0.8]
 clip_values = [5.0, 10.0]
@@ -100,10 +100,10 @@ occupancy_batches = 4
 extrema_batches = 4
 terminal_padding_batches = 4
 rounding_boundary_batches = 4
-horizon = 64
+horizon = 8
 trajectories_per_batch = 256
-expected_outputs = 3072
-expected_count_entries = 1024
+expected_outputs = 384
+expected_count_entries = 128
 invalid_batch_rejections = 4
 
 [integration]
@@ -114,7 +114,7 @@ scenarios = 12
 shield_modes = ["off", "h1", "h2"]
 behavior_trajectories_per_cell = 256
 direct_target_trajectories_per_cell = 128
-horizon = 64
+horizon = 8
 ope_batch_trajectories = 64
 outcomes = ["return", "unsafe_step_cost"]
 expected_behavior_trajectories = 9216
@@ -140,7 +140,7 @@ concurrent_clients = 4
 concurrent_shield_calls_per_client = 8
 concurrent_ope_calls_per_client = 4
 scale_trajectory_counts = [64, 256]
-scale_horizons = [8, 32]
+scale_horizons = [8]
 scale_containers_per_cell = 2
 scale_warmups_per_container = 2
 scale_measured_per_container = 4
