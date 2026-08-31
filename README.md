@@ -1,10 +1,34 @@
 # Unseen Loop
 
-**The cloud acts on state it cannot read.**
+**Act safely. Estimate cautiously. Keep the inputs private.**
 
-Unseen Loop is a reproducible research system for **encrypted closed-loop policy serving**. It distills reinforcement-learning teachers into low-degree integer policies, searches the return–certificate–circuit-cost frontier, and evaluates the selected policy on client-encrypted observations with Fully Homomorphic Encryption (FHE).
+Unseen Loop is a reproducible research system for **private sequential decision evaluation**. Its integrated flagship combines a two-step encrypted counterfactual safety shield with horizon-aware private off-policy evaluation (OPE). The original certificate-guided policy-distillation and encrypted closed-loop serving system remains the training and systems foundation.
 
-> **Scope:** inference only. Training data, teacher execution, and policy compilation are cleartext development activities. The deployed evaluator receives ciphertext observations and public evaluation material; the secret key remains with the client. Only results explicitly labeled `REAL FHE` are privacy evidence. Simulation is never reported as encrypted execution.
+> **Scope:** confidential inference and evaluation only. Training data, teacher execution, calibration, policy compilation, target-policy fitting, and uncertainty resampling are clear development or client activities. The evaluator receives ciphertext inputs plus public evaluation material; the secret key, shield selection, OPE division, and any explicit aggregate disclosure remain with the client. Only checksum-closed `REAL FHE` rows are privacy evidence. Simulation is never reported as ciphertext execution.
+
+## Integrated flagship
+
+### CipherShield-RL
+
+For one encrypted state in frozen order `(x, y, vx, vy, battery, tilt)`, the server evaluates every public action `(BRAKE, EAST, WEST, NORTH, SOUTH)` through two public polynomial dynamics steps. The logical output is a complete `5 × 2 × 4` tensor of signed obstacle, speed, tilt, and battery margins. Spatial margins use sign-preserving saturation solely to bound Concrete lookup width; strict-positive safety decisions are unchanged. The server does not select an action. After decryption, the client:
+
+1. retains the requested action when its eight obligations are strictly positive;
+2. otherwise selects the certified candidate with the greatest minimum buffered margin;
+3. breaks exact ties in frozen action-enum order; and
+4. records an explicitly uncertified `BRAKE` fallback if no candidate is certified.
+
+The Concrete backend is an encrypted tensor/vectorized circuit, not SIMD packing. Its complete declared input domain is `qmax=2`, or `5^6 = 15,625` signed states.
+
+### Private horizon-aware OPE
+
+The client encrypts a fixed-shape trajectory batch containing logged states, requested actions, rewards, and behavior propensities. The server evaluates a public degree-1 or degree-2 target propensity model and returns `3H` additive sufficient statistics: horizon numerators, denominators, and counts. Division and the final estimate are client-only.
+
+Two deliberately distinct backends prevent an approximation claim from masquerading as exactness:
+
+- **Concrete exact bounded canary:** integer hard clipping, three encrypted horizon vectors, and exact clear/simulation/REAL agreement on the declared proof shape.
+- **TenSEAL CKKS:** slot-packed approximate polynomial soft clipping under identifier `POLYNOMIAL_APPROX_OPE_V1`; tc128 modulus-budget enforcement, client/public context separation, and explicit approximation receipts.
+
+The shield is part of the logged MDP. Integration evidence therefore logs `requested_action` with its behavior propensity separately from `executed_action`; it never substitutes post-shield executed-action propensity after the many-to-one shield map.
 
 ## Research thesis
 
@@ -79,6 +103,14 @@ uv run unseen-loop demo --backend fhe --output artifacts/fhe-local
 uv sync --extra cloud --extra fhe
 uv run modal run -w artifacts/modal-evidence.json \
   modal_app.py::research --run-id my-modal-run
+
+# Flagship plan inspection; emits exact stage IDs and denominators, no empirical work.
+uv run modal run modal_flagship.py::inspect-plan \
+  --config experiments/flagship-smoke.toml
+
+# Modal-only REAL-FHE canaries: complete-domain CipherShield, exact OPE, and CKKS OPE.
+uv run modal run -w artifacts/flagship-canaries.json \
+  modal_flagship_canary.py::run --prefix my-flagship-canary
 
 # Publish and inspect the evidence-first report.
 uv run unseen-loop report artifacts/modal-evidence.json

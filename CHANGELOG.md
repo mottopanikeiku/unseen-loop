@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Integrated flagship
+
+- Added CipherShield-RL: a private six-feature warehouse state, five public candidate actions, two polynomial counterfactual horizons, four strict-positive safety-margin families, conservative client buffers, and stable client-only selection.
+- Added the exact Concrete shield circuit over the complete `qmax=2` domain, with a logical `5 × 2 × 4` output tensor, sign-preserving spatial saturation, uniform tensor precision encoding, split client/server artifacts, secret-marker audit, and sanitized REAL-FHE calls.
+- Added fixed-shape private trajectory schemas and ordinary IS, PDIS, clipped PDIS, WPDIS, control-variate sufficient statistics, effective-sample-size diagnostics, and deterministic trajectory bootstrap.
+- Added exact Concrete OPE with integer hard clipping and three encrypted horizon vectors, plus slot-packed TenSEAL CKKS OPE under the distinct `POLYNOMIAL_APPROX_OPE_V1` soft-clip semantics.
+- Added tc128 coefficient-modulus budget enforcement, SEAL parameter-validity inspection, public/secret context separation, and explicit CKKS approximation/transport receipts.
+- Added shield/OPE integration that logs requested-action behavior propensities separately from executed shield actions and compares OPE against paired direct target-policy truth within each shield-defined MDP.
+- Added `experiments/flagship.toml` and a bounded H8 smoke plan, executable clear/FHE/OPE/integration/timing/analysis stages, an append-only Modal registry, immutable evidence finalization, and provisioned cryptographic workers.
+
+### Research product
+
+- Added a digest-pinned two-track overview, recorded warehouse safety control room, five-candidate certificate inspector, horizon contribution explorer, separate bootstrap provenance, 3H receipt ledger, and explicit client-release disclosures.
+- Added a Modal publication builder that joins completed shield, exact-OPE, and CKKS canaries without publishing raw private state or trajectory rows.
+- Expanded the architecture, threat model, paper, and reproduction guide with exact/approximate semantic boundaries, knowledge leakage, requested/executed-action OPE semantics, and non-novelty claims.
+
 ## 0.1.0 — 2026-08-23
 
 ### Research mechanism

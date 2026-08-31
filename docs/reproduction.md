@@ -205,6 +205,62 @@ uv run unseen-loop suite \
 
 It materializes clear RL rows only. It does not execute FHE, provide privacy evidence, or discharge the full preregistration by itself. `modal_app.py::research --full` still expands just one CartPole checkpoint and is not the release suite.
 
+## Integrated flagship Modal DAG
+
+All empirical shield, OPE, integration, timing, analysis, and publication work runs on Modal. Local entrypoints only validate/submit plans and copy closed evidence.
+
+Inspect the immutable job plan:
+
+```bash
+uv run modal run modal_flagship.py::inspect-plan \
+  --config experiments/flagship-smoke.toml
+```
+
+Run the three cryptographic canaries independently. Distinct study IDs are immutable Volume destinations:
+
+```bash
+uv run modal run -w artifacts/shield-canary.json \
+  modal_flagship_canary.py::shield_canary --study-id my-shield-canary
+uv run modal run -w artifacts/exact-ope-canary.json \
+  modal_flagship_canary.py::exact_ope_canary --study-id my-exact-ope-canary
+uv run modal run -w artifacts/ckks-ope-canary.json \
+  modal_flagship_canary.py::ckks_ope_canary --study-id my-ckks-ope-canary
+```
+
+The shield canary compiles once, compares all `5^6 = 15,625` declared inputs against Concrete simulation, then performs one serialized REAL-FHE roundtrip. The exact OPE canary uses the bounded `(N=1,H=2,D=1)` proof shape because the former `(4,4,6)` graph exceeded a 32 GiB Modal worker; this proof is not a scale claim. The CKKS canary uses `(N=64,H=8,D=1)`, one logical 64-slot vector per ciphertext, and a tc128-compatible degree-16384 modulus chain.
+
+`modal_flagship.py::launch` requires a lowercase run ID, a SHA-256 of the submitted source snapshot, three pinned image/build-spec digests, and an exact executor-module map. This prevents an orchestrator from silently selecting an implementation:
+
+```bash
+SOURCE_DIGEST="$(git archive --format=tar HEAD | sha256sum | cut -d' ' -f1)"
+IMAGE_DIGESTS='{"core":"f2b43cb57dcdda520bec33425f1a93b3aa4609a7d3faa4109a8518ef9eeec71e","fhe":"7f2fbfb9df06adf0709137d5467a48dbfd3396680754fca9048f1eddd83ced62","integration":"bd3eac7cc613ab60e5f949cd1bd5cd75da04b749513a672225100818fd3821ff"}'
+EXECUTORS='{"clear_shield_matrix":"unseen_loop.flagship.executor_clear_shield","shield_fhe_challenge":"unseen_loop.flagship.executor_shield_fhe","ope_validation":"unseen_loop.flagship.executor_ope","integration":"unseen_loop.flagship.executor_integration","timing":"unseen_loop.flagship.executor_timing","analysis":"unseen_loop.flagship.executor_analysis"}'
+uv run modal run modal_flagship.py::launch \
+  --config experiments/flagship-smoke.toml \
+  --run-id my-flagship-smoke \
+  --source-digest "$SOURCE_DIGEST" \
+  --image-digests-json "$IMAGE_DIGESTS" \
+  --executor-modules-json "$EXECUTORS"
+```
+
+The append-only registry stops the DAG after any stage that does not reach its preregistered terminal state. The finalizer rejects incomplete jobs, unexpected extra files, checksum mismatches, and a second finalization attempt.
+
+Build a browser publication only from completed canaries:
+
+```bash
+uv run modal run -w artifacts/flagship-publication.json \
+  modal_flagship_publication.py \
+  --publication-id my-flagship-publication \
+  --shield-canary-id my-shield-canary \
+  --exact-ope-canary-id my-exact-ope-canary \
+  --ckks-ope-canary-id my-ckks-ope-canary
+uv run modal volume get unseen-loop-flagship-evidence \
+  publications/my-flagship-publication/flagship-evidence.json \
+  site/data/flagship-evidence.json
+```
+
+Pin the downloaded publication byte SHA-256 in `data-flagship-sha256` on `index.html`, `control-room.html`, and `ope.html`. The browser removes the complete measurement surface if that digest, schema, certificate arithmetic, shield selection replay, OPE denominators/division, security receipt, or trust label fails.
+
 ## Artifact schemas
 
 The local experiment bundle is:

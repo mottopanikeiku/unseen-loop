@@ -46,6 +46,12 @@ GPU TRAINER                    CPU RESEARCH                     FHE DEPLOYMENT
 | `modal_studies.py` | bounded clear expanded-suite and four-cell factorial runners |
 | `modal_fhe_studies.py` | colocated degree-2 complete-domain challenge and four-context timing runners |
 | `modal_analysis.py` | single-container checksum verification, matched bootstrap analysis, evidence index, and publication tables |
+| `shield/` | warehouse dynamics, four-family certificates, stable client selection, exact Concrete margin circuit, and paired study |
+| `ope/` | fixed-shape private trajectory schemas, clear estimators, exact Concrete sufficient-statistic circuit, and CKKS approximation |
+| `flagship/` | frozen study manifest, requested/executed-action integration, executors, append-only registry, and analysis gates |
+| `modal_flagship.py` | Modal-only stage DAG with isolated clear, Concrete, CKKS, integration, timing, analysis, and finalization workers |
+| `modal_flagship_canary.py` | REAL-FHE shield, exact OPE, and approximate CKKS cryptographic canaries |
+| `modal_flagship_publication.py` | client-released aggregate publication builder over checksum-closed Modal canaries |
 
 ## Semantic invariant
 
@@ -95,6 +101,31 @@ four-context colocated FHE ┘
 | `modal-fhe-timing-003` | four workers, each with its own colocated context; 12 warmups + 64/64 measured successes | clustered latency/size distribution; no shared-context, service, throughput, or local/remote claim |
 
 The positive +83.619 [26.144, 145.954] occupancy-refinement-bundle return effect and the negative −108.461 [−288.649, 68.250] weighting point estimate arise from matched clear CartPole evidence. The Acrobot expanded loss, −231.896 [−388.536, −75.831], is retained. None of those return claims crosses into the FHE studies; none of the FHE studies supplies evidence of task efficacy or generalization.
+
+## Integrated flagship topology
+
+```mermaid
+flowchart LR
+    CS[Client state] -->|encrypt 6 integers| SH[Concrete shield circuit]
+    SH -->|5 × 2 × 4 encrypted margins| SC[Client certificate + stable selection]
+    SC --> ENV[Warehouse transition]
+    ENV --> LOG[Log requested action, propensity, executed action]
+    LOG -->|encrypt fixed-shape batch| OPE[Exact Concrete or CKKS OPE]
+    OPE -->|3H encrypted statistics| DIV[Client scale + divide + sum]
+    DIV --> PUB[Explicit aggregate disclosure]
+```
+
+The shield circuit and OPE circuits have separate semantics and receipts:
+
+| Track | Server-held public computation | Encrypted return | Client-only finish |
+|---|---|---|---|
+| CipherShield-RL | five fixed candidate actions, two polynomial dynamics steps, four signed margin families | logical `5 × 2 × 4` full margin tensor | conservative buffers, strict-positive certificates, stable action selection |
+| exact OPE canary | public target propensity polynomial, exact cumulative weights, integer hard clip | three encrypted `H`-vectors | fixed-point decode, per-horizon division, sum |
+| CKKS OPE | `POLYNOMIAL_APPROX_OPE_V1` target/weight polynomial with approximate soft clip | 24 ciphertext results for the declared H8 canary | decrypt released aggregates, divide, compare with distinct clear approximation |
+
+Concrete evaluates encrypted tensors but does not SIMD-pack them. TenSEAL CKKS slot-packs one logical real vector per ciphertext and rejects inputs beyond `poly_modulus_degree/2`; it does not silently chunk in the primitive transport layer. The CKKS context loader rejects secret-bearing server contexts. The coefficient-modulus sum is bounded by the Homomorphic Encryption Standard tc128 table, SEAL must report `parameters_set`, and the runtime security enum must equal tc128 when TenSEAL exposes that enum binding.
+
+The integration contract treats each shield configuration as part of the MDP. Logged OPE propensities belong to the **requested action** sampled from the frozen behavior policy. The separately logged executed action records the shield map. Using an executed-action propensity after the many-to-one map is prohibited.
 
 ## Modal topology
 

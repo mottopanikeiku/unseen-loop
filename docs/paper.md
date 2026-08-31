@@ -229,19 +229,73 @@ The positive causal claim is deliberately narrow: enabling the represented occup
 
 The nonlinear result proves exact agreement over the complete declared 25-point integer domain and 15 randomized canaries for this source-scoped circuit. It does not establish policy efficacy. The timing quantiles condition on all 64 measured requests having succeeded; confidence intervals use a 2,000-repetition hierarchical container/request bootstrap, and p99 is not reported. They describe four independent colocated research contexts—not a shared context, production endpoint, throughput result, or “real-time” service. In both studies the secret key stayed within its dedicated worker, but client and server were colocated there: these records are `REAL FHE` circuit/cost evidence, not local-client/remote-server secrecy evidence.
 
-## 8. Threat model
+## 8. Integrated flagship extension
+
+The flagship adds action-time safety control and retrospective policy evaluation without changing the confidentiality boundary: the evaluator applies a frozen public computation to encrypted client inputs and returns ciphertext outputs; the client decrypts and performs the final non-polynomial decision.
+
+### 8.1 Counterfactual safety shield
+
+The client state is $s_t=(x,y,v_x,v_y,b,\theta)$. For every public candidate $a\in\{\text{BRAKE},\text{EAST},\text{WEST},\text{NORTH},\text{SOUTH}\}$, the server applies the same public polynomial dynamics for horizons $h\in\{1,2\}$. It returns the logical encrypted tensor
+
+$$
+M(s_t)\in\mathbb{Z}^{5\times 2\times 4},
+$$
+
+where the final axis contains obstacle/boundary, squared-speed, squared-tilt, and battery margins. Strict positivity is the safety convention. Spatial values saturate at a public signed-integer limit after the minimum; because saturation is monotone and preserves sign, it does not change a strict-positive certificate. This bounds each binary minimum lookup to Concrete's supported combined input width.
+
+For candidate $a$, conservative client buffers $\delta_{h,f}\ge 0$ yield
+
+$$
+\underline m(a)=\min_{h,f}\left(M_{a,h,f}-\delta_{h,f}\right).
+$$
+
+The client retains the requested action if all buffered obligations are positive. Otherwise it selects the certified candidate maximizing $\underline m(a)$, with exact ties broken by the frozen action order. If no candidate is certified, the client executes and records an explicitly uncertified BRAKE fallback. There is no server-side argmin.
+
+The Concrete program evaluates encrypted tensors but does not claim SIMD packing. Its declared quantized state domain is $[-2,2]^6$, containing $5^6=15{,}625$ points, and its logical output remains the full $5\times2\times4$ margin tensor.
+
+### 8.2 Private horizon-aware OPE
+
+For trajectory $i$, requested logged action $A_{i,h}$, behavior propensity $\mu_{i,h}$, public target propensity $\pi_{i,h}$, reward $R_{i,h}$, and clip $\tau$, define cumulative and clipped importance weights
+
+$$
+\rho_{i,h}=\prod_{k=1}^{h}\frac{\pi_{i,k}(A_{i,k}\mid S_{i,k})}{\mu_{i,k}},
+\qquad
+\bar\rho_{i,h}=\min(\rho_{i,h},\tau).
+$$
+
+The encrypted server output is three additive horizon vectors,
+
+$$
+N_h=\sum_i \gamma^{h-1}\bar\rho_{i,h}R_{i,h},\qquad
+D_h=\sum_i \bar\rho_{i,h},\qquad
+C_h=\sum_i 1.
+$$
+
+The client decrypts and computes $\widehat V=\sum_h N_h/D_h$ only when every required denominator is positive. Counts make batch accounting explicit. Trajectory-percentile bootstrap intervals remain clear client-side evidence because aggregate $3H$ statistics do not support trajectory resampling.
+
+The exact Concrete backend uses integer hard clipping and three encrypted $H$-vectors. Its executable proof shape is deliberately bounded to $(N=1,H=2,D=1)$ after the larger $(4,4,6)$ graph exceeded a 32 GiB Modal worker; it is a semantics/transport proof, not a scale result. The TenSEAL backend instead names `POLYNOMIAL_APPROX_OPE_V1`, uses slot-packed CKKS and polynomial soft clipping, and reports a separate approximation receipt. High-level TenSEAL provides no exact encrypted comparison/min primitive, so the CKKS path never claims exact hard-clip semantics.
+
+### 8.3 Shield/OPE integration
+
+The shield changes the transition kernel and is therefore part of the evaluated MDP. The behavior policy logs the sampled **requested action** and its propensity before shielding, while `executed_action` records the environment action after the many-to-one shield map. OPE evaluates the same frozen requested-action target separately in the shield-off, one-step, and two-step MDPs. Substituting executed-action propensity after shielding is prohibited because multiple requested actions can map to one executed action.
+
+The integration experiment compares OPE estimates against paired direct online target-policy truth within each shield-defined MDP. Return effects and unsafe-event effects are noncompensating outcomes; encrypted execution evidence does not substitute for statistical validity, and statistical evidence does not substitute for privacy evidence.
+
+## 9. Threat model
 
 The evaluator is honest-but-curious, runs a pinned data-independent circuit, and may observe policy/version, tensor shapes, parameter set, ciphertext and evaluation-key sizes, request timing/volume/status, and linkable evaluation-key identity. Assuming secure scheme parameters, fresh client randomness, uncompromised endpoints, and no decryption oracle, FHE computationally hides observation and encrypted-score values.
 
 FHE does not provide result integrity. A malicious evaluator can return any ciphertext or valid but wrong score. Artifact hashes, HMAC envelopes, TLS, and signatures can authenticate a transcript; none proves exact FHE evaluation. The system also does not provide model confidentiality against adaptive query extraction, endpoint protection, availability, side-channel resistance, or secrecy of an action visible through environment effects.
 
-## 9. Related work and novelty boundary
+## 10. Related work and novelty boundary
 
 Suh and Tanaka study encrypted RL and comparison-free relative-entropy-regularized synthesis [1]. Encrypted RERL adds bootstrapping and error analysis for encrypted policy synthesis [2]. Nguyen et al. report homomorphic-encryption-compatible SAC training [3]. AutoFHE co-optimizes polynomial degree and bootstrapping placement for neural inference [4]. VIPER distills neural policies into compact verifiable trees [5]. Concrete already exposes quantization, simulation, compilation, and circuit error controls [6].
 
 Accordingly, Unseen Loop does not claim novelty in “FHE + RL,” policy distillation, bit-width search, or the margin inequality alone. Its research unit is the integration of student-induced closed-loop evaluation, deployed-circuit coefficient bounds, counterexample feedback, exact discrete-domain enumeration, and real client/server ciphertext traces in one reproducible artifact.
 
-## 10. Limitations and remaining preregistration
+The flagship likewise does not claim the first predictive safety shield, encrypted control system, private OPE estimator, or packed homomorphic workload. Predictive multi-action shielding and encrypted control are prior problem classes; private policy evaluation inherits the established importance-sampling and secure-computation literature. The narrower artifact contribution is the shared clear/encrypted semantics for a full five-action/two-horizon/four-family margin tensor, stable client-only selection, an additive `3H` private-OPE contract with client-only division, a separately named CKKS approximation, and a paired experiment that treats each shield as part of the MDP.
+
+## 11. Limitations and remaining preregistration
 
 1. The expanded efficacy evidence comprises five checkpoints per environment, eight policy candidates per checkpoint, and 50 selection episodes per candidate: 120 candidates and 6,000 selection rows in total. It does not execute the preregistered 120 candidates per checkpoint × 100 selection episodes per candidate: 1,800 candidates and 180,000 selection rows across 15 runs.
 2. The expanded and factorial studies execute in clear. Their return, agreement, and certificate measurements provide no privacy or confidentiality evidence.
@@ -251,6 +305,10 @@ Accordingly, Unseen Loop does not claim novelty in “FHE + RL,” policy distil
 6. The nonlinear and timing studies colocate client and server within each Modal worker. They exercise real ciphertext computation and cost, but not physical local-client/remote-server secrecy.
 7. The four-context timing study completes the specified 12-warmup/64-measurement distribution. It does not measure a shared-context service, cold production traffic, throughput, peak RSS, or network separation.
 8. Client-side argmax reveals returned scores to the client. Remote correctness remains trusted; authentication is not verifiable computation.
+9. CipherShield certifies only the frozen one- or two-step public model. Model mismatch, sensor error beyond the declared buffer, later-horizon hazards, and malicious computation remain outside its guarantee.
+10. Exact Concrete OPE is an `(N=1,H=2,D=1)` bounded semantics/transport canary. It is not an empirical-scale or latency result; the former `(4,4,6)` canary exceeded a 32 GiB worker.
+11. CKKS OPE uses approximate soft clipping rather than exact hard clipping. Its H8 canary requires a degree-16384 context and large public evaluation material; it is not a production bandwidth or service result.
+12. The flagship smoke and full manifests are separate. A completed canary publication does not by itself discharge the full clear shield matrix, OPE coverage/power cells, shield/OPE truth comparison, REAL-FHE challenge denominators, concurrency timing, or noncompensating release gates.
 
 The executed expanded study is therefore distinct from completion of [`../experiments/release.toml`](../experiments/release.toml). Still outstanding are the full 120-candidates-per-checkpoint × 100-selection-episodes-per-candidate search (1,800 candidates / 180,000 selection rows), the preregistered 64-row physically remote client/server challenge, and the remaining stress/range/tie and release-wide gate matrix. A clear release-suite run provides no privacy evidence, and `modal_app.py::research --full` scales only one environment/checkpoint path. Exact executed-study, download, ledger-verification, and analysis commands are in [`reproduction.md`](reproduction.md).
 

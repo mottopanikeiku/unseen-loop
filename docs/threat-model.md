@@ -61,6 +61,20 @@ A client can choose quantized inputs and observe complete decrypted score vector
 
 FHE does not protect plaintext already resident in client memory, secret keys stolen from the client, policy weights read from a compromised evaluator host, unsafe native library behavior, speculative-execution leakage, or crash dumps containing secrets.
 
+## Flagship protocol assets and disclosure
+
+CipherShield and private OPE reuse the honest-but-curious boundary but protect different plaintexts:
+
+| Protocol | Client-private during evaluation | Evaluator view | Optional client release |
+|---|---|---|---|
+| CipherShield-RL | six-feature physical state, secret key, decrypted `5 × 2 × 4` margins, final stable selection | public dynamics/limits/candidates, tensor shape, evaluation material, ciphertext sizes/digests, timing | redacted decision receipt or explicitly labeled derived replay geometry |
+| exact OPE | logged states, requested actions, rewards, behavior propensities, secret key, decrypted `3H` integers | public batch shape, target propensity polynomial, clipping/scale constants, ciphertext metadata | per-horizon integer/decoded aggregates and client-derived estimate |
+| CKKS OPE | same logged row fields and secret key | public `POLYNOMIAL_APPROX_OPE_V1` circuit, CKKS parameters, slot count, ciphertext metadata | approximate per-horizon aggregates plus clear comparison/error evidence |
+
+An explicit release changes confidentiality: `CLIENT_RELEASED_DERIVED_GEOMETRY` makes the plotted positions and candidate tubes public after evaluation; `CLIENT_RELEASED_STATISTICS` makes the named decrypted sufficient statistics public. Neither disclosure implies that the evaluator decrypted them.
+
+The shield server does not select an action. The OPE server does not divide sufficient statistics. FHE does not hide the public candidate set, dynamics, target model, batch shape, circuit topology, parameter set, or transport sizes. CKKS additionally exposes approximate-arithmetic parameters and carries approximation error; it is never substituted for the exact hard-clip semantics without its distinct identifier.
+
 ## Guarantee matrix
 
 | Property | Status | Conditions / leakage |
