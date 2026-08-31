@@ -41,7 +41,7 @@ MARGIN_SHAPE = (5, 2, 4)
 OUTPUT_ORDER = ("action", "horizon", "family")
 FAMILY_ORDER = ("obstacle", "speed", "tilt", "battery")
 DOMAIN_POINTS = (2 * QMAX + 1) ** STATE_SHAPE[0]
-SCHEMA_VERSION = "unseen-loop/shield-concrete-v4"
+SCHEMA_VERSION = "unseen-loop/shield-concrete-v5"
 SPATIAL_MARGIN_CLIP = 127
 MONOMIAL_ENCODING_OFFSET = 20
 
@@ -495,11 +495,9 @@ def _output_encoding_offset(
     maximum: int | None = None
     for quantized in exhaustive_inputset():
         monomials = _integer_monomials(quantized)
-        spatial = np.clip(
-            np.min(spatial_coefficients @ monomials, axis=2),
-            -spatial_margin_clip,
-            spatial_margin_clip,
-        )
+        spatial = np.min(spatial_coefficients @ monomials, axis=2)
+        if spatial_coefficients.shape[2] > 1:
+            spatial = np.clip(spatial, -spatial_margin_clip, spatial_margin_clip)
         margins = np.concatenate(
             (spatial[..., None], family_coefficients @ monomials),
             axis=2,
@@ -521,21 +519,24 @@ def clear_margin_tensor(
     *,
     program: IntegerMarginProgram | None = None,
 ) -> npt.NDArray[np.int64]:
-    """Evaluate the exact saturated integer oracle returned by the compiled circuit.
+    """Evaluate the exact integer oracle returned by the compiled circuit.
 
-    Spatial margins saturate at ``±127`` after the minimum.  Saturation preserves
-    every strict-positive safety decision while bounding each binary minimum LUT
-    to Concrete's supported 16-bit combined input.
+    The complete discrete domain prunes any spatial constraint that never attains
+    the minimum.  When several constraints remain, their binary minimum inputs
+    saturate at ``±127`` without changing a strict-positive safety decision.
+    A single proved-active constraint remains exact and needs no lookup table.
     """
 
     integer_program = program or integer_margin_program(spec)
     monomials = _integer_monomials(quantized)
     spatial_values = integer_program.spatial_coefficients @ monomials
-    spatial_minimum = np.clip(
-        np.min(spatial_values, axis=2),
-        -integer_program.spatial_margin_clip,
-        integer_program.spatial_margin_clip,
-    )
+    spatial_minimum = np.min(spatial_values, axis=2)
+    if integer_program.spatial_constraints > 1:
+        spatial_minimum = np.clip(
+            spatial_minimum,
+            -integer_program.spatial_margin_clip,
+            integer_program.spatial_margin_clip,
+        )
     other_families = integer_program.family_coefficients @ monomials
     return np.asarray(
         np.concatenate((spatial_minimum[..., None], other_families), axis=2),
@@ -582,10 +583,12 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
         for action in range(5):
             for horizon in range(2):
                 candidates = spatial_coefficients[action, horizon] @ monomials
-                spatial_minimum = saturate_spatial(candidates[0])
-                for index in range(1, program.spatial_constraints):
-                    candidate = saturate_spatial(candidates[index])
-                    spatial_minimum = minimum(spatial_minimum, candidate)
+                spatial_minimum = candidates[0]
+                if program.spatial_constraints > 1:
+                    spatial_minimum = saturate_spatial(spatial_minimum)
+                    for index in range(1, program.spatial_constraints):
+                        candidate = saturate_spatial(candidates[index])
+                        spatial_minimum = minimum(spatial_minimum, candidate)
                 output.append(spatial_minimum)
                 family_values = family_coefficients[action, horizon] @ monomials
                 output.extend(family_values[index] for index in range(3))

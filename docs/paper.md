@@ -241,7 +241,7 @@ $$
 M(s_t)\in\mathbb{Z}^{5\times 2\times 4},
 $$
 
-where the final axis contains obstacle/boundary, squared-speed, squared-tilt, and battery margins. Strict positivity is the safety convention. Spatial values saturate at a public signed-integer limit after the minimum; because saturation is monotone and preserves sign, it does not change a strict-positive certificate. This bounds each binary minimum lookup to Concrete's supported combined input width.
+where the final axis contains obstacle/boundary, squared-speed, squared-tilt, and battery margins. Strict positivity is the safety convention. Complete discrete-domain analysis removes a spatial candidate only if it never attains the minimum. When several candidates remain, values saturate at a public signed-integer limit before each binary minimum lookup; monotonic sign-preserving saturation leaves strict-positive certificates unchanged. When one proved-active constraint remains, its exact margin needs no lookup or saturation.
 
 For candidate $a$, conservative client buffers $\delta_{h,f}\ge 0$ yield
 

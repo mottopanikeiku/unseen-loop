@@ -5,7 +5,7 @@
 ### Integrated flagship
 
 - Added CipherShield-RL: a private six-feature warehouse state, five public candidate actions, two polynomial counterfactual horizons, four strict-positive safety-margin families, conservative client buffers, and stable client-only selection.
-- Added the exact Concrete shield circuit over the complete `qmax=2` domain, with a logical `5 × 2 × 4` output tensor, sign-preserving spatial saturation, uniform tensor precision encoding, split client/server artifacts, secret-marker audit, and sanitized REAL-FHE calls.
+- Added the exact Concrete shield circuit over the complete `qmax=2` domain, with a logical `5 × 2 × 4` output tensor, domain-proved spatial pruning, conditional sign-preserving minimum saturation, uniform tensor precision encoding, split client/server artifacts, secret-marker audit, and sanitized REAL-FHE calls.
 - Added fixed-shape private trajectory schemas and ordinary IS, PDIS, clipped PDIS, WPDIS, control-variate sufficient statistics, effective-sample-size diagnostics, and deterministic trajectory bootstrap.
 - Added exact Concrete OPE with integer hard clipping and three encrypted horizon vectors, plus slot-packed TenSEAL CKKS OPE under the distinct `POLYNOMIAL_APPROX_OPE_V1` soft-clip semantics.
 - Added tc128 coefficient-modulus budget enforcement, SEAL parameter-validity inspection, public/secret context separation, and explicit CKKS approximation/transport receipts.

@@ -10,7 +10,7 @@ Unseen Loop is a reproducible research system for **private sequential decision 
 
 ### CipherShield-RL
 
-For one encrypted state in frozen order `(x, y, vx, vy, battery, tilt)`, the server evaluates every public action `(BRAKE, EAST, WEST, NORTH, SOUTH)` through two public polynomial dynamics steps. The logical output is a complete `5 × 2 × 4` tensor of signed obstacle, speed, tilt, and battery margins. Spatial margins use sign-preserving saturation solely to bound Concrete lookup width; strict-positive safety decisions are unchanged. The server does not select an action. After decryption, the client:
+For one encrypted state in frozen order `(x, y, vx, vy, battery, tilt)`, the server evaluates every public action `(BRAKE, EAST, WEST, NORTH, SOUTH)` through two public polynomial dynamics steps. The logical output is a complete `5 × 2 × 4` tensor of signed obstacle, speed, tilt, and battery margins. Complete-domain analysis removes spatial constraints that never attain the minimum. If several remain, sign-preserving saturation bounds Concrete lookup width without changing strict-positive safety decisions. The server does not select an action. After decryption, the client:
 
 1. retains the requested action when its eight obligations are strictly positive;
 2. otherwise selects the certified candidate with the greatest minimum buffered margin;
