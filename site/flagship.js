@@ -72,6 +72,8 @@ function validateShield(shield) {
   digest(canary.source_sha256, "shield canary source");
   object(canary.receipt, "shield receipt");
   if (canary.receipt.security_level !== 128 || canary.receipt.domain_points !== 15625) throw new Error("shield receipt security or domain is incomplete");
+  const realCall = object(object(canary.real_call, "shield real canary").call, "shield real call");
+  if (realCall.output_matches_clear !== true || realCall.server_secret_key_marker_present !== false) throw new Error("shield REAL FHE call failed exactness or secret-marker evidence");
   const run = object(shield.run, "shield.run");
   if (run.mode !== "CLEAR_REFERENCE" || run.disclosure !== "CLIENT_RELEASED_DERIVED_GEOMETRY") throw new Error("shield replay trust label is invalid");
   const decisions = array(run.decisions, "shield decisions");

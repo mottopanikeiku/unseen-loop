@@ -136,6 +136,13 @@ def _shield_publication(canary: dict[str, Any], canary_digest: str) -> dict[str,
     compile_receipt = canary.get("receipt")
     if not isinstance(compile_receipt, dict):
         raise RuntimeError("shield canary omitted its compilation receipt")
+    real = canary.get("real")
+    if (
+        not isinstance(real, dict)
+        or not isinstance(real.get("call"), dict)
+        or real["call"].get("output_matches_clear") is not True
+    ):
+        raise RuntimeError("shield canary REAL FHE call did not match the exact clear tensor")
     return {
         "schema_version": "unseen-loop/shield-publication-v1",
         "state_features": ["x", "y", "vx", "vy", "battery", "tilt"],

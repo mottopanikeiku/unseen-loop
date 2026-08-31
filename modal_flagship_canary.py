@@ -79,6 +79,8 @@ def shield_canary(study_id: str) -> str:
             ShieldState(0.0, 0.0, 0.0, 0.0, 0.5, 0.0),
             Action.BRAKE,
         )
+        if not real.call.output_matches_clear:
+            raise RuntimeError("shield REAL FHE output disagrees with the exact clear tensor")
         print("shield-canary: REAL FHE roundtrip complete", flush=True)
         payload = {
             "schema_version": "unseen-loop/modal-shield-canary-v1",
