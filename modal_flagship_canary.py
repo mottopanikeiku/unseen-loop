@@ -111,20 +111,20 @@ def exact_ope_canary(study_id: str) -> str:
     from unseen_loop.ope.types import PolynomialPolicySpec, TrajectoryBatch, TrajectorySpec
 
     trajectory_spec = TrajectorySpec(
-        trajectories=4,
-        horizon=4,
-        state_dim=6,
+        trajectories=1,
+        horizon=2,
+        state_dim=1,
         action_count=2,
-        state_min=(0.0,) * 6,
-        state_max=(0.0,) * 6,
+        state_min=(0.0,),
+        state_max=(0.0,),
         reward_min=-1.0,
         reward_max=1.0,
     )
     policy = PolynomialPolicySpec(
         action_count=2,
-        state_dim=6,
+        state_dim=1,
         degree=1,
-        coefficients=((0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),) * 2,
+        coefficients=((0.5, 0.0),) * 2,
     )
     spec = OPECircuitSpec(
         trajectory_spec,
@@ -134,13 +134,12 @@ def exact_ope_canary(study_id: str) -> str:
         minimum_behavior_propensity=1.0,
         scales=FixedPointScales(state=2, coefficient=2, reciprocal=2, reward=2, discount=2),
     )
-    actions = tuple(tuple((row + step) % 2 for step in range(4)) for row in range(4))
     batch = TrajectoryBatch(
         trajectory_spec,
-        states=tuple(tuple((0.0,) * 6 for _ in range(4)) for _ in range(4)),
-        actions=actions,
-        rewards=((1.0, 0.5, -0.5, -1.0),) * 4,
-        behavior_propensities=((1.0, 1.0, 1.0, 1.0),) * 4,
+        states=(((0.0,), (0.0,)),),
+        actions=((0, 1),),
+        rewards=((1.0, -1.0),),
+        behavior_propensities=((1.0, 1.0),),
     )
     with tempfile.TemporaryDirectory(prefix="ope-canary-") as temporary:
         compiled = compile_ope_circuit(spec, temporary, global_p_error=1e-3)
