@@ -275,6 +275,7 @@ def _call_receipt(
     evaluation_keys: bytes,
     request: bytes,
     response: bytes,
+    output_matches_clear: bool,
 ) -> ShieldCallReceipt:
     return ShieldCallReceipt(
         mode=ShieldFHEMode.REAL,
@@ -291,7 +292,7 @@ def _call_receipt(
         evaluation_key_sha256=_sha256(evaluation_keys),
         request_sha256=_sha256(request),
         response_sha256=_sha256(response),
-        output_matches_clear=True,
+        output_matches_clear=output_matches_clear,
         server_secret_key_marker_present=False,
     )
 
@@ -371,32 +372,76 @@ def execute_flagship_job(
     cache = _ensure_compiled_cache(root, spec, challenge)
 
     started = time.perf_counter_ns()
-    client = ShieldFHEClient.from_path(cache.client_path, spec)
-    server = ShieldFHEServer(cache.server_path)
-    keygen_ns, evaluation_keys = client.generate_keys()
-    phase = time.perf_counter_ns()
-    request = client.encrypt(quantized)
-    encrypt_ns = time.perf_counter_ns() - phase
-    phase = time.perf_counter_ns()
-    response = server.evaluate(request, evaluation_keys)
-    evaluate_ns = time.perf_counter_ns() - phase
-    phase = time.perf_counter_ns()
-    decrypted = client.decrypt_margin_tensor(response)
-    decrypt_ns = time.perf_counter_ns() - phase
+    try:
+        client = ShieldFHEClient.from_path(cache.client_path, spec)
+        server = ShieldFHEServer(cache.server_path)
+        keygen_ns, evaluation_keys = client.generate_keys()
+        phase = time.perf_counter_ns()
+        request = client.encrypt(quantized)
+        encrypt_ns = time.perf_counter_ns() - phase
+        phase = time.perf_counter_ns()
+        response = server.evaluate(request, evaluation_keys)
+        evaluate_ns = time.perf_counter_ns() - phase
+        phase = time.perf_counter_ns()
+        decrypted = client.decrypt_margin_tensor(response)
+        decrypt_ns = time.perf_counter_ns() - phase
+    except (RuntimeError, TypeError, ValueError) as error:
+        pair_id = _sha256(_canonical_bytes({"category": category, "state": state_index}))
+        failure_artifact = {
+            "schema_version": ARTIFACT_SCHEMA_VERSION,
+            "job_id": job_id,
+            "stage": _STAGE,
+            "category": category,
+            "compile": cache.receipt,
+            "execution": {
+                "backend": "Concrete-Python TFHE",
+                "mode": ShieldFHEMode.REAL.value,
+                "privacy_evidence": False,
+                "privacy_claim": "none",
+                "trust_scope": (
+                    "colocated client and server in one Modal worker; "
+                    "no remote-server secrecy claim"
+                ),
+                "server_selected_action": False,
+                "client_selected_action": False,
+            },
+            "accounting": {
+                "valid_calls": 1,
+                "call_attempts": 1,
+                "call_successes": 0,
+                "call_failures": 1,
+                "decoded_margins": 0,
+                "margin_matches": 0,
+                "margin_mismatches": 0,
+                "action_matches": 0,
+                "action_mismatches": 0,
+                "invalid_domain_rejections": 0,
+            },
+            "call": None,
+            "failure": {"code": f"shield-fhe.{type(error).__name__.lower()}"},
+            "canary": (
+                {
+                    "pair_id": pair_id,
+                    "encryption_index": encryption_index,
+                    "ciphertext_sha256": None,
+                }
+                if category == "canary"
+                else None
+            ),
+        }
+        return _persist_success(root, job_id, failure_artifact)
 
     clear = clear_margin_tensor(spec, quantized)
     if decrypted.shape != MARGIN_SHAPE or clear.shape != MARGIN_SHAPE:
         raise RuntimeError("shield margin accounting shape mismatch")
     matches = int(np.count_nonzero(decrypted == clear))
     output_count = int(np.prod(MARGIN_SHAPE))
-    if matches != output_count:
-        raise RuntimeError("REAL FHE shield margins disagree with the exact clear circuit")
+    output_exact = matches == output_count
     encrypted_selection = client.select_action(
         decrypted, requested_action, error_buffer=ErrorBuffer()
     )
     clear_selection = client.select_action(clear, requested_action, error_buffer=ErrorBuffer())
-    if encrypted_selection.action != clear_selection.action:
-        raise RuntimeError("REAL FHE shield client action disagrees with clear selection")
+    action_exact = encrypted_selection.action == clear_selection.action
 
     call = _call_receipt(
         started=started,
@@ -407,6 +452,7 @@ def execute_flagship_job(
         evaluation_keys=evaluation_keys,
         request=request,
         response=response,
+        output_matches_clear=output_exact,
     )
     canary: dict[str, object] | None = None
     if category == "canary":
@@ -435,14 +481,18 @@ def execute_flagship_job(
         },
         "accounting": {
             "valid_calls": 1,
+            "call_attempts": 1,
+            "call_successes": 1,
+            "call_failures": 0,
             "decoded_margins": output_count,
             "margin_matches": matches,
             "margin_mismatches": output_count - matches,
-            "action_matches": 1,
-            "action_mismatches": 0,
+            "action_matches": int(action_exact),
+            "action_mismatches": int(not action_exact),
             "invalid_domain_rejections": 0,
         },
         "call": call.to_dict(),
+        "failure": None,
         "canary": canary,
     }
     return _persist_success(root, job_id, artifact)

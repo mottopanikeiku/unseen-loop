@@ -161,6 +161,9 @@ def test_valid_canary_pair_reuses_compiled_bundle_and_writes_sanitized_receipts(
     second_receipt = json.loads(second_bytes)
     assert first_receipt["accounting"] == {
         "valid_calls": 1,
+        "call_attempts": 1,
+        "call_successes": 1,
+        "call_failures": 0,
         "decoded_margins": 40,
         "margin_matches": 40,
         "margin_mismatches": 0,
@@ -181,6 +184,45 @@ def test_valid_canary_pair_reuses_compiled_bundle_and_writes_sanitized_receipts(
         assert "quantized" not in receipt
         assert "margin_tensor" not in receipt
         assert receipt["call"]["output_matches_clear"] is True
+
+
+def test_runtime_failure_is_retained_without_replacement(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    _install_fake_bundle(monkeypatch)
+
+    class FailingServer:
+        def __init__(self, path: str | Path) -> None:
+            assert Path(path).name == "shield-server.zip"
+
+        def evaluate(self, request: bytes, evaluation_keys: bytes) -> bytes:
+            del request, evaluation_keys
+            raise RuntimeError("private backend diagnostic")
+
+    monkeypatch.setattr(executor, "ShieldFHEServer", FailingServer)
+    result = executor.execute_flagship_job(
+        _manifest(),
+        _job("job-retained-failure", category="occupancy"),
+        tmp_path,
+    )
+
+    assert result["status"] == "succeeded"
+    artifact = json.loads((tmp_path / str(result["artifact_path"])).read_bytes())
+    assert artifact["accounting"] == {
+        "valid_calls": 1,
+        "call_attempts": 1,
+        "call_successes": 0,
+        "call_failures": 1,
+        "decoded_margins": 0,
+        "margin_matches": 0,
+        "margin_mismatches": 0,
+        "action_matches": 0,
+        "action_mismatches": 0,
+        "invalid_domain_rejections": 0,
+    }
+    assert artifact["call"] is None
+    assert artifact["failure"] == {"code": "shield-fhe.runtimeerror"}
+    assert "private backend diagnostic" not in json.dumps(artifact)
 
 
 def test_invalid_domain_job_rejects_before_cache_or_encryption(
