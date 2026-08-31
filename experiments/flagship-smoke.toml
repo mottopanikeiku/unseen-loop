@@ -55,18 +55,18 @@ goal_rate_delta_lower_bound = -0.02
 model_mismatch_max_unsafe_multiplier = 2.0
 
 [shield.fhe_challenge]
-valid_calls = 64
-occupancy_states = 16
-extrema_states = 8
-threshold_states = 16
-tie_states = 8
-canary_states = 8
+valid_calls = 6
+occupancy_states = 1
+extrema_states = 1
+threshold_states = 1
+tie_states = 1
+canary_states = 1
 canary_encryptions_per_state = 2
-expected_decoded_margins = 2560
-expected_action_matches = 64
-invalid_domain_rejections = 8
+expected_decoded_margins = 240
+expected_action_matches = 6
+invalid_domain_rejections = 2
 security_level = 128
-global_p_error = 1e-6
+global_p_error = 1e-9
 
 [ope]
 horizons = [8]

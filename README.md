@@ -117,7 +117,7 @@ uv run modal run -w artifacts/modal-evidence.json \
   modal_app.py::research --run-id my-modal-run
 
 # Flagship plan inspection; emits exact stage IDs and denominators, no empirical work.
-uv run modal run modal_flagship.py::inspect-plan \
+uv run modal run modal_flagship.py::inspect_plan \
   --config experiments/flagship-smoke.toml
 
 # Modal-only REAL-FHE canaries: complete-domain CipherShield, exact OPE, and CKKS OPE.

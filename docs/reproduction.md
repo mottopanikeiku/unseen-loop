@@ -212,7 +212,7 @@ All empirical shield, OPE, integration, timing, analysis, and publication work r
 Inspect the immutable job plan:
 
 ```bash
-uv run modal run modal_flagship.py::inspect-plan \
+uv run modal run modal_flagship.py::inspect_plan \
   --config experiments/flagship-smoke.toml
 ```
 
