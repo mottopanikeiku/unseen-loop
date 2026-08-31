@@ -20,6 +20,13 @@ from typing import Any, Self
 import numpy as np
 import numpy.typing as npt
 
+_TC128_COEFF_MODULUS_MAX_BITS = {
+    4096: 109,
+    8192: 218,
+    16384: 438,
+    32768: 881,
+}
+
 
 class CKKSUnavailableError(RuntimeError):
     """Raised when encrypted execution is requested without TenSEAL installed."""
@@ -42,6 +49,14 @@ class CKKSParameters:
             raise ValueError("coeff_mod_bit_sizes must contain at least three positive values")
         if not math.isfinite(self.global_scale) or self.global_scale <= 1.0:
             raise ValueError("global_scale must be finite and greater than one")
+        modulus_limit = _TC128_COEFF_MODULUS_MAX_BITS.get(self.poly_modulus_degree)
+        if modulus_limit is None:
+            raise ValueError("poly_modulus_degree is outside the supported tc128 table")
+        if sum(self.coeff_mod_bit_sizes) > modulus_limit:
+            raise ValueError(
+                "coefficient modulus exceeds the Homomorphic Encryption Standard "
+                f"tc128 limit of {modulus_limit} bits"
+            )
 
     @property
     def slot_capacity(self) -> int:
@@ -71,13 +86,14 @@ class CKKSContextReceipt:
         "relinearization, and Galois key material"
     )
     security_claim: str = (
-        "Microsoft SEAL default security validation was inspected at runtime and "
-        "effective sec_level must equal tc128"
+        "SEAL context parameters_set is inspected at runtime and the coefficient "
+        "modulus is bounded by the Homomorphic Encryption Standard tc128 table; "
+        "when the TenSEAL enum binding is available it must also report tc128"
     )
     packing_scope: str = (
         "one logical real vector per ciphertext; inputs above degree/2 slots are rejected"
     )
-    schema_version: str = "unseen-loop/ckks-context-receipt-v1"
+    schema_version: str = "unseen-loop/ckks-context-receipt-v2"
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), sort_keys=True, indent=2)
@@ -397,7 +413,7 @@ def generate_contexts(parameters: CKKSParameters | None = None) -> CKKSContextAr
         poly_modulus_degree=parameters.poly_modulus_degree,
         coeff_mod_bit_sizes=list(parameters.coeff_mod_bit_sizes),
     )
-    effective_security_level = _require_tc128_security(context, tenseal)
+    effective_security_level = _require_tc128_security(context, tenseal, parameters)
     context.global_scale = parameters.global_scale
     context.auto_relin = True
     context.auto_rescale = True
@@ -451,17 +467,30 @@ def _import_tenseal() -> Any:
         ) from error
 
 
-def _require_tc128_security(context: Any, tenseal: Any) -> str:
-    """Fail closed unless the effective Microsoft SEAL context reports tc128."""
+def _require_tc128_security(context: Any, tenseal: Any, parameters: CKKSParameters) -> str:
+    """Fail closed unless SEAL accepts a context within the tc128 modulus budget."""
 
+    modulus_limit = _TC128_COEFF_MODULUS_MAX_BITS[parameters.poly_modulus_degree]
+    if sum(parameters.coeff_mod_bit_sizes) > modulus_limit:
+        raise RuntimeError("CKKS coefficient modulus exceeds the tc128 security budget")
     try:
         wrapped = context.seal_context()
         seal_context = getattr(wrapped, "data", wrapped)
         qualifiers = seal_context.key_context_data().qualifiers()
+        parameters_set = bool(qualifiers.parameters_set)
+    except (AttributeError, TypeError) as error:
+        raise RuntimeError("unable to inspect CKKS parameter validity") from error
+    if not parameters_set:
+        raise RuntimeError("Microsoft SEAL rejected the CKKS encryption parameters")
+
+    try:
         observed = qualifiers.sec_level
         expected = tenseal.sealapi.SEC_LEVEL_TYPE.TC128
-    except (AttributeError, TypeError) as error:
-        raise RuntimeError("unable to inspect the effective CKKS security level") from error
+    except (AttributeError, TypeError):
+        # TenSEAL 0.3.17 omits the pybind11 registration needed to convert
+        # seal::sec_level_type.  Its context constructor uses SEAL's tc128
+        # default; parameters_set plus the standard modulus table fail closed.
+        return "tc128"
     if observed != expected:
         raise RuntimeError(f"CKKS context security is {observed!s}, expected tc128")
     return "tc128"

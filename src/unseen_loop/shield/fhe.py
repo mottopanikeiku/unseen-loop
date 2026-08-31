@@ -507,7 +507,8 @@ def _compiler(spec: ShieldIntegerSpec, program: IntegerMarginProgram) -> Any:
                 output.append(spatial_minimum)
                 family_values = family_coefficients[action, horizon] @ monomials
                 output.extend(family_values[index] for index in range(3))
-        return fhe.array(output).reshape(MARGIN_SHAPE)
+        normalized = [fhe.hint(value, bit_width=16) for value in output]
+        return fhe.array(normalized).reshape(MARGIN_SHAPE)
 
     return fhe.compiler({"x": "encrypted"})(kernel)
 

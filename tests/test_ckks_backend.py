@@ -58,6 +58,15 @@ def test_server_rejects_any_context_reporting_a_secret_key() -> None:
         CKKSServer(object(), PrivateContext(), CKKSParameters())
 
 
+def test_parameters_reject_coeff_modulus_above_tc128_budget() -> None:
+    with pytest.raises(ValueError, match="tc128 limit of 109 bits"):
+        CKKSParameters(
+            poly_modulus_degree=4096,
+            coeff_mod_bit_sizes=(40, 30, 40),
+            global_scale=float(2**30),
+        )
+
+
 def test_client_rejects_tenseal_multi_ciphertext_chunking() -> None:
     class PrivateContext:
         @staticmethod
