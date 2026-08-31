@@ -69,13 +69,17 @@ def shield_canary(study_id: str) -> str:
     from unseen_loop.shield.types import Action, ShieldState
 
     with tempfile.TemporaryDirectory(prefix="shield-canary-") as temporary:
+        print("shield-canary: compiling", flush=True)
         compiled = compile_shield(ShieldIntegerSpec(), temporary, global_p_error=1e-6)
+        print("shield-canary: compile complete", flush=True)
         simulation = exhaustive_simulation_conformance(compiled)
+        print("shield-canary: complete-domain simulation complete", flush=True)
         real = real_fhe_canary(
             compiled,
             ShieldState(0.0, 0.0, 0.0, 0.0, 0.5, 0.0),
             Action.BRAKE,
         )
+        print("shield-canary: REAL FHE roundtrip complete", flush=True)
         payload = {
             "schema_version": "unseen-loop/modal-shield-canary-v1",
             "study_id": study_id,
