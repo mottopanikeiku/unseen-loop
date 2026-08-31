@@ -308,11 +308,21 @@ def evidence_finalizer(run_id: str, manifest_digest: str) -> str:
     if incomplete_upstream:
         raise RegistryError("evidence finalizer rejected incomplete upstream jobs")
     registry.started(finalizer_job.job_id)
+    supporting_artifacts = (
+        "shared/shield-fhe/shield-server.zip",
+        "shared/shield-fhe/shield-client-specs.bin",
+        "shared/shield-fhe/shield-receipt.json",
+    )
+    cache_lock = run_root / "shared" / "shield-fhe.lock"
+    if cache_lock.is_symlink():
+        raise RegistryError("shield cache lock cannot be a symlink")
+    cache_lock.unlink(missing_ok=True)
     receipt_path = run_root / "evidence-finalizer-receipt.json"
     receipt = {
         "manifest_digest": manifest_digest,
         "registry_id": registry.snapshot().registry_id,
         "planned_jobs": len(registry.snapshot().plan),
+        "supporting_artifacts": list(supporting_artifacts),
     }
     receipt_path.write_text(json.dumps(receipt, sort_keys=True, separators=(",", ":")) + "\n")
     registry.succeeded(
@@ -320,7 +330,12 @@ def evidence_finalizer(run_id: str, manifest_digest: str) -> str:
         artifact_path=receipt_path.relative_to(run_root).as_posix(),
         artifact_digest=hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
     )
-    index = finalize_evidence(registry, evidence_root=run_root, reject_extra_files=True)
+    index = finalize_evidence(
+        registry,
+        evidence_root=run_root,
+        reject_extra_files=True,
+        supporting_paths=supporting_artifacts,
+    )
     evidence_volume.commit()
     return str(index)
 

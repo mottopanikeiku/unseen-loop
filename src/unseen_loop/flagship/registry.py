@@ -9,7 +9,7 @@ import json
 import os
 import re
 from collections import Counter
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
@@ -514,6 +514,7 @@ def finalize_evidence(
     evidence_root: str | Path,
     index_name: str = "evidence-index.json",
     reject_extra_files: bool = True,
+    supporting_paths: Sequence[str] = (),
 ) -> Path:
     """Close a complete plan into the sole root index without replacing prior evidence."""
 
@@ -555,14 +556,35 @@ def finalize_evidence(
         if observed != record.artifact_digest:
             raise RegistryError(f"artifact digest mismatch for {job_id}")
         artifacts[job_id] = {"path": record.artifact_path, "sha256": observed}
+    supporting_artifacts: dict[str, str] = {}
+    for raw in supporting_paths:
+        relative_path = PurePosixPath(raw)
+        if (
+            not raw
+            or relative_path.is_absolute()
+            or ".." in relative_path.parts
+            or relative_path.as_posix() != raw
+            or raw in referenced_paths
+            or raw in supporting_artifacts
+        ):
+            raise RegistryError("supporting artifact path is invalid or duplicated")
+        artifact = root / raw
+        if not artifact.is_file() or artifact.is_symlink():
+            raise RegistryError(f"missing regular supporting artifact: {raw}")
+        supporting_artifacts[raw] = hashlib.sha256(artifact.read_bytes()).hexdigest()
     index_path = root / index_name
     registry_relative: str | None
     try:
         registry_relative = registry.path.resolve().relative_to(root.resolve()).as_posix()
     except ValueError:
         registry_relative = None
+    if index_name in supporting_artifacts or (
+        registry_relative is not None and registry_relative in supporting_artifacts
+    ):
+        raise RegistryError("supporting artifacts cannot replace the registry or evidence index")
     if reject_extra_files:
         allowed = set(referenced_paths)
+        allowed.update(supporting_artifacts)
         if registry_relative is not None:
             allowed.add(registry_relative)
         actual: set[str] = set()
@@ -586,6 +608,7 @@ def finalize_evidence(
         "provenance": snapshot.provenance.to_dict(),
         "planned_job_ids": sorted(planned),
         "status_counts": dict(sorted(status_counts.items())),
+        "supporting_artifacts": dict(sorted(supporting_artifacts.items())),
         "artifacts": artifacts,
     }
     try:

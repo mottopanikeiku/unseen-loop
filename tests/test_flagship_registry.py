@@ -199,6 +199,9 @@ def test_finalization_rejects_incomplete_extra_and_missing_artifacts(tmp_path: P
 def test_finalizer_closes_one_root_index_and_validates_rejections(tmp_path: Path) -> None:
     artifact = tmp_path / "result.bin"
     artifact.write_bytes(b"encrypted-output")
+    supporting = tmp_path / "shared" / "server.zip"
+    supporting.parent.mkdir()
+    supporting.write_bytes(b"public-server-artifact")
     succeeded = _job("job-unit-evidence")
     rejected = _job("job-unit-invalid", invalid=True)
     registry = AppendOnlyRegistry.create(
@@ -215,12 +218,19 @@ def test_finalizer_closes_one_root_index_and_validates_rejections(tmp_path: Path
     registry.started(rejected.job_id)
     registry.rejected(rejected.job_id, reason_code="input.out-of-domain")
 
-    index = finalize_evidence(registry, evidence_root=tmp_path)
+    index = finalize_evidence(
+        registry,
+        evidence_root=tmp_path,
+        supporting_paths=("shared/server.zip",),
+    )
     payload = json.loads(index.read_text())
     assert index.name == "evidence-index.json"
     assert payload["planned_job_ids"] == sorted((succeeded.job_id, rejected.job_id))
     assert payload["status_counts"] == {"rejected": 1, "succeeded": 1}
     assert payload["provenance"]["source_digest"] == DIGEST_A
+    assert payload["supporting_artifacts"] == {
+        "shared/server.zip": hashlib.sha256(supporting.read_bytes()).hexdigest()
+    }
     with pytest.raises(RegistryError, match="replace"):
         finalize_evidence(registry, evidence_root=tmp_path, reject_extra_files=False)
 
