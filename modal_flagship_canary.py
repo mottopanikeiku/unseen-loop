@@ -265,6 +265,57 @@ def ckks_ope_canary(study_id: str) -> str:
     return _canonical({"artifact_path": artifact_path, "payload": payload})
 
 
+@app.function(
+    image=ckks_image,
+    cpu=4.0,
+    memory=16_384,
+    timeout=30 * 60,
+    retries=0,
+)
+def integration_ckks_probe() -> str:
+    """Exercise the exact H8/N64 integration CKKS shape with synthetic private rows."""
+
+    from unseen_loop.flagship.executor_integration import _ckks_receipt, _ckks_spec, _run_ckks
+    from unseen_loop.ope.types import TrajectoryBatch, TrajectorySpec
+
+    trajectories, horizon, state_dim, action_count = 64, 8, 6, 5
+    trajectory_spec = TrajectorySpec(
+        trajectories=trajectories,
+        horizon=horizon,
+        state_dim=state_dim,
+        action_count=action_count,
+        state_min=(0.0,) * state_dim,
+        state_max=(0.0,) * state_dim,
+        reward_min=-1.0,
+        reward_max=1.0,
+    )
+    batch = TrajectoryBatch(
+        trajectory_spec,
+        states=tuple(
+            tuple((0.0,) * state_dim for _ in range(horizon)) for _ in range(trajectories)
+        ),
+        actions=tuple(
+            tuple((trajectory + step) % action_count for step in range(horizon))
+            for trajectory in range(trajectories)
+        ),
+        rewards=tuple(
+            tuple(float((-1) ** (trajectory + step)) for step in range(horizon))
+            for trajectory in range(trajectories)
+        ),
+        behavior_propensities=((0.2,) * horizon,) * trajectories,
+    )
+    spec = _ckks_spec(batch)
+    receipt = _ckks_receipt(spec)
+    statistics, transport = _run_ckks(spec, batch, receipt)
+    return _canonical(
+        {
+            "statistics": asdict(statistics),
+            "transport": transport,
+            "receipt": json.loads(receipt.to_json()),
+        }
+    )
+
+
 @app.local_entrypoint()
 def run(prefix: str = "flagship-canary") -> str:
     """Dispatch all cryptographic canaries; local execution performs no FHE work."""

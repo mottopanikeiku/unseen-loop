@@ -743,17 +743,32 @@ def _run_ope_job(
     prepared = build_ope_batch(behavior_logs, _policy(), outcome)
     batch = _bounded_batch(prepared.trajectories)
     ckks_spec = _ckks_spec(batch)
-    ckks_receipt = _ckks_receipt(ckks_spec)
-    ckks_failure_label: str | None = None
     try:
+        ckks_receipt = _ckks_receipt(ckks_spec)
         ckks_receipt.require_executable()
-    except ValueError as exc:
+        statistics, transport = _run_ckks(ckks_spec, batch, ckks_receipt)
+        backend = {
+            "label": "CKKS_POLYNOMIAL_APPROX_OPE",
+            "real_fhe": True,
+            "statistics_scope": "full 64-trajectory batch",
+            "trust_scope": "colocated-client-server",
+            "trust_scope_detail": (
+                "TenSEAL client and server execute in one Modal worker; REAL FHE attests backend "
+                "execution but does not claim input privacy from the colocated worker"
+            ),
+            "context_scope": "one parameter-set CKKS context cached per Modal worker",
+            "ckks_failure_label": None,
+        }
+        effect_behavior = behavior_outcomes
+        effect_direct = direct_outcomes
+    except (RuntimeError, TypeError, ValueError) as exc:
         text = str(exc)
-        ckks_failure_label = (
-            "ckks.insufficient-multiplicative-depth"
-            if "multiplication levels" in text
-            else "ckks.insufficient-scale-modulus"
-        )
+        if "multiplication levels" in text:
+            ckks_failure_label = "ckks.insufficient-multiplicative-depth"
+        elif "modulus" in text:
+            ckks_failure_label = "ckks.insufficient-scale-modulus"
+        else:
+            ckks_failure_label = f"ckks.{type(exc).__name__.lower()}"
         canary_spec, canary_batch = _concrete_canary(behavior_logs, outcome)
         statistics, transport = _run_concrete(canary_spec, canary_batch)
         backend = {
@@ -770,22 +785,6 @@ def _run_ope_job(
         }
         effect_behavior = canary_behavior_outcomes
         effect_direct = direct_canary_outcomes[:1]
-    else:
-        statistics, transport = _run_ckks(ckks_spec, batch, ckks_receipt)
-        backend = {
-            "label": "CKKS_POLYNOMIAL_APPROX_OPE",
-            "real_fhe": True,
-            "statistics_scope": "full 64-trajectory batch",
-            "trust_scope": "colocated-client-server",
-            "trust_scope_detail": (
-                "TenSEAL client and server execute in one Modal worker; REAL FHE attests backend "
-                "execution but does not claim input privacy from the colocated worker"
-            ),
-            "context_scope": "one parameter-set CKKS context cached per Modal worker",
-            "ckks_failure_label": None,
-        }
-        effect_behavior = behavior_outcomes
-        effect_direct = direct_outcomes
 
     effect = _bootstrap_effect(
         statistics.estimate,
