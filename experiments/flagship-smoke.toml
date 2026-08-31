@@ -1,0 +1,179 @@
+schema_version = "unseen-loop/flagship-study-v1"
+name = "ciphershield-private-ope-flagship-smoke-2026-08"
+seed_root = "unseen-loop-flagship-smoke-2026-08"
+minimum_pillar_score = 95
+
+[claims]
+novel_conjunction = "encrypted 5x2x4 safety-margin tensor plus client stable selection, integrated with encrypted 3H OPE sufficient statistics over shield-conditioned MDPs"
+forbidden = [
+  "first encrypted safe control",
+  "first predictive safety shield",
+  "first private OPE",
+  "private training",
+  "malicious-server integrity",
+  "CKKS exact clipping",
+  "Concrete SIMD packing",
+  "colocated client-server input privacy",
+  "empirical validation of global_p_error",
+]
+
+[shield]
+state_features = ["x", "y", "vx", "vy", "battery", "tilt"]
+actions = ["BRAKE", "EAST", "WEST", "NORTH", "SOUTH"]
+horizons = 2
+margins = ["obstacle", "speed", "tilt", "battery"]
+output_shape = [5, 2, 4]
+scenarios = 12
+seeds_per_controller_cell = 16
+controller_cells = [
+  "disabled",
+  "always_brake",
+  "h1",
+  "h2",
+  "leave_out_obstacle",
+  "leave_out_speed",
+  "leave_out_tilt",
+  "leave_out_battery",
+  "zero_buffer",
+  "double_buffer",
+  "model_minus_10pct",
+  "model_nominal",
+  "model_plus_10pct",
+]
+
+[shield.gates]
+minimum_unsafe_reduction_vs_disabled = 0.50
+minimum_lookahead_reduction_vs_h1 = 0.25
+maximum_benign_intervention_rate = 0.01
+maximum_benign_intervention_wilson_upper = 0.015
+maximum_fallback_rate = 0.01
+maximum_fallback_wilson_upper = 0.02
+minimum_certified_requested_action_preservation = 1.0
+minimum_certified_candidate_rate = 1.0
+normalized_return_delta_lower_bound = -0.05
+goal_rate_delta_lower_bound = -0.02
+model_mismatch_max_unsafe_multiplier = 2.0
+
+[shield.fhe_challenge]
+valid_calls = 64
+occupancy_states = 16
+extrema_states = 8
+threshold_states = 16
+tie_states = 8
+canary_states = 8
+canary_encryptions_per_state = 2
+expected_decoded_margins = 2560
+expected_action_matches = 64
+invalid_domain_rejections = 8
+security_level = 128
+global_p_error = 1e-6
+
+[ope]
+horizons = [8, 32]
+trajectory_counts = [64, 256]
+overlap_lambdas = [0.2, 0.8]
+clip_values = [5.0, 10.0]
+include_unclipped = true
+independent_batches = 4
+bootstrap_repetitions = 2000
+estimators = ["clipped_pdis", "clipped_wpdis"]
+minimum_ess_fraction = 0.10
+
+[ope.gates]
+primary_clip = 10.0
+primary_trajectory_count = 4096
+maximum_normalized_bias = 0.02
+maximum_rmse = 0.10
+minimum_interval_coverage_count = 90
+maximum_interval_coverage_count = 99
+maximum_median_interval_width = 0.25
+require_positive_horizon_denominators = true
+require_exact_counts = true
+
+[ope.reference]
+analytic_fixtures = 8
+random_fixed_point_cases = 64
+
+[ope.fhe_challenge]
+valid_batches = 16
+occupancy_batches = 4
+extrema_batches = 4
+terminal_padding_batches = 4
+rounding_boundary_batches = 4
+horizon = 64
+trajectories_per_batch = 256
+expected_outputs = 3072
+expected_count_entries = 1024
+invalid_batch_rejections = 4
+
+[integration]
+behavior_mixture_target_weight = 0.5
+action_count = 5
+minimum_behavior_probability = 0.1
+scenarios = 12
+shield_modes = ["off", "h1", "h2"]
+behavior_trajectories_per_cell = 256
+direct_target_trajectories_per_cell = 128
+horizon = 64
+ope_batch_trajectories = 64
+outcomes = ["return", "unsafe_step_cost"]
+expected_behavior_trajectories = 9216
+expected_direct_trajectories = 4608
+expected_real_fhe_calls = 288
+expected_returned_scalars = 13824
+
+[integration.gates]
+maximum_pooled_return_discrepancy = 0.03
+maximum_pooled_unsafe_probability_discrepancy = 0.02
+minimum_scenarios_with_discrepancy_below_005 = 11
+require_zero_containing_discrepancy_intervals = true
+require_no_sign_error_when_truth_excludes_zero = true
+
+[systems]
+shield_timing_containers = 4
+shield_warmups_per_container = 2
+shield_measured_per_container = 8
+ope_timing_containers = 4
+ope_warmups_per_container = 2
+ope_measured_per_container = 8
+concurrent_clients = 4
+concurrent_shield_calls_per_client = 8
+concurrent_ope_calls_per_client = 4
+scale_trajectory_counts = [64, 256]
+scale_horizons = [8, 32]
+scale_containers_per_cell = 2
+scale_warmups_per_container = 2
+scale_measured_per_container = 4
+
+[systems.gates]
+shield_server_p95_seconds = 0.75
+shield_client_p95_seconds = 1.0
+ope_256x64_p95_seconds = 10.0
+ope_1024x64_p95_seconds = 60.0
+minimum_1024x64_state_steps_per_second = 1000.0
+minimum_concurrent_throughput_fraction = 0.75
+maximum_concurrent_p95_multiplier = 2.0
+maximum_compile_seconds = 900
+maximum_keygen_seconds = 900
+maximum_evaluation_key_bytes = 1073741824
+maximum_memory_fraction = 0.80
+
+[cryptography]
+required_classical_security_bits = 128
+same_plaintext_canary_pairs = 32
+ckks_max_analytical_error_fixed_point_units = 0.5
+ckks_max_observed_error_fixed_point_units = 0.25
+require_server_secret_absence = true
+require_compiled_feedback = true
+require_client_only_action_selection = true
+require_client_only_ope_division = true
+
+[reproducibility]
+require_clean_commit = true
+require_lockfile_digest = true
+require_container_digest = true
+require_closed_root_ledger = true
+reject_extra_files = true
+retain_all_attempts = true
+require_two_clean_replays = true
+cryptographic_randomness_deterministic = false
