@@ -1087,6 +1087,23 @@ wheels = [
 ]
 
 [[package]]
+name = "tenseal"
+version = "0.3.17"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4e/b3/b0851cae661ec992201451996fcd95b7f27534981891e297fbeb9e97567e/tenseal-0.3.17.tar.gz", hash = "sha256:3b444150bd400392e2672bdbb36f4df455178f4193bd0a00f9cb267400dd6f4f", size = 78115, upload-time = "2026-08-04T02:48:58.745Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/45/cf3664c1843f65ff0170f05cec6a39a4336bdefedab93fc07e74db492d65/tenseal-0.3.17-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:df9725f111265303b3c739dd8a9656e354b3ecddba8ade8e907f28e6c7cc07cb", size = 3684601, upload-time = "2026-08-04T02:48:42.729Z" },
+    { url = "https://files.pythonhosted.org/packages/56/67/151cbbc12805352a4570b0149212774ea6e3ba3cae654df6b649f019f26d/tenseal-0.3.17-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d1cc2fa8ca7ea8c44813cac60534bff0eea7ada234a472f899c0a8734afc82b4", size = 5208659, upload-time = "2026-08-04T02:48:44.249Z" },
+    { url = "https://files.pythonhosted.org/packages/33/78/5f8a107f8839c129a06239678e23f0a4042c93655a9a9e2c1110d52c0e24/tenseal-0.3.17-cp311-cp311-win_amd64.whl", hash = "sha256:92764cb5fd74932136f04f00078c7d2256e16dabb009976e65889ae324f1b81b", size = 2306735, upload-time = "2026-08-04T02:48:45.66Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/f9/0c92ce8b48b52e42beedd2a7cf8d8cce1431b78c2a65bed13987c38743b3/tenseal-0.3.17-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:1018706a75e5ba781f0867dbeb5c327d16d305773b27807cff63fd761e9dcb9c", size = 3689355, upload-time = "2026-08-04T02:48:46.968Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/7e/f82c8da65ea724eea99abdeab35931611b721669bc8793de62be6438c373/tenseal-0.3.17-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:47499064d79a8b5159d93ae4b2118f12a22795d6e1cc962a64bda0d36ba26334", size = 5207385, upload-time = "2026-08-04T02:48:48.241Z" },
+    { url = "https://files.pythonhosted.org/packages/33/2f/73c8d34bddd1978436098ff179de795b1bd2166562e83c4f3e60f2404bc5/tenseal-0.3.17-cp312-cp312-win_amd64.whl", hash = "sha256:e6ec5e5abba2f46286b16f3379b8239d779c1b9c1568f371bbb5dc3974782c89", size = 2314389, upload-time = "2026-08-04T02:48:49.571Z" },
+]
+
+[[package]]
 name = "toml"
 version = "0.10.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1210,6 +1227,10 @@ all = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "setuptools" },
+    { name = "tenseal" },
+]
+ckks = [
+    { name = "tenseal" },
 ]
 cloud = [
     { name = "modal" },
@@ -1243,8 +1264,10 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.11,<1" },
     { name = "setuptools", marker = "extra == 'all'", specifier = "==75.3.0" },
     { name = "setuptools", marker = "extra == 'fhe'", specifier = "==75.3.0" },
+    { name = "tenseal", marker = "extra == 'all'", specifier = "==0.3.17" },
+    { name = "tenseal", marker = "extra == 'ckks'", specifier = "==0.3.17" },
 ]
-provides-extras = ["fhe", "cloud", "dev", "all"]
+provides-extras = ["fhe", "cloud", "ckks", "dev", "all"]
 
 [[package]]
 name = "watchfiles"
