@@ -207,11 +207,11 @@ def _polynomial_policy() -> PolynomialPolicySpec:
 
 
 def _canary_polynomial_policy() -> PolynomialPolicySpec:
-    selected = (1.0,) + (0.0,) * STATE_DIM
-    unselected = (0.0,) * (STATE_DIM + 1)
+    selected = (1.0, 0.0)
+    unselected = (0.0, 0.0)
     return PolynomialPolicySpec(
         len(Action),
-        STATE_DIM,
+        1,
         1,
         (selected,) + (unselected,) * (len(Action) - 1),
     )
@@ -488,32 +488,31 @@ def _run_ckks(
 def _concrete_canary(
     logs: Sequence[TrajectoryLog], outcome: Outcome
 ) -> tuple[OPECircuitSpec, TrajectoryBatch]:
-    selected = tuple(logs[:4])
-    if len(selected) != 4 or any(len(log.steps) < 4 for log in selected):
-        raise ValueError("Concrete fallback requires a 4x4 canary")
-    rewards = tuple(
+    selected = tuple(logs[:1])
+    if len(selected) != 1 or len(selected[0].steps) < 2:
+        raise ValueError("Concrete fallback requires a 1x2 canary")
+    rewards = (
         tuple(
             step.reward if outcome is Outcome.RETURN else float(step.unsafe_step)
-            for step in log.steps[:4]
-        )
-        for log in selected
+            for step in selected[0].steps[:2]
+        ),
     )
     trajectory_spec = TrajectorySpec(
-        trajectories=4,
-        horizon=4,
-        state_dim=STATE_DIM,
+        trajectories=1,
+        horizon=2,
+        state_dim=1,
         action_count=len(Action),
-        state_min=(0.0,) * STATE_DIM,
-        state_max=(0.0,) * STATE_DIM,
-        reward_min=float(min(min(row) for row in rewards)),
-        reward_max=float(max(max(row) for row in rewards)),
+        state_min=(0.0,),
+        state_max=(0.0,),
+        reward_min=float(min(rewards[0])),
+        reward_max=float(max(rewards[0])),
     )
     batch = TrajectoryBatch(
         trajectory_spec,
-        states=tuple(tuple((0.0,) * STATE_DIM for _ in range(4)) for _ in range(4)),
-        actions=((0, 0, 0, 0),) * 4,
+        states=(((0.0,), (0.0,)),),
+        actions=((0, 0),),
         rewards=rewards,
-        behavior_propensities=((1.0, 1.0, 1.0, 1.0),) * 4,
+        behavior_propensities=((1.0, 1.0),),
     )
     spec = OPECircuitSpec(
         trajectory_spec,
@@ -707,9 +706,8 @@ def _run_ope_job(
     canary_behavior_outcomes = [
         sum(
             step.reward if outcome is Outcome.RETURN else float(step.unsafe_step)
-            for step in log.steps[:4]
+            for step in behavior_logs[0].steps[:2]
         )
-        for log in behavior_logs[:4]
     ]
     direct_outcomes: list[float] = []
     direct_canary_outcomes: list[float] = []
@@ -738,7 +736,7 @@ def _run_ope_job(
         direct_canary_outcomes.append(
             sum(
                 step.reward if outcome is Outcome.RETURN else float(step.unsafe_step)
-                for step in log.steps[:4]
+                for step in log.steps[:2]
             )
         )
 
@@ -761,7 +759,7 @@ def _run_ope_job(
         backend = {
             "label": "CONCRETE_EXACT_SMALL_CANARY",
             "real_fhe": True,
-            "statistics_scope": "4 trajectories x 4 horizons canary; not a clear substitute",
+            "statistics_scope": "1 trajectory x 2 horizons canary; not a clear substitute",
             "trust_scope": "colocated-client-server",
             "trust_scope_detail": (
                 "Concrete client and server execute in one Modal worker; REAL FHE attests backend "
@@ -771,7 +769,7 @@ def _run_ope_job(
             "ckks_failure_label": ckks_failure_label,
         }
         effect_behavior = canary_behavior_outcomes
-        effect_direct = direct_canary_outcomes
+        effect_direct = direct_canary_outcomes[:1]
     else:
         statistics, transport = _run_ckks(ckks_spec, batch, ckks_receipt)
         backend = {

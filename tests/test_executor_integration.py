@@ -257,11 +257,11 @@ def test_unexecutable_ckks_runs_exact_fake_concrete_canary_with_distinct_label(
         return (
             SufficientStatistics(
                 "clipped_wpdis",
-                numerators=(4.0, 3.0, 2.0, 1.0),
-                denominators=(4.0,) * 4,
-                counts=(4,) * 4,
+                numerators=(1.0, 0.5),
+                denominators=(1.0, 1.0),
+                counts=(1, 1),
             ),
-            [{"backend": "FAKE REAL CONCRETE", "output_shape": [3, 4]}],
+            [{"backend": "FAKE REAL CONCRETE", "output_shape": [3, 2]}],
         )
 
     monkeypatch.setattr(
@@ -285,19 +285,19 @@ def test_unexecutable_ckks_runs_exact_fake_concrete_canary_with_distinct_label(
 
     assert result["status"] == "succeeded"
     artifact = json.loads((root / str(result["artifact_path"])).read_text())
-    assert captured["shape"] == (4, 4)
+    assert captured["shape"] == (1, 2)
     assert int(captured["calibration_rows"]) > 0
     assert artifact["backend"] == {
         "ckks_failure_label": "ckks.insufficient-multiplicative-depth",
         "context_scope": "one compiled Concrete context for this bounded canary call",
         "label": "CONCRETE_EXACT_SMALL_CANARY",
         "real_fhe": True,
-        "statistics_scope": "4 trajectories x 4 horizons canary; not a clear substitute",
+        "statistics_scope": "1 trajectory x 2 horizons canary; not a clear substitute",
         "trust_scope": "colocated-client-server",
         "trust_scope_detail": (
             "Concrete client and server execute in one Modal worker; REAL FHE attests backend "
             "execution but does not claim input privacy from the colocated worker"
         ),
     }
-    assert artifact["statistics"]["shape"] == [3, 4]
+    assert artifact["statistics"]["shape"] == [3, 2]
     assert artifact["effect_channel"]["scope"].endswith("not a clear substitute")
