@@ -710,7 +710,6 @@ def _run_ope_job(
         )
     ]
     direct_outcomes: list[float] = []
-    direct_canary_outcomes: list[float] = []
     for trajectory in range(direct_count):
         release, seed = _load_trajectory_release(
             root,
@@ -732,12 +731,6 @@ def _run_ope_job(
         )
         direct_outcomes.append(
             log.total_return if outcome is Outcome.RETURN else float(log.unsafe_steps)
-        )
-        direct_canary_outcomes.append(
-            sum(
-                step.reward if outcome is Outcome.RETURN else float(step.unsafe_step)
-                for step in log.steps[:2]
-            )
         )
 
     prepared = build_ope_batch(behavior_logs, _policy(), outcome)
@@ -784,7 +777,7 @@ def _run_ope_job(
             "ckks_failure_label": ckks_failure_label,
         }
         effect_behavior = canary_behavior_outcomes
-        effect_direct = direct_canary_outcomes[:1]
+        effect_direct = direct_outcomes
 
     effect = _bootstrap_effect(
         statistics.estimate,
