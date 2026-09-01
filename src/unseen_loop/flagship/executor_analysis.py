@@ -1040,9 +1040,9 @@ def _integration_summary(
     }
 
 
-def _p95(values: list[int], name: str) -> float:
+def _p95(values: list[int]) -> float | None:
     if not values:
-        raise AnalysisError(f"{name} has no successful measured requests")
+        return None
     ordered = sorted(values)
     return ordered[math.ceil(0.95 * len(ordered)) - 1] / 1_000_000_000.0
 
@@ -1142,52 +1142,71 @@ def _timing_summary(
                 bucket["end_to_end"].append(end_to_end)
                 observed_successful_rows += 1
 
-    shield_server = _p95(samples[("shield", 0, 0)]["server"], "shield server timing")
-    shield_client = _p95(samples[("shield", 0, 0)]["client"], "shield client timing")
+    shield_server = _p95(samples[("shield", 0, 0)]["server"])
+    shield_client = _p95(samples[("shield", 0, 0)]["client"])
     cell_p95: dict[str, float] = {}
     cell_throughput: dict[str, float] = {}
     for (workload, trajectories, horizon), metrics in samples.items():
         if workload not in {"ope"} or not metrics["end_to_end"]:
             continue
         label = f"{trajectories}x{horizon}"
-        cell_p95[label] = _p95(metrics["end_to_end"], f"OPE {label}")
+        observed_p95 = _p95(metrics["end_to_end"])
+        if observed_p95 is None:
+            continue
+        cell_p95[label] = observed_p95
         cell_throughput[label] = (
             trajectories * horizon / (statistics.fmean(metrics["end_to_end"]) / 1_000_000_000.0)
         )
-    baseline_shield = statistics.fmean(samples[("shield", 0, 0)]["end_to_end"])
+    baseline_shield_rows = samples[("shield", 0, 0)]["end_to_end"]
     concurrent_shield = samples[("concurrent_shield", 0, 0)]["end_to_end"]
     ope_shape = (
         _integer(ope_challenge.get("trajectories_per_batch"), "OPE trajectories"),
         _integer(ope_challenge.get("horizon"), "OPE horizon"),
     )
-    baseline_ope = statistics.fmean(samples[("ope", *ope_shape)]["end_to_end"])
+    baseline_ope_rows = samples[("ope", *ope_shape)]["end_to_end"]
     concurrent_ope = samples[("concurrent_ope", *ope_shape)]["end_to_end"]
-    if not concurrent_shield or not concurrent_ope:
-        raise AnalysisError("concurrent timing denominator is empty")
-    throughput_fraction = min(
-        baseline_shield / statistics.fmean(concurrent_shield),
-        baseline_ope / statistics.fmean(concurrent_ope),
-    )
-    p95_multiplier = max(
-        _p95(concurrent_shield, "concurrent shield")
-        / _p95(samples[("shield", 0, 0)]["end_to_end"], "shield baseline"),
-        _p95(concurrent_ope, "concurrent OPE")
-        / _p95(samples[("ope", *ope_shape)]["end_to_end"], "OPE baseline"),
-    )
+    throughput_fraction: float | None = None
+    p95_multiplier: float | None = None
+    if baseline_shield_rows and baseline_ope_rows and concurrent_shield and concurrent_ope:
+        baseline_shield = statistics.fmean(baseline_shield_rows)
+        baseline_ope = statistics.fmean(baseline_ope_rows)
+        throughput_fraction = min(
+            baseline_shield / statistics.fmean(concurrent_shield),
+            baseline_ope / statistics.fmean(concurrent_ope),
+        )
+        baseline_shield_p95 = _p95(baseline_shield_rows)
+        baseline_ope_p95 = _p95(baseline_ope_rows)
+        concurrent_shield_p95 = _p95(concurrent_shield)
+        concurrent_ope_p95 = _p95(concurrent_ope)
+        if None not in (
+            baseline_shield_p95,
+            baseline_ope_p95,
+            concurrent_shield_p95,
+            concurrent_ope_p95,
+        ):
+            assert baseline_shield_p95 is not None
+            assert baseline_ope_p95 is not None
+            assert concurrent_shield_p95 is not None
+            assert concurrent_ope_p95 is not None
+            p95_multiplier = max(
+                concurrent_shield_p95 / baseline_shield_p95,
+                concurrent_ope_p95 / baseline_ope_p95,
+            )
     compile_ns = [
         _integer(_mapping(payload.get("compile"), "shield compile").get("compile_ns"), "compile_ns")
         for _job, payload, _digest in shield_fhe_rows
     ]
-    call_keygen = [
-        _integer(_mapping(payload.get("call"), "shield call").get("keygen_ns"), "keygen_ns")
+    successful_shield_calls = [
+        _mapping(payload.get("call"), "shield call")
         for _job, payload, _digest in shield_fhe_rows
+        if isinstance(payload.get("call"), Mapping)
+    ]
+    call_keygen = [
+        _integer(call.get("keygen_ns"), "keygen_ns") for call in successful_shield_calls
     ]
     call_keys = [
-        _integer(
-            _mapping(payload.get("call"), "shield call").get("evaluation_key_bytes"),
-            "evaluation_key_bytes",
-        )
-        for _job, payload, _digest in shield_fhe_rows
+        _integer(call.get("evaluation_key_bytes"), "evaluation_key_bytes")
+        for call in successful_shield_calls
     ]
     gates = _mapping(systems.get("gates"), "systems.gates")
     observed = {
