@@ -106,7 +106,7 @@ def test_shield_uses_manifest_warmups_and_retains_failures_without_replacement(
 ) -> None:
     manifest = load_manifest(SMOKE)
     job = _job(manifest, "shield", container=0)
-    backend = FakeTimingBackend(failed_indices=frozenset({1, 4}))
+    backend = FakeTimingBackend(failed_indices=frozenset({0, 1}))
 
     envelope = execute_flagship_job(manifest, job, tmp_path, backend=backend)
     path, payload = _artifact(tmp_path, envelope)

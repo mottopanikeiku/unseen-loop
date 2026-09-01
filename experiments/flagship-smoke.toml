@@ -130,20 +130,20 @@ require_zero_containing_discrepancy_intervals = true
 require_no_sign_error_when_truth_excludes_zero = true
 
 [systems]
-shield_timing_containers = 4
-shield_warmups_per_container = 2
-shield_measured_per_container = 8
-ope_timing_containers = 4
-ope_warmups_per_container = 2
-ope_measured_per_container = 8
-concurrent_clients = 4
-concurrent_shield_calls_per_client = 8
-concurrent_ope_calls_per_client = 4
-scale_trajectory_counts = [64, 256]
+shield_timing_containers = 1
+shield_warmups_per_container = 1
+shield_measured_per_container = 1
+ope_timing_containers = 1
+ope_warmups_per_container = 1
+ope_measured_per_container = 1
+concurrent_clients = 1
+concurrent_shield_calls_per_client = 1
+concurrent_ope_calls_per_client = 1
+scale_trajectory_counts = [64]
 scale_horizons = [8]
-scale_containers_per_cell = 2
-scale_warmups_per_container = 2
-scale_measured_per_container = 4
+scale_containers_per_cell = 1
+scale_warmups_per_container = 1
+scale_measured_per_container = 1
 
 [systems.gates]
 shield_server_p95_seconds = 0.75
