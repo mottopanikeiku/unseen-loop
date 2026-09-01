@@ -13,6 +13,7 @@ import hashlib
 import importlib
 import json
 import re
+import time
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
@@ -234,8 +235,17 @@ def timing_worker(
 def analysis_worker(
     executor_module: str, manifest: dict[str, object], job: dict[str, object], run_root: str
 ) -> dict[str, str | None]:
-    evidence_volume.reload()
-    return _execute_remote(executor_module, manifest, job, run_root)
+    for delay in (2, 4, 8, 16, 32, None):
+        evidence_volume.reload()
+        result = _execute_remote(executor_module, manifest, job, run_root)
+        if (
+            result.get("status") != "rejected"
+            or result.get("reason_code") != "analysis.unverifiable-evidence"
+            or delay is None
+        ):
+            return result
+        time.sleep(delay)
+    raise AssertionError("analysis convergence loop is exhaustive")
 
 
 WORKERS: dict[str, Any] = {
