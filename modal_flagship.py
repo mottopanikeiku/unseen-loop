@@ -212,7 +212,15 @@ def timing_worker(
     return _execute_remote(executor_module, manifest, job, run_root)
 
 
-@app.function(image=core_image, max_containers=1, **_COMMON)
+@app.function(
+    image=core_image,
+    cpu=8.0,
+    memory=32_768,
+    max_containers=1,
+    volumes={str(VOLUME_ROOT): evidence_volume},
+    retries=3,
+    timeout=2 * 60 * 60,
+)
 def analysis_worker(
     executor_module: str, manifest: dict[str, object], job: dict[str, object], run_root: str
 ) -> dict[str, str | None]:
