@@ -133,7 +133,7 @@ def _execute_remote(
             "artifact_digest": None,
             "reason_code": "executor.invalid-status",
         }
-    return {
+    result = {
         "status": status,
         "artifact_path": raw.get("artifact_path")
         if isinstance(raw.get("artifact_path"), str)
@@ -143,6 +143,16 @@ def _execute_remote(
         else None,
         "reason_code": raw.get("reason_code") if isinstance(raw.get("reason_code"), str) else None,
     }
+    if status == "succeeded":
+        if result["artifact_path"] is None or result["artifact_digest"] is None:
+            return {
+                "status": "failed",
+                "artifact_path": None,
+                "artifact_digest": None,
+                "reason_code": "executor.missing-artifact-evidence",
+            }
+        evidence_volume.commit()
+    return result
 
 
 _COMMON = {
