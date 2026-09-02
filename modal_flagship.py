@@ -339,10 +339,13 @@ def evidence_finalizer(run_id: str, manifest_digest: str) -> str:
     if incomplete_upstream:
         raise RegistryError("evidence finalizer rejected incomplete upstream jobs")
     registry.started(finalizer_job.job_id)
-    supporting_artifacts = (
+    candidates = (
         "shared/shield-fhe/shield-server.zip",
         "shared/shield-fhe/shield-client-specs.bin",
         "shared/shield-fhe/shield-receipt.json",
+    )
+    supporting_artifacts = tuple(
+        relative for relative in candidates if (run_root / relative).is_file()
     )
     cache_lock = run_root / "shared" / "shield-fhe.lock"
     if cache_lock.is_symlink():

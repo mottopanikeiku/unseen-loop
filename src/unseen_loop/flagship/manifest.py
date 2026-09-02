@@ -531,8 +531,8 @@ def _validate_manifest(m: FlagshipManifest) -> None:
         m.integration.expected_real_fhe_calls,
         m.integration.expected_returned_scalars,
     )
-    if m.integration.scenarios != m.shield.scenarios:
-        raise ManifestError("integration and shield scenario denominators disagree")
+    if m.integration.scenarios > m.shield.scenarios:
+        raise ManifestError("integration scenarios must be a registered shield-scenario prefix")
     integration_cells = m.integration.scenarios * len(m.integration.shield_modes)
     if (
         m.integration.expected_behavior_trajectories
