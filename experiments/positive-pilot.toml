@@ -6,10 +6,10 @@ execution_site = "Modal"
 
 [shield]
 quantized_states = 5
-independent_calls_per_state = 1
-global_p_error = 1e-9
+independent_calls_per_state = 3
 minimum_completed_call_fraction = 0.80
 minimum_client_action_agreement = 1.0
+minimum_completed_calls_per_state = 2
 claim = "decision-equivalent encrypted shield on completed calls; not exact-margin conformance"
 
 [ope]

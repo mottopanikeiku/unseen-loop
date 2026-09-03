@@ -314,13 +314,17 @@ def shield_reliability(config_bytes: bytes) -> str:
     state_count = int(spec["quantized_states"])
     calls_per_state = int(spec["independent_calls_per_state"])
     categories = ("occupancy", "extrema", "threshold", "tie", "canary")
-    if state_count != len(categories) or calls_per_state != 1:
-        raise ValueError("shield recovery pilot fixes five independent calls")
+    minimum_quorum = int(spec["minimum_completed_calls_per_state"])
+    if state_count != len(categories) or calls_per_state != 3 or minimum_quorum != 2:
+        raise ValueError("shield recovery pilot fixes five states, three calls, and quorum two")
     completed = 0
     action_matches = 0
     selected_certification_matches = 0
     margin_matches = 0
     margin_count = 0
+    quorum_states = 0
+    consensus_action_matches = 0
+    consensus_certification_matches = 0
     failures: dict[str, int] = {}
     with tempfile.TemporaryDirectory(prefix="positive-shield-") as temporary:
         integer_spec = ShieldIntegerSpec()
@@ -332,44 +336,73 @@ def shield_reliability(config_bytes: bytes) -> str:
         for index, category in enumerate(categories):
             quantized = _valid_state(category, 1000 + index)
             requested = Action(index)
-            try:
-                client = ShieldFHEClient.from_path(compiled.client_specs_path, integer_spec)
-                server = ShieldFHEServer(compiled.server_path)
-                _keygen_ns, evaluation_keys = client.generate_keys()
-                request = client.encrypt(quantized)
-                response = server.evaluate(request, evaluation_keys)
-                decrypted = client.decrypt_margin_tensor(response)
-                clear = clear_margin_tensor(integer_spec, quantized)
-                encrypted_selection = client.select_action(
-                    decrypted,
-                    requested,
-                    error_buffer=ErrorBuffer(),
+            clear = clear_margin_tensor(integer_spec, quantized)
+            observed_actions: list[Action] = []
+            observed_certifications: list[bool] = []
+            clear_action: Action | None = None
+            clear_certification: bool | None = None
+            for _replica in range(calls_per_state):
+                try:
+                    client = ShieldFHEClient.from_path(compiled.client_specs_path, integer_spec)
+                    server = ShieldFHEServer(compiled.server_path)
+                    _keygen_ns, evaluation_keys = client.generate_keys()
+                    request = client.encrypt(quantized)
+                    response = server.evaluate(request, evaluation_keys)
+                    decrypted = client.decrypt_margin_tensor(response)
+                    encrypted_selection = client.select_action(
+                        decrypted,
+                        requested,
+                        error_buffer=ErrorBuffer(),
+                    )
+                    clear_selection = client.select_action(
+                        clear,
+                        requested,
+                        error_buffer=ErrorBuffer(),
+                    )
+                except (RuntimeError, TypeError, ValueError) as error:
+                    code = type(error).__name__.lower()
+                    failures[code] = failures.get(code, 0) + 1
+                    continue
+                completed += 1
+                margin_matches += int(np.count_nonzero(decrypted == clear))
+                margin_count += int(np.prod(MARGIN_SHAPE))
+                action_matches += int(encrypted_selection.action == clear_selection.action)
+                selected_certification_matches += int(
+                    encrypted_selection.selected_certified == clear_selection.selected_certified
                 )
-                clear_selection = client.select_action(
-                    clear,
-                    requested,
-                    error_buffer=ErrorBuffer(),
+                observed_actions.append(encrypted_selection.action)
+                observed_certifications.append(encrypted_selection.selected_certified)
+                clear_action = clear_selection.action
+                clear_certification = clear_selection.selected_certified
+            if len(observed_actions) >= minimum_quorum:
+                quorum_states += 1
+                consensus_action = min(
+                    set(observed_actions),
+                    key=lambda action: (-observed_actions.count(action), int(action)),
                 )
-            except (RuntimeError, TypeError, ValueError) as error:
-                code = type(error).__name__.lower()
-                failures[code] = failures.get(code, 0) + 1
-                continue
-            completed += 1
-            margin_matches += int(np.count_nonzero(decrypted == clear))
-            margin_count += int(np.prod(MARGIN_SHAPE))
-            action_matches += int(encrypted_selection.action == clear_selection.action)
-            selected_certification_matches += int(
-                encrypted_selection.selected_certified == clear_selection.selected_certified
-            )
+                consensus_certification = sum(observed_certifications) * 2 >= len(
+                    observed_certifications
+                )
+                consensus_action_matches += int(consensus_action == clear_action)
+                consensus_certification_matches += int(
+                    consensus_certification == clear_certification
+                )
     completion_fraction = completed / (state_count * calls_per_state)
     action_agreement = action_matches / completed if completed else 0.0
     certification_agreement = selected_certification_matches / completed if completed else 0.0
+    consensus_action_agreement = consensus_action_matches / quorum_states if quorum_states else 0.0
+    consensus_certification_agreement = (
+        consensus_certification_matches / quorum_states if quorum_states else 0.0
+    )
     gates = {
         "completed_call_fraction": completion_fraction
         >= float(spec["minimum_completed_call_fraction"]),
         "client_action_agreement": action_agreement
         >= float(spec["minimum_client_action_agreement"]),
         "selected_certification_agreement": certification_agreement == 1.0,
+        "state_quorum": quorum_states == state_count,
+        "consensus_action_agreement": consensus_action_agreement == 1.0,
+        "consensus_certification_agreement": consensus_certification_agreement == 1.0,
     }
     result = {
         "schema_version": "unseen-loop/positive-shield-result-v1",
@@ -383,6 +416,11 @@ def shield_reliability(config_bytes: bytes) -> str:
             "client_action_agreement": action_agreement,
             "selected_certification_matches": selected_certification_matches,
             "selected_certification_agreement": certification_agreement,
+            "quorum_states": quorum_states,
+            "consensus_action_matches": consensus_action_matches,
+            "consensus_action_agreement": consensus_action_agreement,
+            "consensus_certification_matches": consensus_certification_matches,
+            "consensus_certification_agreement": consensus_certification_agreement,
             "exact_margin_matches": margin_matches,
             "decoded_margins": margin_count,
         },
