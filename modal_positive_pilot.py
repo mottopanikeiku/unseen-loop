@@ -516,6 +516,116 @@ def finalize_pilot(
     )
 
 
+@app.function(
+    image=core_image,
+    cpu=2.0,
+    memory=4_096,
+    volumes={str(root.parent): volume},
+    timeout=10 * 60,
+    retries=1,
+)
+def finalize_recovery(
+    base_config_bytes: bytes,
+    shield_config_bytes: bytes,
+    study_id: str,
+    ope_json: str,
+    ckks_json: str,
+    shield_json: str,
+    call_ids_json: str,
+) -> str:
+    """Close independently preregistered positive tracks without merging their configs."""
+
+    base_config = _parse(base_config_bytes)
+    shield_config = _parse(shield_config_bytes)
+    if _section(base_config, "ope") != _section(shield_config, "ope") or _section(
+        base_config, "integration_ckks"
+    ) != _section(shield_config, "integration_ckks"):
+        raise ValueError("confirmation config changed the passed OPE or CKKS hypotheses")
+    if _section(shield_config, "shield").get("gate_individual_calls") is not False:
+        raise ValueError("shield confirmation must gate the replicated consensus protocol")
+    if not study_id or any(
+        character not in "abcdefghijklmnopqrstuvwxyz0123456789-" for character in study_id
+    ):
+        raise ValueError("study_id is invalid")
+    results = {
+        "ope": json.loads(ope_json),
+        "integration_ckks": json.loads(ckks_json),
+        "shield_consensus": json.loads(shield_json),
+    }
+    expected_schemas = {
+        "ope": "unseen-loop/positive-ope-result-v1",
+        "integration_ckks": "unseen-loop/positive-integration-ckks-result-v1",
+        "shield_consensus": "unseen-loop/positive-shield-result-v1",
+    }
+    for name, result in results.items():
+        if (
+            not isinstance(result, dict)
+            or result.get("schema_version") != expected_schemas[name]
+            or result.get("all_gates_passed") is not True
+        ):
+            raise RuntimeError(f"{name} did not pass its frozen positive-result gates")
+    call_ids = json.loads(call_ids_json)
+    if not isinstance(call_ids, dict) or set(call_ids) != set(results):
+        raise ValueError("positive pilot call identities are incomplete")
+    if any(
+        not isinstance(value, str) or not value.startswith("fc-") for value in call_ids.values()
+    ):
+        raise ValueError("positive pilot call identity is invalid")
+    summary = {
+        "schema_version": "unseen-loop/positive-recovery-summary-v1",
+        "study_id": study_id,
+        "baseline_run": base_config["baseline_run"],
+        "config_sha256": {
+            "ope_and_ckks": hashlib.sha256(base_config_bytes).hexdigest(),
+            "shield_consensus": hashlib.sha256(shield_config_bytes).hexdigest(),
+        },
+        "modal_function_calls": call_ids,
+        "results": results,
+        "all_tracks_passed": True,
+        "qualified_positive_result": True,
+        "qualified_claims": [
+            "high-overlap H8 clipped-WPDIS calibration passed all frozen statistical gates",
+            "REAL CKKS H8/N64 evaluation matched its clear polynomial approximation within gates",
+            "three-replica REAL-FHE shield consensus matched clear action and certification "
+            "decisions on five independent states",
+        ],
+        "excluded_claims": [
+            "the failed baseline smoke gates were not overturned",
+            "no exact per-margin shield conformance claim",
+            "no production latency, throughput, private training, or malicious-server claim",
+        ],
+    }
+    destination = root / study_id
+    volume.reload()
+    if destination.exists():
+        raise RuntimeError("positive recovery destination already exists")
+    destination.mkdir(parents=True)
+    files = {
+        "ope-and-ckks-config.toml": base_config_bytes,
+        "shield-consensus-config.toml": shield_config_bytes,
+        "ope.json": _canonical(results["ope"]),
+        "integration-ckks.json": _canonical(results["integration_ckks"]),
+        "shield-consensus.json": _canonical(results["shield_consensus"]),
+        "summary.json": _canonical(summary),
+    }
+    for name, payload in files.items():
+        (destination / name).write_bytes(payload)
+    ledger = "".join(
+        f"{hashlib.sha256(payload).hexdigest()}  {name}\n"
+        for name, payload in sorted(files.items())
+    )
+    (destination / "checksums.sha256").write_text(ledger)
+    volume.commit()
+    return json.dumps(
+        {
+            "artifact_path": str(destination / "summary.json"),
+            "summary_sha256": hashlib.sha256(files["summary.json"]).hexdigest(),
+            "qualified_positive_result": True,
+        },
+        sort_keys=True,
+    )
+
+
 @app.local_entrypoint()
 def run(config: str, study_id: str) -> str:
     config_bytes = Path(config).read_bytes()
