@@ -253,13 +253,34 @@ uv run modal run -w artifacts/flagship-publication.json \
   --publication-id my-flagship-publication \
   --shield-canary-id my-shield-canary \
   --exact-ope-canary-id my-exact-ope-canary \
-  --ckks-ope-canary-id my-ckks-ope-canary
+  --ckks-ope-canary-id my-ckks-ope-canary \
+  --smoke-run-id my-closed-flagship-smoke
 uv run modal volume get unseen-loop-flagship-evidence \
   publications/my-flagship-publication/flagship-evidence.json \
   site/data/flagship-evidence.json
 ```
 
 Pin the downloaded publication byte SHA-256 in `data-flagship-sha256` on `index.html`, `control-room.html`, and `ope.html`. The browser removes the complete measurement surface if that digest, schema, certificate arithmetic, shield selection replay, OPE denominators/division, security receipt, or trust label fails.
+
+### Executed bounded smoke
+
+The closed smoke run is `flagship-smoke-20260902-023`. Its source snapshot digest is `0c6cd923ee26b2b6bec7c6e87e49c011770cb47118d91e75d64e89133aee2df3`, manifest digest is `4f570be4e716a93bc878d4fbbdcc339fa7d6afbb995912bd1861f0c029aa90b5`, registry digest is `7b2ff845bb90e8d1291788a948e7857357172c87d4451e1522743d9922f1c6cd`, and root evidence-index digest is `fca26b7ec0d672219b9abcb55ef576946589c725a5267b71eba21e0b0c8741f5`.
+
+The compact committed closure is under [`../artifacts/flagship-smoke-20260902-023/`](../artifacts/flagship-smoke-20260902-023/). Verify it without recomputation:
+
+```bash
+(cd artifacts/flagship-smoke-20260902-023 && sha256sum --check checksums.sha256)
+```
+
+The full 3,278 upstream job artifacts and append-only registry remain on the `unseen-loop-flagship-evidence` Modal Volume. Copy them when a complete row-level audit is required:
+
+```bash
+uv run modal volume get unseen-loop-flagship-evidence \
+  flagship-smoke-20260902-023/ \
+  artifacts/downloaded-flagship-smoke
+```
+
+The smoke closed every planned terminal status but did not pass the scientific release gates. This is intentional negative evidence, not a release qualification. The complete `experiments/flagship.toml` plan has 328,622 jobs and remains unexecuted.
 
 ## Artifact schemas
 

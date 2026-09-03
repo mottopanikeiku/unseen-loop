@@ -153,12 +153,44 @@ function validateOPE(ope) {
   if (!(number(uncertainty.lower, "bootstrap lower") <= uncertainty.estimate && uncertainty.estimate <= number(uncertainty.upper, "bootstrap upper"))) throw new Error("bootstrap interval does not contain estimate");
 }
 
+function validateSmoke(smoke) {
+  object(smoke, "smoke");
+  if (smoke.schema_version !== "unseen-loop/flagship-smoke-publication-v1") throw new Error("unsupported smoke publication schema");
+  text(smoke.run_id, "smoke run id");
+  digest(smoke.evidence_index_sha256, "smoke evidence index");
+  digest(smoke.analysis_sha256, "smoke analysis");
+  const planned = integer(smoke.planned_jobs, "smoke planned jobs");
+  const counts = object(smoke.status_counts, "smoke status counts");
+  const succeeded = integer(counts.succeeded, "smoke succeeded jobs");
+  const rejected = integer(counts.rejected, "smoke rejected jobs");
+  if (succeeded + rejected !== planned) throw new Error("smoke terminal accounting does not close");
+  const gatePass = object(smoke.gate_pass, "smoke gate status");
+  Object.values(gatePass).forEach((value) => {
+    if (typeof value !== "boolean") throw new Error("smoke gate status must be boolean");
+  });
+  const summary = object(smoke.evidence_summary, "smoke evidence summary");
+  if (object(summary.closure, "smoke closure").planned_jobs !== planned) throw new Error("smoke closure denominator mismatch");
+  object(summary.clear_shield, "smoke clear shield");
+  object(summary.shield_fhe, "smoke shield FHE");
+  object(summary.ope, "smoke OPE");
+  object(summary.integration, "smoke integration");
+  object(summary.systems, "smoke systems");
+}
+
+function gateObserved(section, name) {
+  const gate = array(section.gates, `${name} gates`).find((item) => item.name === name);
+  if (!gate) throw new Error(`missing smoke gate ${name}`);
+  return number(gate.observed, `smoke gate ${name}`);
+}
+
+
 function validatePublication(publication) {
   object(publication, "publication");
   if (publication.schema_version !== "unseen-loop/flagship-publication-v1") throw new Error("unsupported flagship publication schema");
   text(object(publication.release, "release").release_id, "release id");
   validateShield(publication.shield);
   validateOPE(publication.ope);
+  validateSmoke(publication.smoke);
   array(publication.allowed_claims, "allowed claims").forEach((claim) => text(claim, "allowed claim"));
   array(publication.forbidden_claims, "forbidden claims").forEach((claim) => text(claim, "forbidden claim"));
   return publication;
@@ -316,6 +348,14 @@ function initialize(publication) {
   setField("shield-mode", publication.shield.canary.mode); setField("shield-disclosure", publication.shield.run.disclosure.replaceAll("_", " ")); setField("shield-source", publication.shield.canary.source_sha256); setField("shield-receipt", publication.shield.canary.receipt.spec_digest);
   setNamed("accounting", "retained", publication.shield.summary.requested_retained); setNamed("accounting", "override", publication.shield.summary.override_to_certified); setNamed("accounting", "emergency", publication.shield.summary.emergency_brake); setNamed("accounting", "total", publication.shield.summary.total_steps);
   setField("ope-mode", publication.ope.variant.mode); setField("ope-policy", publication.ope.target_policy.policy_sha256); setField("ope-receipt", publication.ope.variant.receipt.source_sha256);
+  const smoke = publication.smoke; const smokeSummary = smoke.evidence_summary;
+  setField("smoke-run", smoke.run_id); setField("smoke-index", smoke.evidence_index_sha256);
+  setNamed("smoke", "planned", smoke.planned_jobs); setNamed("smoke", "terminal", smoke.status_counts.succeeded + smoke.status_counts.rejected); setNamed("smoke", "succeeded", smoke.status_counts.succeeded); setNamed("smoke", "rejected", smoke.status_counts.rejected);
+  setNamed("smoke", "status", Object.values(smoke.gate_pass).every(Boolean) ? "CLOSED · ALL GATES PASS" : "CLOSED · GATES FAILED");
+  setNamed("smoke", "shield-margins", `${smokeSummary.shield_fhe.accounting.margin_matches} / ${smokeSummary.shield_fhe.accounting.decoded_margins}`);
+  setNamed("smoke", "ope-bias", format(gateObserved(smokeSummary.ope, "maximum_normalized_bias"), 3));
+  setNamed("smoke", "return-gap", format(smokeSummary.integration.pooled_discrepancy.return, 3));
+  setNamed("smoke", "timing", `${smokeSummary.systems.successful_measured_requests} / ${smokeSummary.systems.measured_request_denominator}`);
   const step = document.querySelector("[data-shield-step]"); if (step) step.addEventListener("input", () => { state.shieldStep = Number(step.value); state.candidate = publication.shield.run.decisions[state.shieldStep].selected_action; renderShield(); });
   document.querySelector("[data-shield-prev]")?.addEventListener("click", () => { state.shieldStep = (state.shieldStep - 1 + publication.shield.run.decisions.length) % publication.shield.run.decisions.length; renderShield(); });
   document.querySelector("[data-shield-next]")?.addEventListener("click", () => { state.shieldStep = (state.shieldStep + 1) % publication.shield.run.decisions.length; renderShield(); });

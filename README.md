@@ -32,7 +32,7 @@ The shield is part of the logged MDP. Integration evidence therefore logs `reque
 
 ### Checksum-closed flagship canaries
 
-The browser publication is [`site/data/flagship-evidence.json`](site/data/flagship-evidence.json), SHA-256 `c19d256ee6fe6fc301e715155c3538cf3fdac28946b1e99eda3a0f4473aa5407`. Modal built it from three immutable canary summaries; the browser independently verifies the copied byte digest and every displayed certificate/division invariant before rendering measurements.
+The browser publication is [`site/data/flagship-evidence.json`](site/data/flagship-evidence.json), SHA-256 `ccaca72a04095f3ed4638d10a7f1bfa543b9740d27f2cc3e64de62a575422ead`. Modal built it from three immutable canary summaries plus the closed smoke index and analysis artifact; the browser independently verifies the copied byte digest and every displayed certificate, division, and terminal-accounting invariant before rendering measurements.
 
 | Canary | Exact declared accounting | Server evaluation | End-to-end | Transport |
 |---|---:|---:|---:|---:|
@@ -41,6 +41,19 @@ The browser publication is [`site/data/flagship-evidence.json`](site/data/flagsh
 | CKKS OPE, `(N=64,H=8,D=1)` | 24 approximate output ciphertexts; distinct clear approximation | 7.465 s | client phase receipts reported separately | 813,936,378 B public server context; 86,405,050 B request; 25,943,816 B response |
 
 These are colocated Modal cryptographic canaries, not production latency, throughput, remote-network secrecy, or empirical policy-value results. The CKKS maximum released numerator error was 8.409 under a declared conservative soft-clip absolute-error bound of 32. The exact OPE shape is intentionally tiny; the former `(4,4,6)` graph exceeded a 32 GiB worker.
+
+### Closed flagship smoke matrix
+
+[`artifacts/flagship-smoke-20260902-023/evidence-index.json`](artifacts/flagship-smoke-20260902-023/evidence-index.json), SHA-256 `fca26b7ec0d672219b9abcb55ef576946589c725a5267b71eba21e0b0c8741f5`, closes the complete bounded smoke plan on Modal: 3,286 planned jobs, 3,280 succeeded jobs, and six preregistered invalid-input rejections. The retained artifact denominators are 2,496 clear shield cells, six shield-FHE attempt artifacts with five completed calls, 184 OPE artifacts, 588 shield/OPE integration artifacts, four timing artifacts, and one analysis artifact.
+
+The smoke is an execution success and a scientific **negative result**:
+
+- CipherShield retained 185/200 exact decoded margins and 5/5 client action matches; therefore its matrix-level exact-clear conformance gate failed even though the separately published complete-domain canary passed.
+- OPE exact-clear FHE conformance passed. The bounded statistical grid missed its configured primary cell, exceeded the normalized-bias gate (0.170 versus 0.020), and covered 86/96 intervals versus a minimum of 90.
+- The paired integration discrepancy was 11.778 for return and 0.0503 for unsafe-step cost, both above their gates. All 12 REAL-FHE integration receipts nevertheless closed with verified client/server trust labels.
+- Only 2/5 measured timing requests succeeded. Missing percentiles remain `null`; they are not imputed or replaced. Compile, key-generation, and evaluation-key-size resource gates passed.
+
+The smoke does not discharge [`experiments/flagship.toml`](experiments/flagship.toml), whose full 328,622-job denominator remains preregistered. It demonstrates that the complete DAG, fixed-attempt failure accounting, source/registry binding, analysis, and sole evidence finalizer run end to end while preserving failed scientific gates.
 
 ## Research thesis
 

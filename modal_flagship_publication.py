@@ -349,6 +349,72 @@ def _ope_publication(
     }
 
 
+def _smoke_publication(run_id: str) -> tuple[dict[str, Any], dict[str, str]]:
+    run_root = root / run_id
+    index_path = run_root / "evidence-index.json"
+    if not index_path.is_file() or index_path.is_symlink():
+        raise RuntimeError("smoke evidence index is missing or not regular")
+    index_bytes = index_path.read_bytes()
+    index = json.loads(index_bytes)
+    if not isinstance(index, dict) or index.get("schema_version") != (
+        "unseen-loop/flagship-evidence-index-v1"
+    ):
+        raise RuntimeError("smoke evidence index schema is invalid")
+    artifacts = index.get("artifacts")
+    if not isinstance(artifacts, dict):
+        raise RuntimeError("smoke evidence index omitted artifacts")
+    analysis_entries = [
+        entry
+        for entry in artifacts.values()
+        if isinstance(entry, dict)
+        and isinstance(entry.get("path"), str)
+        and entry["path"].startswith("analysis/")
+    ]
+    if len(analysis_entries) != 1:
+        raise RuntimeError("smoke evidence index must identify one analysis artifact")
+    analysis_entry = analysis_entries[0]
+    analysis_path = run_root / analysis_entry["path"]
+    if not analysis_path.is_file() or analysis_path.is_symlink():
+        raise RuntimeError("smoke analysis artifact is missing or not regular")
+    analysis_bytes = analysis_path.read_bytes()
+    analysis_digest = hashlib.sha256(analysis_bytes).hexdigest()
+    if analysis_entry.get("sha256") != analysis_digest:
+        raise RuntimeError("smoke analysis artifact digest does not match its index")
+    analysis = json.loads(analysis_bytes)
+    if not isinstance(analysis, dict) or analysis.get("schema_version") != (
+        "unseen-loop/flagship-analysis-v1"
+    ):
+        raise RuntimeError("smoke analysis schema is invalid")
+    summary = analysis.get("evidence_summary")
+    publication = analysis.get("publication")
+    if not isinstance(summary, dict) or not isinstance(publication, dict):
+        raise RuntimeError("smoke analysis omitted aggregate evidence")
+    planned = index.get("planned_job_ids")
+    status_counts = index.get("status_counts")
+    if not isinstance(planned, list) or not isinstance(status_counts, dict):
+        raise RuntimeError("smoke evidence index omitted denominator accounting")
+    index_digest = hashlib.sha256(index_bytes).hexdigest()
+    payload = {
+        "schema_version": "unseen-loop/flagship-smoke-publication-v1",
+        "run_id": run_id,
+        "evidence_index_sha256": index_digest,
+        "analysis_sha256": analysis_digest,
+        "planned_jobs": len(planned),
+        "status_counts": status_counts,
+        "gate_pass": publication.get("gate_pass"),
+        "evidence_summary": summary,
+        "claim": (
+            "closed bounded execution with retained negative gates; "
+            "not full-manifest release qualification"
+        ),
+    }
+    sources = {
+        f"{run_id}/evidence-index.json": index_digest,
+        f"{run_id}/{analysis_entry['path']}": analysis_digest,
+    }
+    return payload, sources
+
+
 @app.function(
     image=image,
     cpu=4.0,
@@ -362,6 +428,7 @@ def build_publication(
     shield_canary_id: str,
     exact_ope_canary_id: str,
     ckks_ope_canary_id: str,
+    smoke_run_id: str,
 ) -> str:
     volume.reload()
     destination = root / "publications" / publication_id
@@ -370,20 +437,23 @@ def build_publication(
     shield, shield_digest = _load_canary(shield_canary_id)
     exact, exact_digest = _load_canary(exact_ope_canary_id)
     ckks, ckks_digest = _load_canary(ckks_ope_canary_id)
+    smoke, smoke_sources = _smoke_publication(smoke_run_id)
     publication = {
         "schema_version": "unseen-loop/flagship-publication-v1",
         "release": {
             "release_id": publication_id,
-            "label": "CipherShield-RL + private horizon-aware OPE canary release",
+            "label": "CipherShield-RL + private OPE canaries and bounded smoke release",
             "execution_site": "Modal",
             "source_canaries": {
                 "shield": shield_canary_id,
                 "exact_ope": exact_ope_canary_id,
                 "ckks_ope": ckks_ope_canary_id,
             },
+            "source_smoke_run": smoke_run_id,
         },
         "shield": _shield_publication(shield, shield_digest),
         "ope": _ope_publication(exact, exact_digest, ckks, ckks_digest),
+        "smoke": smoke,
         "allowed_claims": [
             "real Concrete ciphertext execution for the declared bounded exact canaries",
             "real TenSEAL CKKS ciphertext execution under separately named "
@@ -409,6 +479,7 @@ def build_publication(
         f"canaries/{shield_canary_id}/summary.json": shield_digest,
         f"canaries/{exact_ope_canary_id}/summary.json": exact_digest,
         f"canaries/{ckks_ope_canary_id}/summary.json": ckks_digest,
+        **smoke_sources,
     }
     (destination / "checksums.sha256").write_text(
         "".join(f"{value}  {path}\n" for path, value in sorted(source_rows.items()))
@@ -430,10 +501,12 @@ def main(
     shield_canary_id: str,
     exact_ope_canary_id: str,
     ckks_ope_canary_id: str,
+    smoke_run_id: str,
 ) -> str:
     return build_publication.remote(
         publication_id,
         shield_canary_id,
         exact_ope_canary_id,
         ckks_ope_canary_id,
+        smoke_run_id,
     )

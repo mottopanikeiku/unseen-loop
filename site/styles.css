@@ -473,6 +473,17 @@ body:not([data-publication-state="loaded"]) .study-band-real {
 .foot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
 .site-foot p { color: var(--ink-muted); max-width: 42rem; }
 
+.smoke-section { background: linear-gradient(180deg, var(--danger-pale), transparent 16rem); }
+body[data-evidence-state="loaded"] .smoke-status .status-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px var(--danger-pale);
+}
+.smoke-status strong { color: var(--danger); font: inherit; }
+.smoke-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.smoke-grid .receipt-cell strong { display: block; font: 600 1.8rem/1 var(--font-display); }
+.smoke-finding { max-width: none; border-color: var(--danger); }
+.smoke-finding strong { color: var(--danger); }
+
 .track-ledger { border-block: 1px solid var(--ink); }
 .track-ledger > a {
   display: grid;

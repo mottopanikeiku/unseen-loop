@@ -283,7 +283,7 @@ The integration experiment compares OPE estimates against paired direct online t
 
 ### 8.4 Executed cryptographic canaries
 
-The digest-pinned browser source is [`../site/data/flagship-evidence.json`](../site/data/flagship-evidence.json), SHA-256 `c19d256ee6fe6fc301e715155c3538cf3fdac28946b1e99eda3a0f4473aa5407`. Modal built it from immutable summaries `flagship-shield-canary-014`, `flagship-exact-ope-canary-004`, and `flagship-ckks-ope-canary-006`.
+The digest-pinned browser source is [`../site/data/flagship-evidence.json`](../site/data/flagship-evidence.json), SHA-256 `ccaca72a04095f3ed4638d10a7f1bfa543b9740d27f2cc3e64de62a575422ead`. Modal built it from immutable summaries `flagship-shield-canary-014`, `flagship-exact-ope-canary-004`, and `flagship-ckks-ope-canary-006`, then bound the closed `flagship-smoke-20260902-023` index and analysis.
 
 | Canary | Semantic check | Server evaluation | End-to-end / public context |
 |---|---|---:|---:|
@@ -292,6 +292,14 @@ The digest-pinned browser source is [`../site/data/flagship-evidence.json`](../s
 | CKKS OPE `(64,8,1)` | separately named approximation; 24 output ciphertexts | 7.465 s | 813,936,378 B public server context |
 
 CipherShield used 758,473,160 B of evaluation keys, a 492,056 B request, and a 3,278,720 B response. Exact OPE used 589,084,056 B of evaluation keys, a 124,032 B request, and a 115,480 B response. CKKS used an 86,405,050 B request and 25,943,816 B response; the maximum released numerator error was 8.409 under a conservative declared soft-clip absolute-error bound of 32. These are cryptographic semantics/cost canaries, not empirical task efficacy or production systems results.
+
+### 8.5 Closed bounded smoke study
+
+Run `flagship-smoke-20260902-023` closed all 3,286 planned jobs: 3,280 succeeded and six preregistered invalid inputs were rejected. Its root evidence index has SHA-256 `fca26b7ec0d672219b9abcb55ef576946589c725a5267b71eba21e0b0c8741f5`. The index binds 2,496 clear shield artifacts, six shield-FHE attempt artifacts with five completed calls, 184 OPE artifacts, 588 integration artifacts, four timing artifacts, one analysis artifact, the append-only registry tail, source/config/image digests, and the finalizer receipt.
+
+The smoke falsifies the preregistered efficacy and systems gates rather than hiding them. CipherShield matched 185/200 decoded margins and all 5/5 client actions, so matrix-level exact conformance failed. The OPE normalized bias was 0.170 against a 0.020 maximum; coverage was 86/96 against a minimum of 90, although exact OPE FHE conformance passed. Pooled integration discrepancy was 11.778 return units and 0.0503 unsafe-step-cost units. Two of five measured timing requests succeeded; unavailable percentiles remain null. Only compile time, key-generation time, and evaluation-key size passed the smoke systems gates.
+
+This is evidence that the bounded DAG and its failure accounting execute end to end, not evidence that CipherShield or the OPE estimator meets the full release criteria. The full 328,622-job manifest remains unexecuted and preregistered.
 
 ## 9. Threat model
 

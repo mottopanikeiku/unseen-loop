@@ -11,6 +11,7 @@
 - Added tc128 coefficient-modulus budget enforcement, SEAL parameter-validity inspection, public/secret context separation, and explicit CKKS approximation/transport receipts.
 - Added shield/OPE integration that logs requested-action behavior propensities separately from executed shield actions and compares OPE against paired direct target-policy truth within each shield-defined MDP.
 - Added `experiments/flagship.toml` and a bounded H8 smoke plan, executable clear/FHE/OPE/integration/timing/analysis stages, an append-only Modal registry, immutable evidence finalization, and provisioned cryptographic workers.
+- Closed `flagship-smoke-20260902-023`: 3,286/3,286 planned terminal outcomes, 3,280 succeeded jobs, six expected invalid-input rejections, 3,278 upstream artifacts, one analysis artifact, and one root evidence index. Retained negative gates include 185/200 shield margin matches, 0.170 normalized OPE bias, 86/96 interval coverage, 11.778 return discrepancy, 0.0503 unsafe-cost discrepancy, and 2/5 successful measured timing requests.
 
 ### Research product
 
