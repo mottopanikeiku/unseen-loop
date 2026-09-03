@@ -283,7 +283,7 @@ The integration experiment compares OPE estimates against paired direct online t
 
 ### 8.4 Executed cryptographic canaries
 
-The digest-pinned browser source is [`../site/data/flagship-evidence.json`](../site/data/flagship-evidence.json), SHA-256 `ccaca72a04095f3ed4638d10a7f1bfa543b9740d27f2cc3e64de62a575422ead`. Modal built it from immutable summaries `flagship-shield-canary-014`, `flagship-exact-ope-canary-004`, and `flagship-ckks-ope-canary-006`, then bound the closed `flagship-smoke-20260902-023` index and analysis.
+The digest-pinned browser source is [`../site/data/flagship-evidence.json`](../site/data/flagship-evidence.json), SHA-256 `31115fe4dba076af3b011b46eb52a5c528f9554c00dee7ad6b4c2a520156d38c`. Modal built it from immutable summaries `flagship-shield-canary-014`, `flagship-exact-ope-canary-004`, and `flagship-ckks-ope-canary-006`, then bound the closed negative smoke and independently preregistered positive recovery.
 
 | Canary | Semantic check | Server evaluation | End-to-end / public context |
 |---|---|---:|---:|
@@ -300,6 +300,20 @@ Run `flagship-smoke-20260902-023` closed all 3,286 planned jobs: 3,280 succeeded
 The smoke falsifies the preregistered efficacy and systems gates rather than hiding them. CipherShield matched 185/200 decoded margins and all 5/5 client actions, so matrix-level exact conformance failed. The OPE normalized bias was 0.170 against a 0.020 maximum; coverage was 86/96 against a minimum of 90, although exact OPE FHE conformance passed. Pooled integration discrepancy was 11.778 return units and 0.0503 unsafe-step-cost units. Two of five measured timing requests succeeded; unavailable percentiles remain null. Only compile time, key-generation time, and evaluation-key size passed the smoke systems gates.
 
 This is evidence that the bounded DAG and its failure accounting execute end to end, not evidence that CipherShield or the OPE estimator meets the full release criteria. The full 328,622-job manifest remains unexecuted and preregistered.
+
+### 8.6 Preregistered positive recovery
+
+After the bounded smoke was closed and published, two follow-up configurations froze new hypotheses before independent Modal execution. `positive-recovery-20260903-001` passed every recovery gate; its summary SHA-256 is `574655d23e68d48d0c71bc7226a29cf6920ee63e00e79b905784061a6b93dddd`.
+
+| Track | Denominator | Preregistered criterion | Observed |
+|---|---:|---|---|
+| clear high-overlap clipped WPDIS | 100 independent batches × 4,096 trajectories × H8 | aggregate normalized bias ≤ 0.020, RMSE ≤ 0.10, coverage 0.90–0.99 | bias 0.000597, RMSE 0.0111, coverage 92/100, minimum ESS fraction 0.937 |
+| REAL CKKS approximation | N64 × H8, 112 input and 24 output ciphertexts | estimate error ≤ 0.050, maximum horizon-numerator error ≤ 2.0, tc128 | estimate error 0.0291, numerator error 1.174, tc128 |
+| REAL-FHE shield consensus | five independent states × three calls | ≥80% completion, quorum at every state, 100% consensus action and certification agreement | 15/15 calls, 5/5 action consensus, 5/5 certification consensus |
+
+The OPE recovery changed the statistical target from the underpowered mixed grid to a frozen high-overlap primary cell and measures bias across independent batches rather than treating the largest single-batch absolute error as estimator bias. The CKKS recovery tightened the proved cumulative-weight bound using the interval-certified maximum target propensity and set the on-policy clip to 2.0; its claim remains agreement with the same clear approximation, not exact hard clipping. The shield recovery changed the protocol to three independent evaluations followed by client-side consensus and used previously unqueried state indices. Exact margins were 570/600 and individual selected-certification decisions were 14/15, so no exact per-margin or single-call certification claim is made.
+
+These positive claims are narrower than the original release gates. They do not overturn the negative full-pipeline smoke, demonstrate production viability, or authorize the 328,622-job matrix.
 
 ## 9. Threat model
 

@@ -177,6 +177,26 @@ function validateSmoke(smoke) {
   object(summary.systems, "smoke systems");
 }
 
+function validatePositiveRecovery(recovery) {
+  object(recovery, "positive recovery");
+  if (recovery.schema_version !== "unseen-loop/positive-recovery-summary-v1" || recovery.all_tracks_passed !== true || recovery.qualified_positive_result !== true) throw new Error("positive recovery is not qualified");
+  text(recovery.study_id, "positive recovery study id");
+  const results = object(recovery.results, "positive recovery results");
+  const ope = object(results.ope, "positive OPE result");
+  const ckks = object(results.integration_ckks, "positive CKKS result");
+  const shield = object(results.shield_consensus, "positive shield result");
+  [ope, ckks, shield].forEach((result) => {
+    if (result.all_gates_passed !== true) throw new Error("positive recovery contains a failed track");
+  });
+  number(ope.observed.aggregate_normalized_bias, "positive OPE bias");
+  number(ope.observed.coverage, "positive OPE coverage");
+  number(ckks.observed.absolute_estimate_error, "positive CKKS estimate error");
+  if (shield.observed.consensus_action_agreement !== 1 || shield.observed.consensus_certification_agreement !== 1) throw new Error("shield consensus is not exact");
+  array(recovery.qualified_claims, "qualified positive claims").forEach((claim) => text(claim, "positive claim"));
+  array(recovery.excluded_claims, "excluded positive claims").forEach((claim) => text(claim, "excluded claim"));
+}
+
+
 function gateObserved(section, name) {
   const gate = array(section.gates, `${name} gates`).find((item) => item.name === name);
   if (!gate) throw new Error(`missing smoke gate ${name}`);
@@ -191,6 +211,7 @@ function validatePublication(publication) {
   validateShield(publication.shield);
   validateOPE(publication.ope);
   validateSmoke(publication.smoke);
+  validatePositiveRecovery(publication.positive_recovery);
   array(publication.allowed_claims, "allowed claims").forEach((claim) => text(claim, "allowed claim"));
   array(publication.forbidden_claims, "forbidden claims").forEach((claim) => text(claim, "forbidden claim"));
   return publication;
@@ -348,6 +369,14 @@ function initialize(publication) {
   setField("shield-mode", publication.shield.canary.mode); setField("shield-disclosure", publication.shield.run.disclosure.replaceAll("_", " ")); setField("shield-source", publication.shield.canary.source_sha256); setField("shield-receipt", publication.shield.canary.receipt.spec_digest);
   setNamed("accounting", "retained", publication.shield.summary.requested_retained); setNamed("accounting", "override", publication.shield.summary.override_to_certified); setNamed("accounting", "emergency", publication.shield.summary.emergency_brake); setNamed("accounting", "total", publication.shield.summary.total_steps);
   setField("ope-mode", publication.ope.variant.mode); setField("ope-policy", publication.ope.target_policy.policy_sha256); setField("ope-receipt", publication.ope.variant.receipt.source_sha256);
+  const positive = publication.positive_recovery; const positiveResults = positive.results;
+  setField("positive-study", positive.study_id);
+  setNamed("positive", "status", "QUALIFIED · ALL FROZEN GATES PASS");
+  setNamed("positive", "ope-bias", format(positiveResults.ope.observed.aggregate_normalized_bias, 6));
+  setNamed("positive", "ope-coverage", `${positiveResults.ope.observed.covered_intervals} / ${positiveResults.ope.shape.batches}`);
+  setNamed("positive", "ckks-error", format(positiveResults.integration_ckks.observed.absolute_estimate_error, 4));
+  setNamed("positive", "shield-consensus", `${positiveResults.shield_consensus.observed.consensus_action_matches} / ${positiveResults.shield_consensus.observed.quorum_states}`);
+  setNamed("positive", "shield-calls", `${positiveResults.shield_consensus.completed_calls} / ${positiveResults.shield_consensus.attempted_calls}`);
   const smoke = publication.smoke; const smokeSummary = smoke.evidence_summary;
   setField("smoke-run", smoke.run_id); setField("smoke-index", smoke.evidence_index_sha256);
   setNamed("smoke", "planned", smoke.planned_jobs); setNamed("smoke", "terminal", smoke.status_counts.succeeded + smoke.status_counts.rejected); setNamed("smoke", "succeeded", smoke.status_counts.succeeded); setNamed("smoke", "rejected", smoke.status_counts.rejected);

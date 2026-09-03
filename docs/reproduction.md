@@ -254,7 +254,8 @@ uv run modal run -w artifacts/flagship-publication.json \
   --shield-canary-id my-shield-canary \
   --exact-ope-canary-id my-exact-ope-canary \
   --ckks-ope-canary-id my-ckks-ope-canary \
-  --smoke-run-id my-closed-flagship-smoke
+  --smoke-run-id my-closed-flagship-smoke \
+  --positive-study-id my-qualified-positive-recovery
 uv run modal volume get unseen-loop-flagship-evidence \
   publications/my-flagship-publication/flagship-evidence.json \
   site/data/flagship-evidence.json
@@ -281,6 +282,29 @@ uv run modal volume get unseen-loop-flagship-evidence \
 ```
 
 The smoke closed every planned terminal status but did not pass the scientific release gates. This is intentional negative evidence, not a release qualification. The complete `experiments/flagship.toml` plan has 328,622 jobs and remains unexecuted.
+
+### Qualified positive recovery
+
+The post-baseline recovery used [`../experiments/positive-pilot.toml`](../experiments/positive-pilot.toml) for the OPE and CKKS hypotheses and [`../experiments/shield-consensus-pilot.toml`](../experiments/shield-consensus-pilot.toml) for the independent replicated shield confirmation. Both files were committed before their named Modal calls.
+
+The closed result is `positive-recovery-20260903-001`, summary SHA-256 `574655d23e68d48d0c71bc7226a29cf6920ee63e00e79b905784061a6b93dddd`. Verify the committed compact bundle:
+
+```bash
+(cd artifacts/positive-recovery-20260903-001 && sha256sum --check checksums.sha256)
+```
+
+The bundle records Modal function-call identities, both configuration hashes, individual track results, all frozen gates, qualified claims, and excluded claims. Re-run the full three-track pilot:
+
+```bash
+uv run modal deploy modal_positive_pilot.py
+uv run modal run -w artifacts/positive-recovery-result.json \
+  modal_positive_pilot.py::run \
+  --config experiments/positive-pilot.toml \
+  --shield-config experiments/shield-consensus-pilot.toml \
+  --study-id my-positive-recovery
+```
+
+The entrypoint runs OPE/CKKS under the base configuration and shield consensus under its independent confirmation configuration, then `finalize_recovery` binds both configuration digests and all three Modal function-call identities. Do not substitute the exploratory shield row from the first pilot.
 
 ## Artifact schemas
 

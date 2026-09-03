@@ -415,6 +415,38 @@ def _smoke_publication(run_id: str) -> tuple[dict[str, Any], dict[str, str]]:
     return payload, sources
 
 
+def _positive_publication(study_id: str) -> tuple[dict[str, Any], dict[str, str]]:
+    study_root = root / "positive-pilots" / study_id
+    summary_path = study_root / "summary.json"
+    ledger_path = study_root / "checksums.sha256"
+    if (
+        not summary_path.is_file()
+        or summary_path.is_symlink()
+        or not ledger_path.is_file()
+        or ledger_path.is_symlink()
+    ):
+        raise RuntimeError("positive recovery summary or checksum ledger is unavailable")
+    summary_bytes = summary_path.read_bytes()
+    summary_digest = hashlib.sha256(summary_bytes).hexdigest()
+    ledger = ledger_path.read_text().splitlines()
+    if f"{summary_digest}  summary.json" not in ledger:
+        raise RuntimeError("positive recovery summary is not checksum-closed")
+    summary = json.loads(summary_bytes)
+    if (
+        not isinstance(summary, dict)
+        or summary.get("schema_version") != "unseen-loop/positive-recovery-summary-v1"
+        or summary.get("study_id") != study_id
+        or summary.get("all_tracks_passed") is not True
+        or summary.get("qualified_positive_result") is not True
+    ):
+        raise RuntimeError("positive recovery result did not pass every frozen gate")
+    ledger_digest = hashlib.sha256(ledger_path.read_bytes()).hexdigest()
+    return summary, {
+        f"positive-pilots/{study_id}/summary.json": summary_digest,
+        f"positive-pilots/{study_id}/checksums.sha256": ledger_digest,
+    }
+
+
 @app.function(
     image=image,
     cpu=4.0,
@@ -429,6 +461,7 @@ def build_publication(
     exact_ope_canary_id: str,
     ckks_ope_canary_id: str,
     smoke_run_id: str,
+    positive_study_id: str,
 ) -> str:
     volume.reload()
     destination = root / "publications" / publication_id
@@ -438,11 +471,12 @@ def build_publication(
     exact, exact_digest = _load_canary(exact_ope_canary_id)
     ckks, ckks_digest = _load_canary(ckks_ope_canary_id)
     smoke, smoke_sources = _smoke_publication(smoke_run_id)
+    positive, positive_sources = _positive_publication(positive_study_id)
     publication = {
         "schema_version": "unseen-loop/flagship-publication-v1",
         "release": {
             "release_id": publication_id,
-            "label": "CipherShield-RL + private OPE canaries and bounded smoke release",
+            "label": "CipherShield-RL + private OPE qualified recovery release",
             "execution_site": "Modal",
             "source_canaries": {
                 "shield": shield_canary_id,
@@ -450,16 +484,19 @@ def build_publication(
                 "ckks_ope": ckks_ope_canary_id,
             },
             "source_smoke_run": smoke_run_id,
+            "source_positive_study": positive_study_id,
         },
         "shield": _shield_publication(shield, shield_digest),
         "ope": _ope_publication(exact, exact_digest, ckks, ckks_digest),
         "smoke": smoke,
+        "positive_recovery": positive,
         "allowed_claims": [
             "real Concrete ciphertext execution for the declared bounded exact canaries",
             "real TenSEAL CKKS ciphertext execution under separately named "
             "approximate polynomial semantics",
             "client-side shield selection and OPE division",
             "clear recorded replay and trajectory bootstrap under their explicit trust labels",
+            "three preregistered recovery tracks passed every frozen positive-result gate",
         ],
         "forbidden_claims": [
             "first predictive safety shield or first private OPE",
@@ -480,6 +517,7 @@ def build_publication(
         f"canaries/{exact_ope_canary_id}/summary.json": exact_digest,
         f"canaries/{ckks_ope_canary_id}/summary.json": ckks_digest,
         **smoke_sources,
+        **positive_sources,
     }
     (destination / "checksums.sha256").write_text(
         "".join(f"{value}  {path}\n" for path, value in sorted(source_rows.items()))
@@ -502,6 +540,7 @@ def main(
     exact_ope_canary_id: str,
     ckks_ope_canary_id: str,
     smoke_run_id: str,
+    positive_study_id: str,
 ) -> str:
     return build_publication.remote(
         publication_id,
@@ -509,4 +548,5 @@ def main(
         exact_ope_canary_id,
         ckks_ope_canary_id,
         smoke_run_id,
+        positive_study_id,
     )

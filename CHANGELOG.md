@@ -12,6 +12,7 @@
 - Added shield/OPE integration that logs requested-action behavior propensities separately from executed shield actions and compares OPE against paired direct target-policy truth within each shield-defined MDP.
 - Added `experiments/flagship.toml` and a bounded H8 smoke plan, executable clear/FHE/OPE/integration/timing/analysis stages, an append-only Modal registry, immutable evidence finalization, and provisioned cryptographic workers.
 - Closed `flagship-smoke-20260902-023`: 3,286/3,286 planned terminal outcomes, 3,280 succeeded jobs, six expected invalid-input rejections, 3,278 upstream artifacts, one analysis artifact, and one root evidence index. Retained negative gates include 185/200 shield margin matches, 0.170 normalized OPE bias, 86/96 interval coverage, 11.778 return discrepancy, 0.0503 unsafe-cost discrepancy, and 2/5 successful measured timing requests.
+- Closed `positive-recovery-20260903-001` from hypotheses committed after the negative smoke but before independent Modal calls: high-overlap H8 clipped-WPDIS bias 0.000597, RMSE 0.0111, and 92/100 interval coverage; REAL CKKS H8/N64 estimate error 0.0291 and maximum horizon-numerator error 1.174; and 15/15 completed shield calls yielding 5/5 three-replica action and certification consensus decisions. All frozen recovery gates passed; broader failed smoke and exact-margin limitations remain explicit.
 
 ### Research product
 

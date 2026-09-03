@@ -473,6 +473,16 @@ body:not([data-publication-state="loaded"]) .study-band-real {
 .foot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
 .site-foot p { color: var(--ink-muted); max-width: 42rem; }
 
+.positive-section { background: linear-gradient(180deg, var(--verified-pale), transparent 16rem); }
+body[data-evidence-state="loaded"] .positive-status .status-dot {
+  background: var(--verified);
+  box-shadow: 0 0 0 4px var(--verified-pale);
+}
+.positive-status strong { color: var(--verified); font: inherit; }
+.positive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.positive-grid .receipt-cell strong { display: block; font: 600 1.8rem/1 var(--font-display); }
+.positive-finding { max-width: none; border-color: var(--verified); }
+.positive-finding strong { color: var(--verified); }
 .smoke-section { background: linear-gradient(180deg, var(--danger-pale), transparent 16rem); }
 body[data-evidence-state="loaded"] .smoke-status .status-dot {
   background: var(--danger);

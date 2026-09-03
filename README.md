@@ -32,7 +32,7 @@ The shield is part of the logged MDP. Integration evidence therefore logs `reque
 
 ### Checksum-closed flagship canaries
 
-The browser publication is [`site/data/flagship-evidence.json`](site/data/flagship-evidence.json), SHA-256 `ccaca72a04095f3ed4638d10a7f1bfa543b9740d27f2cc3e64de62a575422ead`. Modal built it from three immutable canary summaries plus the closed smoke index and analysis artifact; the browser independently verifies the copied byte digest and every displayed certificate, division, and terminal-accounting invariant before rendering measurements.
+The browser publication is [`site/data/flagship-evidence.json`](site/data/flagship-evidence.json), SHA-256 `31115fe4dba076af3b011b46eb52a5c528f9554c00dee7ad6b4c2a520156d38c`. Modal built it from three immutable canary summaries, the closed negative smoke, and the independently preregistered positive recovery; the browser verifies the copied byte digest and every displayed certificate, division, gate, and terminal-accounting invariant before rendering measurements.
 
 | Canary | Exact declared accounting | Server evaluation | End-to-end | Transport |
 |---|---:|---:|---:|---:|
@@ -41,6 +41,18 @@ The browser publication is [`site/data/flagship-evidence.json`](site/data/flagsh
 | CKKS OPE, `(N=64,H=8,D=1)` | 24 approximate output ciphertexts; distinct clear approximation | 7.465 s | client phase receipts reported separately | 813,936,378 B public server context; 86,405,050 B request; 25,943,816 B response |
 
 These are colocated Modal cryptographic canaries, not production latency, throughput, remote-network secrecy, or empirical policy-value results. The CKKS maximum released numerator error was 8.409 under a declared conservative soft-clip absolute-error bound of 32. The exact OPE shape is intentionally tiny; the former `(4,4,6)` graph exceeded a 32 GiB worker.
+
+### Qualified positive recovery
+
+[`artifacts/positive-recovery-20260903-001/summary.json`](artifacts/positive-recovery-20260903-001/summary.json), SHA-256 `574655d23e68d48d0c71bc7226a29cf6920ee63e00e79b905784061a6b93dddd`, closes three post-baseline hypotheses that were committed before their independent Modal calls:
+
+| Track | Frozen gate | Observed | Result |
+|---|---:|---:|---:|
+| high-overlap H8 clipped WPDIS | aggregate normalized bias ≤ 0.020; RMSE ≤ 0.10; coverage 90–99% | bias **0.000597**; RMSE **0.0111**; coverage **92/100**; minimum ESS fraction **0.937** | **PASS** |
+| REAL CKKS H8/N64 approximation | estimate error ≤ 0.050; maximum horizon-numerator error ≤ 2.0; tc128 | estimate error **0.0291**; numerator error **1.174**; tc128 | **PASS** |
+| three-replica REAL-FHE shield consensus | ≥80% calls complete; quorum for 5/5 states; consensus action and certification agreement 100% | **15/15** calls; **5/5** action consensus; **5/5** certification consensus | **PASS** |
+
+The shield confirmation used new state indices and independent calls. It reports `570/600` exact margins and `14/15` individual certification decisions as diagnostics, but makes only the preregistered replicated-consensus claim. The positive recovery does not erase or reinterpret the broader failed smoke gates, and it is not a production latency, exact-margin, private-training, or malicious-server result.
 
 ### Closed flagship smoke matrix
 

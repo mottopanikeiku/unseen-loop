@@ -627,16 +627,38 @@ def finalize_recovery(
 
 
 @app.local_entrypoint()
-def run(config: str, study_id: str) -> str:
+def run(config: str, study_id: str, shield_config: str = "") -> str:
     config_bytes = Path(config).read_bytes()
     _parse(config_bytes)
+    shield_config_bytes = (
+        Path(shield_config).read_bytes() if shield_config else config_bytes
+    )
+    _parse(shield_config_bytes)
     ope_call = ope_calibration.spawn(config_bytes)
     ckks_call = integration_ckks.spawn(config_bytes)
-    shield_call = shield_reliability.spawn(config_bytes)
+    shield_call = shield_reliability.spawn(shield_config_bytes)
+    ope_json = ope_call.get()
+    ckks_json = ckks_call.get()
+    shield_json = shield_call.get()
+    if shield_config:
+        call_ids = {
+            "ope": ope_call.object_id,
+            "integration_ckks": ckks_call.object_id,
+            "shield_consensus": shield_call.object_id,
+        }
+        return finalize_recovery.remote(
+            config_bytes,
+            shield_config_bytes,
+            study_id,
+            ope_json,
+            ckks_json,
+            shield_json,
+            json.dumps(call_ids, sort_keys=True),
+        )
     return finalize_pilot.remote(
         config_bytes,
         study_id,
-        ope_call.get(),
-        ckks_call.get(),
-        shield_call.get(),
+        ope_json,
+        ckks_json,
+        shield_json,
     )
