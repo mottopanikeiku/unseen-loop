@@ -1,0 +1,42 @@
+schema_version = "unseen-loop/positive-pilot-v1"
+name = "unseen-loop-positive-recovery-2026-09"
+baseline_run = "flagship-smoke-20260902-023"
+seed_root = "unseen-loop-positive-recovery-2026-09-frozen"
+execution_site = "Modal"
+
+[shield]
+quantized_states = 5
+independent_calls_per_state = 1
+global_p_error = 1e-9
+minimum_completed_call_fraction = 0.80
+minimum_client_action_agreement = 1.0
+claim = "decision-equivalent encrypted shield on completed calls; not exact-margin conformance"
+
+[ope]
+trajectories = 4096
+horizon = 8
+overlap = 0.8
+weight_clip = 10.0
+estimator = "clipped_wpdis"
+independent_batches = 100
+maximum_aggregate_normalized_bias = 0.02
+maximum_rmse = 0.10
+minimum_interval_coverage = 0.90
+maximum_interval_coverage = 0.99
+bootstrap_repetitions = 500
+
+[integration_ckks]
+trajectories = 64
+horizon = 8
+state_dim = 6
+action_count = 5
+behavior_probability = 0.2
+weight_clip = 2.0
+maximum_absolute_estimate_error = 0.05
+maximum_absolute_horizon_numerator_error = 2.0
+required_security_level = "tc128"
+
+[stop]
+require_all_tracks = true
+launch_larger_matrix_only_if_all_gates_pass = true
+forbid_threshold_changes_after_execution = true

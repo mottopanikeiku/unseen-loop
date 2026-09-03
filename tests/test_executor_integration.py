@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from unseen_loop.flagship.executor_integration import execute_flagship_job
+from unseen_loop.flagship.executor_integration import _ckks_spec, execute_flagship_job
 from unseen_loop.flagship.manifest import (
     PLAN_SCHEMA_VERSION,
     content_digest,
@@ -15,7 +15,7 @@ from unseen_loop.flagship.manifest import (
     load_manifest,
 )
 from unseen_loop.ope.fhe import calibration_inputset
-from unseen_loop.ope.types import SufficientStatistics
+from unseen_loop.ope.types import SufficientStatistics, TrajectoryBatch, TrajectorySpec
 
 
 def _manifest(*, horizon: int = 8, scenarios: int = 12) -> dict[str, Any]:
@@ -81,6 +81,31 @@ def _execute_trajectory(
     artifact = root / str(result["artifact_path"])
     assert hashlib.sha256(artifact.read_bytes()).hexdigest() == result["artifact_digest"]
     return json.loads(artifact.read_text())
+
+
+def test_integration_ckks_uses_tight_on_policy_clip() -> None:
+    trajectory_spec = TrajectorySpec(
+        trajectories=1,
+        horizon=2,
+        state_dim=6,
+        action_count=5,
+        state_min=(0.0,) * 6,
+        state_max=(0.0,) * 6,
+        reward_min=-1.0,
+        reward_max=1.0,
+    )
+    batch = TrajectoryBatch(
+        trajectory_spec,
+        states=(((0.0,) * 6, (0.0,) * 6),),
+        actions=((0, 1),),
+        rewards=((1.0, -1.0),),
+        behavior_propensities=((0.2, 0.2),),
+    )
+
+    spec = _ckks_spec(batch)
+
+    assert spec.weight_clip == 2.0
+    assert spec.minimum_behavior_propensity == 0.2
 
 
 def test_integration_accepts_a_registered_scenario_prefix(tmp_path: Path) -> None:

@@ -429,12 +429,11 @@ def _bounded_batch(batch: TrajectoryBatch) -> TrajectoryBatch:
 
 def _ckks_spec(batch: TrajectoryBatch) -> PolynomialApproxOPESpec:
     minimum = float(np.min(batch.behavior_array))
-    raw_bound = math.prod(1.0 / minimum for _ in range(batch.spec.horizon))
     return PolynomialApproxOPESpec(
         batch.spec,
         _polynomial_policy(),
         gamma=1.0,
-        weight_clip=raw_bound,
+        weight_clip=2.0,
         minimum_behavior_propensity=minimum,
     )
 

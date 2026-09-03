@@ -140,6 +140,7 @@ class PolynomialApproxOPESpec:
     weight_clip: float = 20.0
     minimum_behavior_propensity: float = 1e-3
     identifier: str = POLYNOMIAL_APPROX_OPE_V1
+    _target_probability_upper_bound: float = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if self.identifier != POLYNOMIAL_APPROX_OPE_V1:
@@ -172,7 +173,7 @@ class PolynomialApproxOPESpec:
 
     @property
     def raw_weight_bounds(self) -> tuple[float, ...]:
-        reciprocal = 1.0 / self.minimum_behavior_propensity
+        reciprocal = self._target_probability_upper_bound / self.minimum_behavior_propensity
         bounds: list[float] = []
         current = 1.0
         for _ in range(self.trajectories.horizon):
@@ -214,6 +215,7 @@ class PolynomialApproxOPESpec:
                         highs[left] * highs[right],
                     )
                     intervals.append((min(products), max(products)))
+        upper_bounds: list[float] = []
         for action, coefficients in enumerate(self.target_policy.coefficients):
             lower = 0.0
             upper = 0.0
@@ -228,6 +230,8 @@ class PolynomialApproxOPESpec:
                     f"action-{action} target polynomial is not proved inside [0, 1] "
                     "on the closed state box"
                 )
+            upper_bounds.append(min(1.0, upper))
+        object.__setattr__(self, "_target_probability_upper_bound", max(upper_bounds))
 
     def validate_batch(self, batch: TrajectoryBatch) -> None:
         if batch.spec != self.trajectories:

@@ -125,7 +125,7 @@ def test_receipt_closes_scale_depth_modulus_range_error_and_three_h_output() -> 
     assert receipt.depth_supported
     assert receipt.modulus_supported
     assert receipt.configured_modulus_bits == 240
-    assert receipt.raw_weight_bounds == (2.0, 4.0)
+    assert receipt.raw_weight_bounds == pytest.approx((1.4, 1.96))
     assert receipt.normalized_soft_clip_domain == (0.0, 2.0)
     assert receipt.soft_clip_coefficients == (0.0, 1.0, -0.25)
     assert receipt.soft_clip_absolute_error_bound == spec.weight_clip / 4
@@ -189,7 +189,7 @@ def test_closed_weight_range_rejects_a_polynomial_outside_its_approximation_doma
             trajectory_spec,
             policy,
             weight_clip=1.0,
-            minimum_behavior_propensity=0.5,
+            minimum_behavior_propensity=0.1,
         )
 
 
