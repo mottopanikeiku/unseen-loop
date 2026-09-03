@@ -315,6 +315,11 @@ def shield_reliability(config_bytes: bytes) -> str:
     calls_per_state = int(spec["independent_calls_per_state"])
     categories = ("occupancy", "extrema", "threshold", "tie", "canary")
     minimum_quorum = int(spec["minimum_completed_calls_per_state"])
+    state_index_offset = int(spec.get("state_index_offset", 1000))
+    gate_individual_raw = spec.get("gate_individual_calls", True)
+    if not isinstance(gate_individual_raw, bool):
+        raise ValueError("gate_individual_calls must be boolean")
+    gate_individual_calls = gate_individual_raw
     if state_count != len(categories) or calls_per_state != 3 or minimum_quorum != 2:
         raise ValueError("shield recovery pilot fixes five states, three calls, and quorum two")
     completed = 0
@@ -334,7 +339,7 @@ def shield_reliability(config_bytes: bytes) -> str:
             global_p_error=float(spec["global_p_error"]),
         )
         for index, category in enumerate(categories):
-            quantized = _valid_state(category, 1000 + index)
+            quantized = _valid_state(category, state_index_offset + index)
             requested = Action(index)
             clear = clear_margin_tensor(integer_spec, quantized)
             observed_actions: list[Action] = []
@@ -397,19 +402,26 @@ def shield_reliability(config_bytes: bytes) -> str:
     gates = {
         "completed_call_fraction": completion_fraction
         >= float(spec["minimum_completed_call_fraction"]),
-        "client_action_agreement": action_agreement
-        >= float(spec["minimum_client_action_agreement"]),
-        "selected_certification_agreement": certification_agreement == 1.0,
         "state_quorum": quorum_states == state_count,
         "consensus_action_agreement": consensus_action_agreement == 1.0,
         "consensus_certification_agreement": consensus_certification_agreement == 1.0,
     }
+    if gate_individual_calls:
+        gates.update(
+            {
+                "client_action_agreement": action_agreement
+                >= float(spec["minimum_client_action_agreement"]),
+                "selected_certification_agreement": certification_agreement == 1.0,
+            }
+        )
     result = {
         "schema_version": "unseen-loop/positive-shield-result-v1",
         "execution": "Modal REAL FHE",
         "claim": spec["claim"],
         "attempted_calls": state_count * calls_per_state,
         "completed_calls": completed,
+        "state_index_offset": state_index_offset,
+        "gate_individual_calls": gate_individual_calls,
         "observed": {
             "completed_call_fraction": completion_fraction,
             "client_action_matches": action_matches,
