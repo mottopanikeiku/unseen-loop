@@ -173,8 +173,8 @@ def _integration_spec(manifest: Mapping[str, Any]) -> Mapping[str, Any]:
     spec = _mapping(manifest.get("integration"), "manifest.integration")
     if _integer(spec.get("action_count"), "integration.action_count", minimum=1) != len(Action):
         raise ValueError("integration action count differs from the frozen environment")
-    if _integer(spec.get("scenarios"), "integration.scenarios", minimum=1) != len(_SCENARIOS):
-        raise ValueError("integration scenario count differs from the frozen registry")
+    if _integer(spec.get("scenarios"), "integration.scenarios", minimum=1) > len(_SCENARIOS):
+        raise ValueError("integration scenario count exceeds the frozen registry")
     modes = spec.get("shield_modes")
     if not isinstance(modes, Sequence) or isinstance(modes, (str, bytes)):
         raise ValueError("integration.shield_modes is invalid")
@@ -230,8 +230,9 @@ def _trajectory_coordinates(
         raise ValueError("trajectory coordinates are invalid")
     kind = _TRAJECTORY_KINDS[str(kind_raw)]
     scenario = _integer(coordinates.get("scenario"), "scenario")
-    if scenario >= len(_SCENARIOS):
-        raise ValueError("scenario is outside the frozen registry")
+    scenario_count = _integer(spec.get("scenarios"), "integration.scenarios", minimum=1)
+    if scenario >= scenario_count:
+        raise ValueError("scenario is outside the configured registry prefix")
     shield_raw = coordinates.get("shield_mode")
     if not isinstance(shield_raw, str):
         raise ValueError("shield_mode is invalid")
@@ -614,8 +615,9 @@ def _ope_coordinates(
     if set(coordinates) != expected or coordinates.get("kind") != "real_fhe_ope":
         raise ValueError("real_fhe_ope coordinates are invalid")
     scenario = _integer(coordinates.get("scenario"), "scenario")
-    if scenario >= len(_SCENARIOS):
-        raise ValueError("scenario is outside the frozen registry")
+    scenario_count = _integer(spec.get("scenarios"), "integration.scenarios", minimum=1)
+    if scenario >= scenario_count:
+        raise ValueError("scenario is outside the configured registry prefix")
     shield_raw = coordinates.get("shield_mode")
     if not isinstance(shield_raw, str):
         raise ValueError("shield_mode is invalid")

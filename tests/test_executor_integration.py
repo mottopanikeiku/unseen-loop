@@ -18,10 +18,10 @@ from unseen_loop.ope.fhe import calibration_inputset
 from unseen_loop.ope.types import SufficientStatistics
 
 
-def _manifest(*, horizon: int = 8) -> dict[str, Any]:
+def _manifest(*, horizon: int = 8, scenarios: int = 12) -> dict[str, Any]:
     payload = load_manifest("experiments/flagship-smoke.toml").canonical_payload()
     integration = payload["integration"]
-    integration["scenarios"] = 12
+    integration["scenarios"] = scenarios
     integration["behavior_trajectories_per_cell"] = 64
     integration["direct_target_trajectories_per_cell"] = 1
     integration["horizon"] = horizon
@@ -81,6 +81,33 @@ def _execute_trajectory(
     artifact = root / str(result["artifact_path"])
     assert hashlib.sha256(artifact.read_bytes()).hexdigest() == result["artifact_digest"]
     return json.loads(artifact.read_text())
+
+
+def test_integration_accepts_a_registered_scenario_prefix(tmp_path: Path) -> None:
+    manifest = _manifest(scenarios=2)
+    root = _root(tmp_path)
+
+    included = _execute_trajectory(
+        root,
+        manifest,
+        kind="behavior_trajectory",
+        scenario=1,
+        shield_mode="off",
+        trajectory=0,
+    )
+    excluded_job = _job(
+        manifest,
+        {
+            "kind": "behavior_trajectory",
+            "scenario": 2,
+            "shield_mode": "off",
+            "trajectory": 0,
+        },
+    )
+    excluded = execute_flagship_job(manifest, excluded_job, root)
+
+    assert included["coordinates"]["scenario"] == 1
+    assert excluded["status"] == "rejected"
 
 
 def test_trajectory_release_preserves_many_to_one_requested_semantics_without_plain_logs(
