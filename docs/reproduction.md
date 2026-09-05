@@ -243,7 +243,7 @@ uv run modal run modal_flagship.py::launch \
   --executor-modules-json "$EXECUTORS"
 ```
 
-The append-only registry stops the DAG after any stage that does not reach its preregistered terminal state. The finalizer rejects incomplete jobs, unexpected extra files, checksum mismatches, and a second finalization attempt.
+The append-only registry stops the historical DAG after any stage that does not reach its preregistered terminal state. `finalize_evidence` rejects incomplete jobs, unexpected extra files, checksum mismatches, and conflicting repeated closure; an identical existing index is fully recomputed and byte-verified. The historical finalizer wrapper itself remains single-attempt.
 
 Build a browser publication only from completed canaries:
 
@@ -344,6 +344,99 @@ certification mismatch is conservative relative to the discrete reference
 by inference from the inspected comparison logic, not a general false-safe
 guarantee. `modal_independent_confirmation.py` and its TOML remain unchanged
 historical replay assets; do not invoke them for another holdout.
+
+### Source-bound private policy comparison: not yet run
+
+The new source implementation is `UNCLIPPED_RATIO_LIFT_WPDIS_V1`, not the
+historical soft-clipped estimator. The honest client validates logged-action
+ratios for both frozen policies, forms policy-independent action/feature/behavior
+ratio lifts, and encrypts one reusable request. The server uses a known inclusive
+prefix network and returns 2H encrypted mean statistics per policy. Counts come
+from the public fixed shape; discounting and division remain client-side. Request
+digests bind the full ciphertext bytes and chunk cover, not just the shape.
+This is an honest-client/honest-but-curious protocol, not malicious-server
+integrity, differential privacy, private training, or a new prefix-scan algorithm.
+
+The H64 profile is degree 16384, scale `2**40`, and `(60, *([40]*8), 58)`:
+eight multiplication levels and 438 total modulus bits. Static range receipts
+bound coefficient accumulation, prefix nodes, normalized products and slot
+reduction before and after rescaling. Analysis reconstructs the canonical receipt
+from the frozen specification and recorded actual modulus integers and verifies
+its digest; an opaque checksum alone cannot pass numerical admission. These are
+supported-domain obligations, not a global CKKS accuracy certificate or evidence
+of actual SEAL acceptance. The preserved V1 count path is diagnosed separately.
+
+The fixed queue compares ordered policies A and B on identical data. Clear
+references include IS, PDIS, WPDIS, hard clips 2 and 10, fitted-model DM,
+full sequential DR, globally normalized cross-fitted WDR, and state-action MIS.
+The client bootstrap shares whole-trajectory draws between policies and reports
+raw and discounted-unit-bound-normalized estimates, endpoints and standard
+errors. Confirmation decisions use the client interval translated around the
+ciphertext contrast; this is not an encrypted bootstrap.
+
+| Frozen phase | Planned jobs | Empirical scope | Current status |
+|---|---:|---|---|
+| Diagnostic D | 16 | verification, 12 count contexts, two infrastructure probes, analysis | Not run |
+| Pilot P | 156 | 128 clear batches, 27 contexts / 53 policy evaluations, analysis | Not run |
+| Confirmation C | 241 | 240 contexts / 480 policy evaluations, analysis | Not run |
+
+`private_ope_capture_sources` captures the exact committed source into the
+ignored `.private-ope-image/` snapshot and `.private-ope-source.json` bundle.
+Image inputs come from the committed snapshot, not live worktree directories;
+runtime verification rejects incomplete manifests and extra packaged files.
+The build explicitly selects Modal builder `2025.06` through
+`MODAL_IMAGE_BUILDER_VERSION`. Every manifest binds four complete code manifests,
+the lockfile, image specification and an immutable deployed version.
+Config-only commits do not become the image's code commit. The local entrypoints
+are `private_ope_inspect`, `private_ope_launch`, and `private_ope_close`; launch
+and close resolve the frozen deployed Function rather than call an ephemeral
+`modal run` worker. Configuration files are frozen only after those identities
+and their predecessor evidence actually exist; do not fill them with invented
+digests or deployment versions.
+
+The singleton coordinator reserves each seed namespace before initialization,
+commits an initialization marker before dispatch, and records dispatch intent
+before spawn. Workers claim a slot before backend imports and random draws,
+write only disjoint transport receipts, and never update the canonical registry.
+Recovery cancels known calls and retains every fixed slot, including unknown
+dispatch windows and unattempted jobs, without replacement scientific attempts.
+Rescheduling the originating coordinator input enters recovery, while a separate
+duplicate launch returns the reservation without computation. A rescheduled
+worker reuses its immutable entry rather than acquiring another scientific
+attempt. The 60-second artifact-visibility grace never extends a computation
+deadline or recovery completion cutoff. Budget and wave capacity are checked
+before each worker spawn, and each new wave must fit entirely before cycle reset.
+The checksum ledger excludes itself and the index; `evidence-index.json` is the
+sole closure marker. A validated failed-science artifact is registry success,
+not scientific promotion.
+
+Both timing arms use the same canonical length-prefixed binary framing and
+retain their exact request/response wire payloads. This avoids charging only the
+raw baseline for base64 expansion or redundant framing work.
+
+Before any image build or dispatch, an Owner or Manager must verify a hard
+workspace **usage** cap covering physical rescheduling, startup, builds and
+storage. A spend limit after credits is not sufficient. Remaining authorized
+allowances are at most $10 for D, $30 for P, and $100 for C; the complete
+projected stage plus overhead must fit. The guard is checksum-bound at
+`private-ope-budget-guards/<receipt-sha256>.json` on the evidence Volume, with
+the authenticated observation artifact retained separately by its digest.
+No unattended billing-cycle reset, parameter search, backend switch or failed
+holdout replacement is authorized.
+
+Local verification excludes real cryptographic execution:
+
+```bash
+uv run pytest tests/test_ope_estimators.py tests/test_ope_ckks.py tests/test_flagship_registry.py tests/test_ratio_lift_wpdis.py -m 'not fhe and not slow and not modal'
+uv run pytest -m 'not fhe and not slow and not modal'
+```
+
+The source also includes focused manifest, study, executor and crash-accounting
+regressions. Actual prime/level acceptance, request reuse precision, full
+8192/8193 chunk execution, and the operational closure path are reserved for the
+Modal D verification slot. Passing local tests does not promote D, P or C.
+The current public v1 publication and manuscript results remain historical;
+they have not been replaced by a provisional private-OPE result.
 
 ## Artifact schemas
 

@@ -94,6 +94,9 @@ class CKKSContextReceipt:
         "one logical real vector per ciphertext; inputs above degree/2 slots are rejected"
     )
     schema_version: str = "unseen-loop/ckks-context-receipt-v2"
+    actual_coeff_modulus_primes: tuple[int, ...] | None = None
+    data_chain_length: int | None = None
+    seal_version: str = "not-exposed"
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), sort_keys=True, indent=2)
@@ -441,6 +444,9 @@ def generate_contexts(parameters: CKKSParameters | None = None) -> CKKSContextAr
         server_context_is_private=server_is_private,
         effective_security_level=effective_security_level,
         security_enforced=True,
+        actual_coeff_modulus_primes=context_modulus_primes(context),
+        data_chain_length=len(parameters.coeff_mod_bit_sizes) - 1,
+        seal_version=str(getattr(tenseal, "SEAL_VERSION", "not-exposed")),
     )
     return CKKSContextArtifacts(client_context, server_context, receipt)
 
@@ -465,6 +471,18 @@ def _import_tenseal() -> Any:
             "TenSEAL is not installed; CKKS execution is unavailable and no clear backend "
             "will be substituted. Install a compatible TenSEAL build explicitly."
         ) from error
+
+
+def context_modulus_primes(context: Any) -> tuple[int, ...] | None:
+    """Read the key-level modulus values if this binding exposes them."""
+    try:
+        wrapped = context.seal_context()
+        seal = getattr(wrapped, "data", wrapped)
+        moduli = seal.key_context_data().parms().coeff_modulus()
+        return tuple(int(prime.value()) for prime in moduli)
+    except (AttributeError, TypeError):
+        # Some TenSEAL wheels omit the Modulus pybind registration.
+        return None
 
 
 def _require_tc128_security(context: Any, tenseal: Any, parameters: CKKSParameters) -> str:

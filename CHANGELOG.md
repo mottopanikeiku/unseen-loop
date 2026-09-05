@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Source-bound private policy comparison
+
+- Archived failed `independent-confirmation-20260904-001` byte-for-byte, with a separate checksum-bound diagnostic receipt for four logged CKKS count-validation exceptions. Original failed gates and unknown historical source/image provenance remain unchanged.
+- Implemented the distinct `UNCLIPPED_RATIO_LIFT_WPDIS_V1` protocol: client-side policy-independent ratio lifting, known logarithmic prefix products, globally normalized 2H mean statistics, exact public counts, ordered two-policy request reuse, and strict ciphertext request/response binding. Historical soft-clipped V1 semantics remain separate.
+- Added fixed H64/N4096 precision planning and intermediate-DAG range receipts, a fixed queue policy comparison, paired client bootstrap, and cross-fitted DM/sequential DR/WDR/MIS alongside the IS-family references.
+- Added strict D16/P156/C241 manifests, fresh-context encrypted benchmark arms, complete-denominator gate analysis, source/version-bound Modal workers, claim-before-compute transport, deadline recovery, and byte-verified repeat closure.
+- Pinned SciPy 1.14.1 and Modal 1.5.4. Removed unused eager package-root re-exports so worker entry can claim its attempt before estimator/backend imports; import symbols from their owning modules.
+- This is a source implementation, not a new empirical result. Diagnostic, pilot, confirmation, publication replacement, and positive-result claims remain gated on authenticated hard-budget evidence and checksum-closed Modal execution.
+
 ### Integrated flagship
 
 - Added CipherShield-RL: a private six-feature warehouse state, five public candidate actions, two polynomial counterfactual horizons, four strict-positive safety-margin families, conservative client buffers, and stable client-only selection.

@@ -231,6 +231,18 @@ def test_finalizer_closes_one_root_index_and_validates_rejections(tmp_path: Path
     assert payload["supporting_artifacts"] == {
         "shared/server.zip": hashlib.sha256(supporting.read_bytes()).hexdigest()
     }
+    closed_bytes = index.read_bytes()
+    closed_mtime = index.stat().st_mtime_ns
+    assert (
+        finalize_evidence(
+            registry,
+            evidence_root=tmp_path,
+            supporting_paths=("shared/server.zip",),
+        )
+        == index
+    )
+    assert index.read_bytes() == closed_bytes
+    assert index.stat().st_mtime_ns == closed_mtime
     with pytest.raises(RegistryError, match="replace"):
         finalize_evidence(registry, evidence_root=tmp_path, reject_extra_files=False)
 
@@ -248,3 +260,127 @@ def test_registry_detects_hash_chain_tampering(tmp_path: Path) -> None:
 
     with pytest.raises(RegistryError, match="hash chain"):
         registry.snapshot()
+
+
+def _closed_registry(root: Path) -> tuple[AppendOnlyRegistry, Path]:
+    artifact = root / "attempt.json"
+    # Scientific failure is valid successful evidence, unlike a failed registry transition.
+    artifact.write_bytes(b'{"completed":false,"failure_code":"runtime.timeout"}\n')
+    job = _job("job-retained-failure")
+    registry = AppendOnlyRegistry.create(
+        root / "registry.jsonl", jobs=(job,), provenance=_provenance()
+    )
+    registry.started(job.job_id)
+    registry.succeeded(
+        job.job_id,
+        artifact_path=artifact.name,
+        artifact_digest=hashlib.sha256(artifact.read_bytes()).hexdigest(),
+    )
+    return registry, artifact
+
+
+def test_duplicate_registry_creation_cannot_reset_attempts(tmp_path: Path) -> None:
+    registry, _ = _closed_registry(tmp_path)
+    original = registry.path.read_bytes()
+    with pytest.raises(RegistryError):
+        AppendOnlyRegistry.create(
+            registry.path,
+            jobs=(_job("job-retained-failure"),),
+            provenance=_provenance(),
+        )
+    assert registry.path.read_bytes() == original
+    assert registry.snapshot().records[0].status == JobStatus.SUCCEEDED
+
+
+@pytest.mark.parametrize("mutation", ["artifact", "index", "extra", "registry"])
+def test_repeat_closure_revalidates_all_evidence(tmp_path: Path, mutation: str) -> None:
+    registry, artifact = _closed_registry(tmp_path)
+    index = finalize_evidence(registry, evidence_root=tmp_path)
+    if mutation == "artifact":
+        artifact.write_bytes(b"changed result")
+    elif mutation == "index":
+        # Even semantically equivalent but noncanonical marker bytes are not replaceable.
+        index.write_bytes(index.read_bytes() + b"\n")
+    elif mutation == "extra":
+        (tmp_path / "late-worker-result.json").write_bytes(b"orphan result")
+    else:
+        with registry.path.open("ab") as handle:
+            handle.write(b'{"invalid":"event"}\n')
+    preserved = index.read_bytes()
+    with pytest.raises(RegistryError):
+        finalize_evidence(registry, evidence_root=tmp_path)
+    assert index.read_bytes() == preserved
+
+
+def test_checksum_closure_is_acyclic_complete_and_repeatable(tmp_path: Path) -> None:
+    registry, artifact = _closed_registry(tmp_path)
+    ledger = tmp_path / "checksums.sha256"
+    ledger.write_text(
+        "".join(
+            f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n"
+            for path in (artifact, registry.path)
+        )
+    )
+    index = finalize_evidence(
+        registry,
+        evidence_root=tmp_path,
+        supporting_paths=(ledger.name,),
+    )
+    payload = json.loads(index.read_bytes())
+    assert (
+        payload["supporting_artifacts"][ledger.name]
+        == hashlib.sha256(ledger.read_bytes()).hexdigest()
+    )
+    assert (
+        finalize_evidence(
+            registry,
+            evidence_root=tmp_path,
+            supporting_paths=(ledger.name,),
+        )
+        == index
+    )
+
+
+@pytest.mark.parametrize("invalid", ["self", "index", "missing", "duplicate", "wrong_digest"])
+def test_checksum_ledger_cannot_omit_files_or_create_cycles(tmp_path: Path, invalid: str) -> None:
+    registry, artifact = _closed_registry(tmp_path)
+    rows = [
+        f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n"
+        for path in (artifact, registry.path)
+    ]
+    if invalid == "self":
+        rows.append(f"{DIGEST_A}  checksums.sha256\n")
+    elif invalid == "index":
+        rows.append(f"{DIGEST_A}  evidence-index.json\n")
+    elif invalid == "missing":
+        rows.pop()
+    elif invalid == "duplicate":
+        rows.append(rows[0])
+    else:
+        rows[0] = f"{DIGEST_A}  {artifact.name}\n"
+    ledger = tmp_path / "checksums.sha256"
+    ledger.write_text("".join(rows))
+    with pytest.raises(RegistryError):
+        finalize_evidence(registry, evidence_root=tmp_path, supporting_paths=(ledger.name,))
+    assert not (tmp_path / "evidence-index.json").exists()
+
+
+def test_atomic_closure_does_not_leave_a_marker_on_failed_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import unseen_loop.flagship.registry as registry_module
+
+    registry, _ = _closed_registry(tmp_path)
+    real_rename = registry_module.os.rename
+
+    def interrupted_rename(*args, **kwargs):
+        raise OSError("simulated publication interruption")
+
+    monkeypatch.setattr(registry_module.os, "rename", interrupted_rename)
+    with pytest.raises(OSError):
+        finalize_evidence(registry, evidence_root=tmp_path)
+    assert not (tmp_path / "evidence-index.json").exists()
+    monkeypatch.setattr(registry_module.os, "rename", real_rename)
+    index = finalize_evidence(registry, evidence_root=tmp_path)
+    assert json.loads(index.read_bytes())["planned_job_ids"] == ["job-retained-failure"]

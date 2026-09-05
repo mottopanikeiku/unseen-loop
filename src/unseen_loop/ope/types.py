@@ -450,6 +450,57 @@ class PolynomialPolicySpec:
             )
         return np.stack(features, axis=-1)
 
+    def probability_bounds(
+        self, trajectory_spec: TrajectorySpec
+    ) -> tuple[tuple[float, float], ...]:
+        """Interval-prove the public polynomial on a closed state box.
+
+        This is the historical V1 interval proof, including its conservative
+        treatment of quadratic monomials and probability tolerance.
+        """
+        if (
+            self.state_dim != trajectory_spec.state_dim
+            or self.action_count != trajectory_spec.action_count
+        ):
+            raise ValueError("trajectory and target-policy dimensions differ")
+        if not trajectory_spec.state_min:
+            raise ValueError("closed state bounds are required for the CKKS range receipt")
+        tolerance = self.probability_tolerance
+        coefficient_sums = np.sum(np.asarray(self.coefficients), axis=0)
+        if abs(float(coefficient_sums[0]) - 1.0) > tolerance or np.any(
+            np.abs(coefficient_sums[1:]) > tolerance
+        ):
+            raise ValueError("target polynomial is not proved to sum to one on the state box")
+        lows, highs = trajectory_spec.state_min, trajectory_spec.state_max
+        intervals: list[tuple[float, float]] = [(1.0, 1.0)]
+        intervals.extend(zip(lows, highs, strict=True))
+        if self.degree == 2:
+            for left in range(self.state_dim):
+                for right in range(left, self.state_dim):
+                    products = (
+                        lows[left] * lows[right],
+                        lows[left] * highs[right],
+                        highs[left] * lows[right],
+                        highs[left] * highs[right],
+                    )
+                    intervals.append((min(products), max(products)))
+        bounds: list[tuple[float, float]] = []
+        for action, coefficients in enumerate(self.coefficients):
+            lower = upper = 0.0
+            for coefficient, (feature_low, feature_high) in zip(
+                coefficients, intervals, strict=True
+            ):
+                endpoints = coefficient * feature_low, coefficient * feature_high
+                lower += min(endpoints)
+                upper += max(endpoints)
+            if lower < -tolerance or upper > 1.0 + tolerance:
+                raise ValueError(
+                    f"action-{action} target polynomial is not proved inside [0, 1] "
+                    "on the closed state box"
+                )
+            bounds.append((max(0.0, lower), min(1.0, upper)))
+        return tuple(bounds)
+
     def action_probabilities(self, states: npt.ArrayLike) -> FloatArray:
         probabilities = self.polynomial_features(states) @ np.asarray(self.coefficients).T
         tolerance = self.probability_tolerance

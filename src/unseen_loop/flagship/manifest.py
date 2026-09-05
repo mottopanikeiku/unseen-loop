@@ -5,6 +5,8 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import math
+import re
 import tomllib
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
@@ -243,7 +245,9 @@ def _jsonable(value: object) -> object:
 
 
 def canonical_json(value: object) -> bytes:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False
+    ).encode()
 
 
 def content_digest(value: object) -> str:
@@ -296,7 +300,13 @@ def _coerce_field(value: object, annotation: object, name: str) -> object:
     if annotation is float or text in {"float", "'float'"}:
         if type(value) not in (int, float):
             raise ManifestError(f"{name} must be numeric")
-        return float(cast(int | float, value))
+        try:
+            numeric_value = float(cast(int | float, value))
+        except OverflowError as exc:
+            raise ManifestError(f"{name} must be finite") from exc
+        if not math.isfinite(numeric_value):
+            raise ManifestError(f"{name} must be finite")
+        return numeric_value
     if "tuple[str" in text:
         if (
             not isinstance(value, list)
@@ -320,7 +330,12 @@ def _coerce_field(value: object, annotation: object, name: str) -> object:
             or not all(type(item) in (int, float) for item in value)
         ):
             raise ManifestError(f"{name} must be a non-empty numeric array")
-        result = tuple(float(item) for item in value)
+        try:
+            result = tuple(float(item) for item in value)
+        except OverflowError as exc:
+            raise ManifestError(f"{name} must contain only finite numbers") from exc
+        if not all(math.isfinite(item) for item in result):
+            raise ManifestError(f"{name} must contain only finite numbers")
         if len(set(result)) != len(result):
             raise ManifestError(f"{name} contains duplicates")
         return result
@@ -826,3 +841,673 @@ def assert_disjoint_job_seeds(jobs: Sequence[PlannedJob]) -> None:
     seeds = {job.seed for job in jobs}
     if len(ids) != len(jobs) or len(seeds) != len(jobs):
         raise ManifestError("planned jobs contain a duplicate ID or seed")
+
+
+PRIVATE_OPE_SCHEMA_VERSION = "unseen-loop/private-ope-study-v1"
+PRIVATE_OPE_METHOD = "UNCLIPPED_RATIO_LIFT_WPDIS_V1"
+PRIVATE_OPE_BASELINE_IDS = (
+    "is",
+    "pdis",
+    "wpdis",
+    "clipped_wpdis_2",
+    "clipped_wpdis_10",
+    "dm",
+    "dr",
+    "wdr",
+    "mis",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class PrivateOPEDomain:
+    identifier: str
+    queue_capacity: int
+    initial_queue: int
+    horizon: int
+    gamma: float
+    arrival_zero: float
+    arrival_one: float
+    arrival_two: float
+    service_economy: float
+    service_surge: float
+    effort_cost: float
+    overflow_cost: float
+    reward_scale: float
+    clear_trajectories: int
+    cipher_trajectories: int
+    legacy_trajectories: int
+    legacy_horizon: int
+
+
+@dataclass(frozen=True, slots=True)
+class PrivateOPEPolicies:
+    identifier: str
+    a_surge_intercept: float
+    a_surge_slope: float
+    b_surge_intercept: float
+    b_surge_slope: float
+    behavior_a_fraction: float
+    stress_primary_fraction: float
+    primary_propensity_floor: float
+    primary_ratio_bound: float
+    stress_propensity_floor: float
+    stress_ratio_bound: float
+    policy_order: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PrivateOPEStatistics:
+    bootstrap_repetitions: int
+    bootstrap_block_size: int
+    interval_level: float
+    quantile_method: str
+    folds: int
+    transition_prior_per_cell: float
+    reward_prior_count: float
+    reward_prior_sum: float
+    bias_interval: str
+    rmse_bootstrap_repetitions: int
+    timing_bootstrap_repetitions: int
+    normalization: str
+    baseline_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PrivateOPECrypto:
+    security_bits: int
+    poly_modulus_degree: int
+    scale_bits: int
+    first_prime_bits: int
+    special_prime_bits: int
+    raw_scale_bits: int
+    raw_h64_depth: int
+    legacy_scale_bits: int
+    legacy_endpoint_bits: int
+    legacy_h8_depth: int
+    maximum_horizon: int
+    range_reserve_bits: int
+    ablation_horizons: tuple[int, ...]
+    count_diagnostic_sizes: tuple[int, ...]
+    count_replicas: int
+    counts_source: str
+    bootstrap_enabled: bool
+
+
+@dataclass(frozen=True, slots=True)
+class PrivateOPEExecution:
+    app_name: str
+    environment_name: str
+    deployment_version: int
+    code_commit: str
+    candidate_code_sha256: str
+    baseline_code_sha256: str
+    domain_code_sha256: str
+    analysis_code_sha256: str
+    lockfile_sha256: str
+    image_spec_sha256: str
+    budget_envelope_usd: float
+    budget_guard_sha256: str
+    max_in_flight: int
+    startup_timeout_s: int
+    artifact_grace_s: int
+    wave_timeout_s: int
+    clear_timeout_s: int
+    clear_deadline_s: int
+    crypto_timeout_s: int
+    crypto_deadline_s: int
+    verification_timeout_s: int
+    verification_deadline_s: int
+    analysis_timeout_s: int
+    analysis_deadline_s: int
+    probe_timeout_s: int
+    probe_deadline_s: int
+    crypto_cpu: int
+    crypto_memory_mib: int
+    clear_cpu: int
+    clear_memory_mib: int
+    coordinator_cpu: float
+    coordinator_memory_mib: int
+
+
+@dataclass(frozen=True, slots=True)
+class PrivateOPEGates:
+    diagnostic_sum_abs_error: float
+    verification_reuse_tolerance: float
+    minimum_normalized_gap: float
+    pilot_coverage_successes: int
+    pilot_choice_successes: int
+    median_ess_fraction: float
+    p05_ess_fraction: float
+    maximum_normalized_cipher_error: float
+    maximum_cipher_error_se_fraction: float
+    maximum_mean_statistic_abs_error: float
+    maximum_denominator_relative_error: float
+    minimum_median_speedup: float
+    pilot_speedup_lower_exclusive: float
+    confirmation_speedup_lower_inclusive: float
+    confirmation_coverage_lower: float
+    confirmation_choice_lower: float
+    confirmation_bias_equivalence_margin: float
+    confirmation_maximum_rmse: float
+    maximum_peak_rss_gib: float
+    maximum_context_gib_exclusive: float
+
+
+@dataclass(frozen=True, slots=True)
+class PrivateOPEPredecessors:
+    historical_confirmation_id: str
+    historical_summary_sha256: str
+    historical_ledger_sha256: str
+    previous_run_id: str
+    previous_config_sha256: str
+    previous_index_sha256: str
+    pilot_kernel_sha256: str
+    pilot_policies_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class PrivateOPEManifest:
+    schema_version: str
+    method: str
+    phase: str
+    seed_root: str
+    domain: PrivateOPEDomain
+    policies: PrivateOPEPolicies
+    statistics: PrivateOPEStatistics
+    crypto: PrivateOPECrypto
+    execution: PrivateOPEExecution
+    gates: PrivateOPEGates
+    predecessors: PrivateOPEPredecessors
+    digest: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return scientific/configuration fields; digest binds the original TOML bytes."""
+        payload = cast(dict[str, Any], _jsonable(self))
+        payload.pop("digest")
+        return payload
+
+
+def private_ope_fixed_tables(phase: str) -> dict[str, Any]:
+    """Return fresh frozen-value tables, without invented source or predecessor evidence.
+
+    Execution deliberately omits its deployment/source/budget-guard fields. Callers must
+    supply those verified values and the complete predecessors table before parsing.
+    """
+    if phase not in {"diagnostic", "pilot", "confirmation"}:
+        raise ManifestError("unknown private OPE phase")
+    return {
+        "schema_version": PRIVATE_OPE_SCHEMA_VERSION,
+        "method": PRIVATE_OPE_METHOD,
+        "phase": phase,
+        "seed_root": f"unseen-loop-private-ope-ratio-lift-v1-{phase}",
+        "domain": _jsonable(
+            PrivateOPEDomain(
+                "QUEUE_POLICY_COMPARISON_V1",
+                15,
+                8,
+                64,
+                0.99,
+                0.55,
+                0.35,
+                0.10,
+                0.35,
+                0.80,
+                0.15,
+                0.50,
+                2.15,
+                2048,
+                4096,
+                64,
+                8,
+            )
+        ),
+        "policies": _jsonable(
+            PrivateOPEPolicies(
+                "QUEUE_ORDERED_POLICIES_V1",
+                0.20,
+                0.50,
+                0.30,
+                0.50,
+                0.50,
+                0.50,
+                0.25,
+                1.20,
+                0.375,
+                1.28,
+                ("A", "B"),
+            )
+        ),
+        "statistics": _jsonable(
+            PrivateOPEStatistics(
+                1000,
+                64,
+                0.95,
+                "linear",
+                4,
+                0.5,
+                0.5,
+                -0.25,
+                "student_t",
+                10000,
+                10000,
+                "discounted_unit_reward_bound",
+                PRIVATE_OPE_BASELINE_IDS,
+            )
+        ),
+        "crypto": _jsonable(
+            PrivateOPECrypto(
+                128,
+                16384,
+                40,
+                60,
+                58,
+                32,
+                10,
+                24,
+                40,
+                14,
+                64,
+                2,
+                (8, 32, 64),
+                (64, 4096),
+                3,
+                "public_fixed_shape",
+                False,
+            )
+        ),
+        "execution": {
+            "app_name": "unseen-loop-flagship",
+            "environment_name": "main",
+            "budget_envelope_usd": {"diagnostic": 10.0, "pilot": 30.0, "confirmation": 100.0}[
+                phase
+            ],
+            "max_in_flight": 2,
+            "startup_timeout_s": 300,
+            "artifact_grace_s": 60,
+            "wave_timeout_s": 79200,
+            "clear_timeout_s": 600,
+            "clear_deadline_s": 900,
+            "crypto_timeout_s": 1800,
+            "crypto_deadline_s": 2100,
+            "verification_timeout_s": 7200,
+            "verification_deadline_s": 7500,
+            "analysis_timeout_s": 1800,
+            "analysis_deadline_s": 2100,
+            "probe_timeout_s": 2,
+            "probe_deadline_s": 300,
+            "crypto_cpu": 8,
+            "crypto_memory_mib": 32768,
+            "clear_cpu": 2,
+            "clear_memory_mib": 8192,
+            "coordinator_cpu": 0.5,
+            "coordinator_memory_mib": 1024,
+        },
+        "gates": _jsonable(
+            PrivateOPEGates(
+                0.25,
+                1e-9,
+                0.01,
+                58,
+                55,
+                0.10,
+                0.02,
+                0.001,
+                0.10,
+                0.001,
+                0.01,
+                1.25,
+                1.0,
+                1.10,
+                0.90,
+                0.85,
+                0.005,
+                0.02,
+                24.0,
+                1.5,
+            )
+        ),
+    }
+
+
+def parse_private_ope_manifest_bytes(data: bytes) -> PrivateOPEManifest:
+    """Strictly parse the source-bound fixed study; this performs no empirical work."""
+    try:
+        root = tomllib.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        raise ManifestError(f"invalid UTF-8 TOML manifest: {exc}") from exc
+    if "digest" in root:
+        raise ManifestError("digest is derived from exact input bytes, not supplied")
+    manifest = _construct(
+        PrivateOPEManifest,
+        {**root, "digest": content_digest(data)},
+        "private_ope",
+        {
+            "domain": PrivateOPEDomain,
+            "policies": PrivateOPEPolicies,
+            "statistics": PrivateOPEStatistics,
+            "crypto": PrivateOPECrypto,
+            "execution": PrivateOPEExecution,
+            "gates": PrivateOPEGates,
+            "predecessors": PrivateOPEPredecessors,
+        },
+    )
+    _validate_private_ope_manifest(manifest)
+    return manifest
+
+
+def _private_digest(value: str, name: str) -> None:
+    if re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        raise ManifestError(f"{name} must be a lowercase SHA-256 digest")
+
+
+def _validate_private_ope_manifest(m: PrivateOPEManifest) -> None:
+    frozen = private_ope_fixed_tables(m.phase)
+    supplied = m.to_dict()
+    for key, expected in frozen.items():
+        if isinstance(expected, dict):
+            for field, value in expected.items():
+                if supplied[key][field] != value:
+                    raise ManifestError(f"{key}.{field} is fixed for {PRIVATE_OPE_METHOD}")
+        elif supplied[key] != expected:
+            raise ManifestError(f"{key} is fixed for {PRIVATE_OPE_METHOD}")
+    e, p = m.execution, m.predecessors
+    if e.deployment_version <= 0 or re.fullmatch(r"[0-9a-f]{40}", e.code_commit) is None:
+        raise ManifestError("execution requires an immutable commit and positive deployed version")
+    for field in dataclasses.fields(e):
+        if field.name.endswith("_sha256"):
+            _private_digest(getattr(e, field.name), f"execution.{field.name}")
+    historical = {
+        "historical_confirmation_id": "independent-confirmation-20260904-001",
+        "historical_summary_sha256": (
+            "9233207bce45cdc8cd95fa026f2026571715185d055a0bcd83655d33c87d6b17"
+        ),
+        "historical_ledger_sha256": (
+            "4227d8e154979d49031547a32c026d63f0feeebb7e79cef3e04607114f1f6885"
+        ),
+    }
+    if any(getattr(p, key) != value for key, value in historical.items()):
+        raise ManifestError("historical predecessor must match the immutable confirmation archive")
+    previous = (p.previous_run_id, p.previous_config_sha256, p.previous_index_sha256)
+    if m.phase == "diagnostic":
+        if previous != ("not-applicable",) * 3:
+            raise ManifestError("diagnostic predecessor fields must be not-applicable")
+    else:
+        phase = "diagnostic" if m.phase == "pilot" else "pilot"
+        _private_digest(p.previous_config_sha256, "predecessors.previous_config_sha256")
+        _private_digest(p.previous_index_sha256, "predecessors.previous_index_sha256")
+        if p.previous_run_id != f"private-ope-{phase}-{p.previous_config_sha256[:24]}":
+            raise ManifestError("predecessor ID must bind the exact preceding phase/config digest")
+    for name in ("pilot_kernel_sha256", "pilot_policies_sha256"):
+        value = getattr(p, name)
+        if m.phase == "confirmation":
+            _private_digest(value, f"predecessors.{name}")
+        elif value != "not-applicable":
+            raise ManifestError(f"predecessors.{name} is only applicable to confirmation")
+    _validate_private_ope_arithmetic(m)
+    jobs = iter_private_ope_jobs(m)
+    expected_count = {"diagnostic": 16, "pilot": 156, "confirmation": 241}[m.phase]
+    if len(jobs) != expected_count:
+        raise ManifestError("private OPE plan denominator mismatch")
+    _validate_private_ope_wave_bounds(m, jobs)
+
+
+def _validate_private_ope_arithmetic(m: PrivateOPEManifest) -> None:
+    """Algebraic checks only: no random draws, nuisance fitting or truth DP."""
+    d, p, c = m.domain, m.policies, m.crypto
+    if not math.isclose(d.arrival_zero + d.arrival_one + d.arrival_two, 1.0, abs_tol=1e-15):
+        raise ManifestError("arrival probabilities must sum to one")
+    if not math.isclose(1.0 + d.effort_cost + 2 * d.overflow_cost, d.reward_scale):
+        raise ManifestError("reward normalization does not cover the queue domain")
+    primary_floor = stress_floor = 1.0
+    primary_ratio = stress_ratio = 0.0
+    for x in (0.0, 1.0):
+        a = p.a_surge_intercept + p.a_surge_slope * x
+        b = p.b_surge_intercept + p.b_surge_slope * x
+        mu = p.behavior_a_fraction * a + (1 - p.behavior_a_fraction) * b
+        stress = p.stress_primary_fraction * mu + (1 - p.stress_primary_fraction) * 0.5
+        primary_floor = min(primary_floor, mu, 1 - mu)
+        stress_floor = min(stress_floor, stress, 1 - stress)
+        primary_ratio = max(primary_ratio, a / mu, b / mu, (1 - a) / (1 - mu), (1 - b) / (1 - mu))
+        stress_ratio = max(
+            stress_ratio, a / stress, b / stress, (1 - a) / (1 - stress), (1 - b) / (1 - stress)
+        )
+    # Ratios of affine functions are monotone (or constant), so endpoints suffice.
+    for observed, bound in (
+        (primary_floor, p.primary_propensity_floor),
+        (stress_floor, p.stress_propensity_floor),
+        (primary_ratio, p.primary_ratio_bound),
+        (stress_ratio, p.stress_ratio_bound),
+    ):
+        if not math.isclose(observed, bound, rel_tol=0.0, abs_tol=1e-14):
+            raise ManifestError("policy/behavior support frontier disagrees with its frozen bound")
+    for horizon, total in ((8, 318), (32, 398), (64, 438)):
+        depth = (horizon - 1).bit_length() + 2
+        bits = c.first_prime_bits + c.scale_bits * depth + c.special_prime_bits
+        if bits != total or bits > 438:
+            raise ManifestError("candidate chain violates frozen tc128 bit budget")
+    if c.first_prime_bits + c.raw_scale_bits * c.raw_h64_depth + c.special_prime_bits != 438:
+        raise ManifestError("raw prefix chain violates frozen tc128 bit budget")
+    if 2 * c.legacy_endpoint_bits + c.legacy_scale_bits * c.legacy_h8_depth > 438:
+        raise ManifestError("legacy chain violates tc128 bit budget")
+    if p.primary_ratio_bound**d.horizon >= 2 ** (
+        c.first_prime_bits - 1 - c.scale_bits - c.range_reserve_bits
+    ):
+        raise ManifestError("cumulative ratio violates the final-prime range reserve")
+    # The protocol owns the complete exact-DAG intermediate proof, shared with runtime.
+    from unseen_loop.ope.lifted import RatioLiftWPDISSpec
+    from unseen_loop.ope.types import PolynomialPolicySpec, TrajectorySpec
+
+    policies = tuple(
+        PolynomialPolicySpec(
+            coefficients=((1 - intercept, -slope), (intercept, slope)),
+            action_count=2,
+            state_dim=1,
+            degree=1,
+        )
+        for intercept, slope in (
+            (p.a_surge_intercept, p.a_surge_slope),
+            (p.b_surge_intercept, p.b_surge_slope),
+        )
+    )
+    for horizon in c.ablation_horizons:
+        spec = RatioLiftWPDISSpec(
+            trajectories=TrajectorySpec(
+                trajectories=d.cipher_trajectories,
+                horizon=horizon,
+                state_dim=1,
+                action_count=2,
+                state_min=(0.0,),
+                state_max=(1.0,),
+                reward_min=-1.0,
+                reward_max=0.0,
+            ),
+            target_policies=policies,
+            gamma=d.gamma,
+            minimum_behavior_propensity=p.primary_propensity_floor,
+            maximum_importance_ratio=p.primary_ratio_bound,
+        )
+        spec.computation_receipt()
+
+
+def iter_private_ope_jobs(manifest: PrivateOPEManifest) -> tuple[PlannedJob, ...]:
+    """Materialize every fixed slot, preserving pair order and shared case seeds."""
+    phase = manifest.phase
+    if phase not in {"diagnostic", "pilot", "confirmation"}:
+        raise ManifestError("unknown private OPE phase")
+    jobs: list[PlannedJob] = []
+    case_seeds: dict[str, tuple[int, int]] = {}
+
+    def add(
+        kind: str,
+        cohort: str,
+        index: int,
+        n: int,
+        h: int,
+        behavior: str,
+        arm: str,
+        wave: int,
+    ) -> None:
+        coordinates: dict[str, str | int | float] = {
+            "kind": kind,
+            "cohort": cohort,
+            "case_index": index,
+            "trajectories": n,
+            "horizon": h,
+            "behavior": behavior,
+            "arm": arm,
+            "wave_index": wave,
+        }
+        identity = {
+            "schema_version": PRIVATE_OPE_SCHEMA_VERSION,
+            "seed_root": manifest.seed_root,
+            "phase": phase,
+            "coordinates": coordinates,
+        }
+        job_id = f"job-private_ope_{phase}-{content_digest(identity)[:24]}"
+        if kind in {
+            "clear_batch",
+            "paired_context",
+            "ablation_context",
+            "historical_context",
+            "statistical_context",
+            "timing_context",
+        }:
+            case_identity = {
+                "phase": phase,
+                "cohort": cohort,
+                "case_index": index,
+                "trajectories": n,
+                "horizon": h,
+                "behavior": behavior,
+            }
+            case_id = f"case-{content_digest(case_identity)[:24]}"
+            seeds = (
+                derive_seed(manifest.seed_root, "data:" + case_id),
+                derive_seed(manifest.seed_root, "bootstrap:" + case_id),
+            )
+            case_seeds[case_id] = seeds
+            coordinates.update(
+                case_id=case_id, data_seed=str(seeds[0]), bootstrap_seed=str(seeds[1])
+            )
+        else:
+            coordinates.update(
+                case_id="not-applicable",
+                data_seed="not-applicable",
+                bootstrap_seed="not-applicable",
+            )
+        jobs.append(
+            PlannedJob(
+                job_id,
+                f"private_ope_{phase}",
+                derive_seed(manifest.seed_root, job_id),
+                tuple(sorted(coordinates.items())),
+            )
+        )
+
+    if phase == "diagnostic":
+        add("protocol_verification", "verification", 0, 0, 0, "none", "none", 0)
+        for index in range(3):
+            for n in (64, 4096):
+                for arm, h in (("old24", 8), ("candidate40", 64)):
+                    add("count_precision", "count", index, n, h, "none", arm, 0)
+        for kind in ("smoke_error", "smoke_timeout"):
+            add(kind, "infrastructure", 0, 0, 0, "none", "none", 0)
+        final_wave = 0
+    elif phase == "pilot":
+        for cohort, behavior in (("screen_primary", "primary"), ("screen_stress", "stress")):
+            for index in range(64):
+                add("clear_batch", cohort, index, 2048, 64, behavior, "clear", 0)
+        for index in range(10):
+            arms = (
+                ("lifted_prefix", "raw_prefix")
+                if index % 2 == 0
+                else ("raw_prefix", "lifted_prefix")
+            )
+            for arm in arms:
+                add("paired_context", "timing", index, 4096, 64, "primary", arm, 1)
+        for h in (8, 32, 64):
+            for arm in ("lifted_prefix", "lifted_independent_products"):
+                add("ablation_context", "ablation", 0, 4096, h, "primary", arm, 1)
+        add("historical_context", "legacy", 0, 64, 8, "historical", "raw_sequential_v1", 1)
+        final_wave = 1
+    else:
+        for index in range(200):
+            add(
+                "statistical_context",
+                "statistical",
+                index,
+                4096,
+                64,
+                "primary",
+                "lifted_prefix",
+                index // 40,
+            )
+        for index in range(20):
+            arms = (
+                ("lifted_prefix", "raw_prefix")
+                if index % 2 == 0
+                else ("raw_prefix", "lifted_prefix")
+            )
+            for arm in arms:
+                add("timing_context", "timing", index, 4096, 64, "primary", arm, 5 + index // 10)
+        final_wave = 6
+    add("analysis", "analysis", 0, 0, 0, "none", "none", final_wave)
+    assert_disjoint_job_seeds(jobs)
+    all_seeds = [job.seed for job in jobs]
+    all_seeds.extend(seed for pair in case_seeds.values() for seed in pair)
+    if len(all_seeds) != len(set(all_seeds)):
+        raise ManifestError("private OPE job/data/bootstrap seed collision")
+    # Frozen prior phases can be expanded without trusting or executing predecessor code.
+    for prior in ("diagnostic", "pilot")[: {"diagnostic": 0, "pilot": 1, "confirmation": 2}[phase]]:
+        predecessor = dataclasses.replace(
+            manifest, phase=prior, seed_root=f"unseen-loop-private-ope-ratio-lift-v1-{prior}"
+        )
+        prior_jobs = iter_private_ope_jobs(predecessor)
+        prior_seeds = {job.seed for job in prior_jobs}
+        prior_seeds.update(
+            int(value)
+            for job in prior_jobs
+            for name, value in job.coordinates
+            if name in {"data_seed", "bootstrap_seed"} and value != "not-applicable"
+        )
+        if set(all_seeds) & prior_seeds:
+            raise ManifestError("private OPE predecessor seed collision")
+    return tuple(jobs)
+
+
+def _validate_private_ope_wave_bounds(m: PrivateOPEManifest, jobs: Sequence[PlannedJob]) -> None:
+    e = m.execution
+    for worker in ("clear", "crypto", "verification", "analysis", "probe"):
+        timeout = getattr(e, f"{worker}_timeout_s")
+        deadline = getattr(e, f"{worker}_deadline_s")
+        if timeout > deadline or (worker != "probe" and timeout + e.startup_timeout_s > deadline):
+            raise ManifestError("worker deadline does not cover its execution/startup contract")
+    waves: dict[int, list[dict[str, str | int | float]]] = {}
+    for job in jobs:
+        c = job.coordinate_dict()
+        waves.setdefault(int(c["wave_index"]), []).append(c)
+    for wave in waves.values():
+        serial = parallel_clear = parallel_crypto = 0
+        for c in wave:
+            kind = c["kind"]
+            if kind == "analysis":
+                serial += e.analysis_deadline_s + e.artifact_grace_s
+            elif kind == "protocol_verification":
+                serial += e.verification_deadline_s + e.artifact_grace_s
+            elif kind in {"paired_context", "timing_context"}:
+                serial += e.crypto_deadline_s + e.artifact_grace_s
+            elif kind == "smoke_timeout":
+                serial += e.probe_deadline_s + e.artifact_grace_s
+            elif kind in {"clear_batch", "smoke_error"}:
+                parallel_clear += 1
+            else:
+                parallel_crypto += 1
+        bound = (
+            serial
+            + math.ceil(parallel_clear / e.max_in_flight)
+            * (e.clear_deadline_s + e.artifact_grace_s)
+            + math.ceil(parallel_crypto / e.max_in_flight)
+            * (e.crypto_deadline_s + e.artifact_grace_s)
+        )
+        if bound > e.wave_timeout_s:
+            raise ManifestError("fixed wave cannot fit the absolute deadline-plus-grace contract")

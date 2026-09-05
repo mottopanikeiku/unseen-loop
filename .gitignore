@@ -9,6 +9,8 @@ __pycache__/
 .coverage
 htmlcov/
 dist/
+.private-ope-source.json
+.private-ope-image*/
 build/
 
 # Local FHE material: never commit client secret keys

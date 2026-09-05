@@ -34,6 +34,16 @@ The shield is part of the logged MDP. Integration evidence therefore logs `reque
 
 The browser publication is [`site/data/flagship-evidence.json`](site/data/flagship-evidence.json), SHA-256 `31115fe4dba076af3b011b46eb52a5c528f9554c00dee7ad6b4c2a520156d38c`. Modal built it from three immutable canary summaries, the closed negative smoke, and the independently preregistered positive recovery; the browser verifies the copied byte digest and every displayed certificate, division, gate, and terminal-accounting invariant before rendering measurements.
 
+**Subsequent confirmation failed.** The byte-preserved
+[`independent-confirmation-20260904-001` archive](artifacts/independent-confirmation-20260904-001/)
+retains 6/10 CKKS completions and 49/50 shield certification agreements; all
+overall confirmation and scale-up booleans are false. Its separate diagnostic
+receipt records four logged count-validation exceptions without inventing
+failed count values or historical source provenance. The pinned browser
+publication above remains historical v1 evidence, not a successful independent
+confirmation. The new ratio-lift WPDIS source implementation has not run D/P/C;
+see [its verification and budget prerequisites](docs/reproduction.md#source-bound-private-policy-comparison-not-yet-run).
+
 | Canary | Exact declared accounting | Server evaluation | End-to-end | Transport |
 |---|---:|---:|---:|---:|
 | CipherShield Concrete, `qmax=2` | 15,625/15,625 simulations match + 1/1 REAL FHE tensor match | 73.916 s | 77.491 s | 758,473,160 B evaluation keys; 492,056 B request; 3,278,720 B response |

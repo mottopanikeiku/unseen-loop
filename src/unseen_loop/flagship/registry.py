@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import tempfile
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -582,6 +583,38 @@ def finalize_evidence(
         registry_relative is not None and registry_relative in supporting_artifacts
     ):
         raise RegistryError("supporting artifacts cannot replace the registry or evidence index")
+    if index_name in referenced_paths or (
+        registry_relative is not None and registry_relative in referenced_paths
+    ):
+        raise RegistryError("job artifacts cannot replace the registry or evidence index")
+    if "checksums.sha256" in referenced_paths:
+        raise RegistryError("the checksum ledger must be a supporting artifact")
+    if "checksums.sha256" in supporting_artifacts:
+        expected_ledger = {value["path"]: value["sha256"] for value in artifacts.values()}
+        expected_ledger.update(
+            {
+                path: digest
+                for path, digest in supporting_artifacts.items()
+                if path != "checksums.sha256"
+            }
+        )
+        if registry_relative is None:
+            raise RegistryError("checksum closure requires an in-tree registry")
+        expected_ledger[registry_relative] = hashlib.sha256(registry.path.read_bytes()).hexdigest()
+        try:
+            ledger_text = (root / "checksums.sha256").read_text(encoding="utf-8")
+        except UnicodeError as exc:
+            raise RegistryError("checksum ledger must be UTF-8") from exc
+        observed_ledger: dict[str, str] = {}
+        for row in ledger_text.splitlines():
+            match = re.fullmatch(r"([0-9a-f]{64})  (.+)", row)
+            if match is None or match[2] in observed_ledger:
+                raise RegistryError("checksum ledger has malformed or duplicate rows")
+            observed_ledger[_relative_artifact(match[2])] = match[1]
+        if not ledger_text.endswith("\n") or observed_ledger != expected_ledger:
+            raise RegistryError(
+                "checksum ledger must cover every canonical file except itself and the index"
+            )
     if reject_extra_files:
         allowed = set(referenced_paths)
         allowed.update(supporting_artifacts)
@@ -611,11 +644,41 @@ def finalize_evidence(
         "supporting_artifacts": dict(sorted(supporting_artifacts.items())),
         "artifacts": artifacts,
     }
+    encoded = json.dumps(payload, sort_keys=True, indent=2, allow_nan=False).encode() + b"\n"
+    if index_path.is_symlink():
+        raise RegistryError("root evidence index must not be a symlink")
+    if index_path.exists():
+        if not index_path.is_file() or index_path.read_bytes() != encoded:
+            raise RegistryError("refusing to replace a conflicting root evidence index")
+        return index_path
+    # Publish only a complete, fsynced file. A crash before publication cannot leave
+    # a partially written closure marker that would be mistaken for closed evidence.
+    temporary: Path | None = None
     try:
-        with index_path.open("xb") as handle:
-            handle.write(json.dumps(payload, sort_keys=True, indent=2).encode() + b"\n")
+        with tempfile.NamedTemporaryFile(
+            dir=root, prefix=".evidence-index-", delete=False
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(encoded)
             handle.flush()
             os.fsync(handle.fileno())
-    except FileExistsError as exc:
-        raise RegistryError("refusing to replace the root evidence index") from exc
+        # The coordinator serializes finalization. Volume v1 does not provide
+        # the v2 hard-link publication primitive; rename keeps the marker atomic.
+        if index_path.exists() or index_path.is_symlink():
+            if (
+                index_path.is_symlink()
+                or not index_path.is_file()
+                or index_path.read_bytes() != encoded
+            ):
+                raise RegistryError("refusing to replace a conflicting root evidence index")
+        else:
+            os.rename(temporary, index_path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    directory_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
     return index_path

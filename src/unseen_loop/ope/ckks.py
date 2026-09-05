@@ -193,45 +193,8 @@ class PolynomialApproxOPESpec:
         return float(result) if result.ndim == 0 else result
 
     def _prove_policy_range(self) -> None:
-        """Interval-prove that every server score stays in the probability simplex."""
-
-        tolerance = self.target_policy.probability_tolerance
-        coefficient_sums = np.sum(np.asarray(self.target_policy.coefficients), axis=0)
-        if abs(float(coefficient_sums[0]) - 1.0) > tolerance or np.any(
-            np.abs(coefficient_sums[1:]) > tolerance
-        ):
-            raise ValueError("target polynomial is not proved to sum to one on the state box")
-        lows = self.trajectories.state_min
-        highs = self.trajectories.state_max
-        intervals: list[tuple[float, float]] = [(1.0, 1.0)]
-        intervals.extend(zip(lows, highs, strict=True))
-        if self.target_policy.degree == 2:
-            for left in range(self.trajectories.state_dim):
-                for right in range(left, self.trajectories.state_dim):
-                    products = (
-                        lows[left] * lows[right],
-                        lows[left] * highs[right],
-                        highs[left] * lows[right],
-                        highs[left] * highs[right],
-                    )
-                    intervals.append((min(products), max(products)))
-        upper_bounds: list[float] = []
-        for action, coefficients in enumerate(self.target_policy.coefficients):
-            lower = 0.0
-            upper = 0.0
-            for coefficient, (feature_low, feature_high) in zip(
-                coefficients, intervals, strict=True
-            ):
-                endpoints = coefficient * feature_low, coefficient * feature_high
-                lower += min(endpoints)
-                upper += max(endpoints)
-            if lower < -tolerance or upper > 1.0 + tolerance:
-                raise ValueError(
-                    f"action-{action} target polynomial is not proved inside [0, 1] "
-                    "on the closed state box"
-                )
-            upper_bounds.append(min(1.0, upper))
-        object.__setattr__(self, "_target_probability_upper_bound", max(upper_bounds))
+        bounds = self.target_policy.probability_bounds(self.trajectories)
+        object.__setattr__(self, "_target_probability_upper_bound", max(high for _, high in bounds))
 
     def validate_batch(self, batch: TrajectoryBatch) -> None:
         if batch.spec != self.trajectories:
