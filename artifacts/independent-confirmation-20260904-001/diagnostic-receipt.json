@@ -1,0 +1,128 @@
+{
+  "accounting_diagnostic": {
+    "finding": "Each starmap generator is consumed by the success comprehension and then traversed again for exceptions; exhausted generators lose failure codes.",
+    "locations": [
+      "modal_independent_confirmation.py:508-509",
+      "modal_independent_confirmation.py:555-556"
+    ],
+    "original_empty_failure_codes_preserved": true,
+    "source": "inspected historical replay source, not authenticated historical image"
+  },
+  "ckks": {
+    "all_gates_passed": false,
+    "attempted_contexts": 10,
+    "completed_replica_indices": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      8
+    ],
+    "interpretation": "numerical summaries condition on six completions; completion failed",
+    "observed": {
+      "maximum_estimate_error": 0.02291868490708492,
+      "maximum_horizon_denominator_error": 28.766920461919668,
+      "maximum_horizon_numerator_error": 1.3103998787088136,
+      "median_estimate_error": 0.017008890638178203,
+      "p95_estimate_error": 0.02291868490708492,
+      "success_fraction": 0.6
+    },
+    "successful_contexts": 6
+  },
+  "clear_ope": {
+    "all_gates_passed": true,
+    "interpretation": "clear component only; not an end-to-end private confirmation",
+    "observed": {
+      "aggregate_normalized_bias": 0.00035223283250857224,
+      "coverage": 0.92,
+      "covered_intervals": 92,
+      "median_interval_width": 0.04225273300473942,
+      "minimum_ess_fraction": 0.9350948136001508,
+      "positive_horizon_denominators": true,
+      "rmse": 0.011573456121633862
+    },
+    "shape": {
+      "batches": 100,
+      "horizon": 8,
+      "trajectories": 4096
+    }
+  },
+  "historical_image_id": null,
+  "historical_source_commit": null,
+  "log_diagnostic": {
+    "app_id": "ap-Pl3ytAobGxINrmgfpfFlpp",
+    "excerpt_path": "diagnostic-log-excerpt.txt",
+    "excerpt_sha256": "df6eb0cca009f50830c904ecc119f5e00fe61cc3899134b0018662107ab542cf",
+    "failed_raw_counts": null,
+    "failure_groups": [
+      {
+        "caller_location": "modal_independent_confirmation.py:298",
+        "count": 4,
+        "exception_type": "ValueError",
+        "message": "decrypted CKKS count is outside the accepted precision tolerance",
+        "source_location": "unseen_loop/ope/ckks.py:611"
+      }
+    ],
+    "function_call_id": "fc-01M1NSZPMWGWPKBY16AG1GF6FH",
+    "lower_level_numerical_cause": null,
+    "oom_or_preemption_established": false,
+    "replica_to_container_mapping": null,
+    "source": "Modal app logs read-only"
+  },
+  "new_empirical_work": false,
+  "original_files_sha256": {
+    "checksums.sha256": "4227d8e154979d49031547a32c026d63f0feeebb7e79cef3e04607114f1f6885",
+    "ckks.json": "02b18115f26815a4454fb3b65298429d838e9807b5329dfebb943d260121d8e7",
+    "config.toml": "5297f2c328333d35afdf2658628ba38dad3e03d84b337828320f523009f13462",
+    "ope.json": "bbf33c7570ffa0049d57d1b42154ab881efa26dc556f5f447a173f286069a312",
+    "shield.json": "2764125da8419b2794262ff628f811123811ea11a3718a2026f7802ad7ea775f",
+    "summary.json": "9233207bce45cdc8cd95fa026f2026571715185d055a0bcd83655d33c87d6b17"
+  },
+  "original_results_modified": false,
+  "provenance_status": "not-retained; current replay source is not historical runtime provenance",
+  "retained_outcome": {
+    "all_tracks_passed": false,
+    "independently_confirmed_positive_result": false,
+    "scale_up_allowed": false
+  },
+  "row_level_ope_replay_available": false,
+  "schema_version": "unseen-loop/independent-confirmation-diagnostic-v1",
+  "shield": {
+    "all_gates_passed": false,
+    "attempted_calls": 150,
+    "completed_calls": 150,
+    "observed": {
+      "call_completion_fraction": 1.0,
+      "consensus_action_agreement": 1.0,
+      "consensus_action_matches": 50,
+      "consensus_certification_agreement": 0.98,
+      "consensus_certification_matches": 49,
+      "consensus_false_safe_decisions": 0,
+      "decoded_margins": 6000,
+      "exact_margin_matches": 5555,
+      "individual_action_matches": 146,
+      "individual_certification_matches": 134,
+      "quorum_state_fraction": 1.0,
+      "quorum_states": 50
+    },
+    "state_30": {
+      "attempted_calls": 3,
+      "completed_calls": 3,
+      "consensus_action_matches": true,
+      "consensus_certification_matches": false,
+      "consensus_false_safe": false,
+      "decoded_margins": 120,
+      "exact_margin_matches": 105,
+      "failures": {},
+      "individual_action_matches": 3,
+      "individual_certification_matches": 1,
+      "private_state_persisted": false,
+      "quorum": true,
+      "schema_version": "unseen-loop/independent-shield-state-v1",
+      "state_id": "2857a063c26b183e3731be899c027cd76eae883613c433015873e2d35aeb3f4a"
+    },
+    "state_30_direction": "INFERENCE from inspected comparison logic: reference certification true, consensus false; conservative for this discrete reference, not a general false-safe guarantee"
+  },
+  "study_id": "independent-confirmation-20260904-001"
+}

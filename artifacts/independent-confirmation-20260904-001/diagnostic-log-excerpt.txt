@@ -1,0 +1,7 @@
+Source: read-only Modal app logs, app ap-Pl3ytAobGxINrmgfpfFlpp
+Query: .venv/bin/modal app logs ap-Pl3ytAobGxINrmgfpfFlpp --since 2026-09-04T08:40:00Z --until 2026-09-04T10:00:00Z --tail 300 --timestamps --show-function-id --show-function-call-id --show-container-id
+Retained excerpt: terminal exception lines only. The tracebacks identify /root/modal_independent_confirmation.py:298 -> /root/unseen_loop/ope/ckks.py:611. No failed raw count values or replica-to-container mapping were present.
+2026-09-04 01:54:52-07:00 fu-vtcHNsUl8Ftffw9Z4LGbb2 fc-01M1NSZPMWGWPKBY16AG1GF6FH ta-01M1NSZR51V6JX7NVKV13G4W0R ValueError: decrypted CKKS count is outside the accepted precision tolerance
+2026-09-04 01:54:52-07:00 fu-vtcHNsUl8Ftffw9Z4LGbb2 fc-01M1NSZPMWGWPKBY16AG1GF6FH ta-01M1NSZRRAZ6BF0YE1QEPEJCGR ValueError: decrypted CKKS count is outside the accepted precision tolerance
+2026-09-04 01:54:53-07:00 fu-vtcHNsUl8Ftffw9Z4LGbb2 fc-01M1NSZPMWGWPKBY16AG1GF6FH ta-01M1NSZS1XRJQJM5M5QVDRGQ7R ValueError: decrypted CKKS count is outside the accepted precision tolerance
+2026-09-04 01:55:29-07:00 fu-vtcHNsUl8Ftffw9Z4LGbb2 fc-01M1NSZPMWGWPKBY16AG1GF6FH ta-01M1NSZQDACHJA4KP0B2GR42AR ValueError: decrypted CKKS count is outside the accepted precision tolerance

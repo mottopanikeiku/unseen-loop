@@ -306,6 +306,45 @@ uv run modal run -w artifacts/positive-recovery-result.json \
 
 The entrypoint runs OPE/CKKS under the base configuration and shield consensus under its independent confirmation configuration, then `finalize_recovery` binds both configuration digests and all three Modal function-call identities. Do not substitute the exploratory shield row from the first pilot.
 
+### Failed independent confirmation001
+
+The subsequent fixed holdout `independent-confirmation-20260904-001` failed.
+Its six original files are archived byte-for-byte under
+[`../artifacts/independent-confirmation-20260904-001/`](../artifacts/independent-confirmation-20260904-001/).
+The original summary SHA-256 is `9233207bce45cdc8cd95fa026f2026571715185d055a0bcd83655d33c87d6b17`;
+the original ledger SHA-256 is `4227d8e154979d49031547a32c026d63f0feeebb7e79cef3e04607114f1f6885`.
+
+```bash
+(cd artifacts/independent-confirmation-20260904-001 && sha256sum --check checksums.sha256 && sha256sum --check diagnostic-checksums.sha256)
+```
+
+Clear OPE passed its component gates on 100 N4096/H8 batches: normalized bias
+0.0003522328, RMSE 0.0115734561, coverage 92/100, and minimum ESS fraction
+0.9350948. CKKS completed only 6/10 contexts (indices 0, 1, 4, 5, 6, 8);
+its completed-context maximum numerator/denominator errors were 1.31039988
+and 28.76692046. Shield completed 150/150 calls with action agreement 50/50,
+certification agreement 49/50, and exact margins 5555/6000. The original
+`all_tracks_passed`, `independently_confirmed_positive_result`, and
+`scale_up_allowed` booleans remain false.
+
+The separate `diagnostic-receipt.json` binds the originals and a sanitized
+read-only Modal log excerpt. Four logged worker exceptions are
+`ValueError("decrypted CKKS count is outside the accepted precision tolerance")`
+at `ope/ckks.py:611`, called from `modal_independent_confirmation.py:298`.
+Neither failed raw count values nor replica-to-container mapping is retained.
+These logs establish count-validation failures, not their lower-level cause
+and not OOM or preemption. Inspection of the replay source at lines 508–509
+and 555–556 explains the empty failure-code lists: each `starmap` generator
+is traversed once for successes, then again after exhaustion for failures.
+Generated original results are not corrected retroactively.
+
+The 100 clear batch rows and authenticated historical source/image identity
+were not retained; aggregate replay is not row-level replay. State 30's
+certification mismatch is conservative relative to the discrete reference
+by inference from the inspected comparison logic, not a general false-safe
+guarantee. `modal_independent_confirmation.py` and its TOML remain unchanged
+historical replay assets; do not invoke them for another holdout.
+
 ## Artifact schemas
 
 The local experiment bundle is:
