@@ -1201,9 +1201,7 @@ def _timing_summary(
         for _job, payload, _digest in shield_fhe_rows
         if isinstance(payload.get("call"), Mapping)
     ]
-    call_keygen = [
-        _integer(call.get("keygen_ns"), "keygen_ns") for call in successful_shield_calls
-    ]
+    call_keygen = [_integer(call.get("keygen_ns"), "keygen_ns") for call in successful_shield_calls]
     call_keys = [
         _integer(call.get("evaluation_key_bytes"), "evaluation_key_bytes")
         for call in successful_shield_calls

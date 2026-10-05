@@ -100,7 +100,7 @@ four-context colocated FHE ┘
 | `modal-nonlinear-qmax2-002` | one worker creates and consumes one client/server context; 40/40 `REAL FHE` calls | degree-2 circuit conformance/cost; no local/remote separation or efficacy |
 | `modal-fhe-timing-003` | four workers, each with its own colocated context; 12 warmups + 64/64 measured successes | clustered latency/size distribution; no shared-context, service, throughput, or local/remote claim |
 
-The positive +83.619 [26.144, 145.954] occupancy-refinement-bundle return effect and the negative −108.461 [−288.649, 68.250] weighting point estimate arise from matched clear CartPole evidence. The Acrobot expanded loss, −231.896 [−388.536, −75.831], is retained. None of those return claims crosses into the FHE studies; none of the FHE studies supplies evidence of task efficacy or generalization.
+The positive +83.619 [26.971, 147.058] occupancy-refinement-bundle return effect and the negative −108.461 [−288.061, 68.172] weighting point estimate arise from matched clear CartPole evidence. The Acrobot expanded loss, −231.896 [−387.814, −76.253], is retained. None of those return claims crosses into the FHE studies; none of the FHE studies supplies evidence of task efficacy or generalization.
 
 ## Integrated flagship topology
 

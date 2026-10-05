@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "unseen-loop"
 version = "0.1.0"
-description = "FHE-native policy distillation with action-invariance certificates"
+description = "A feasibility study of polynomial control policies over encrypted inputs"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 license = { file = "LICENSE" }

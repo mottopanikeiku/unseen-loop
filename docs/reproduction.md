@@ -1,5 +1,7 @@
 # Reproduction Guide
 
+For the current $0 CPU-only path, start with the [README](../README.md) and [FHE size/cost table](fhe-fit.md). Cloud commands below describe historical reproduction, not a required or authorized paid run. The newest ratio-lift study is explicitly unexecuted; the failed holdout replay must not be used for a fresh confirmation.
+
 ## Prerequisites
 
 - Linux x86-64 for the recorded Concrete server artifact path;

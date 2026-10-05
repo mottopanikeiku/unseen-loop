@@ -8,7 +8,7 @@ Fully Homomorphic Encryption (FHE) can evaluate a policy without revealing its i
 
 The central mechanism is a coefficient-rounding certificate. At a quantized state, if the clear student's top-two score margin exceeds twice an analytical per-score error bound, the error-free integer circuit must choose the same greedy action. Uncertified and mismatched student-occupancy states receive greater weight in the next distillation round. The certificate is composed—never conflated—with Concrete's probabilistic whole-circuit correctness configuration.
 
-The checksummed expanded study completed 15/15 clear runs—five checkpoints each for CartPole, MountainCar, and Acrobot—with 120 candidates, 6,000 selection rows, and 1,500 paired/3,000 long-form post-selection evaluation rows. The occupancy-refinement bundle improved paired CartPole return by +83.619, 95% CI [26.144, 145.954], across a matched 2×2 factorial; certificate weighting's main-effect estimate was −108.461 [−288.649, 68.250]. Expanded paired student-minus-teacher return was −29.480 [−71.358, 0.072] for CartPole, +0.796 [−1.620, 3.544] for MountainCar, and −231.896 [−388.536, −75.831] for Acrobot. A degree-2 two-feature/two-action circuit completed 25 exhaustive-domain and 15 canary `REAL FHE` calls exactly. A separate four-context timing study retained 12 warmups and 64/64 successful measured calls: server p50/p95 were 544.536/830.709 ms and end-to-end p50/p95 were 550.076/837.010 ms. The clear studies provide no privacy evidence; the colocated FHE studies do not demonstrate local-client/remote-server secrecy. These are bounded executed studies, not efficacy across tasks or completion of the full preregistration.
+The checksummed expanded study completed 15/15 clear runs—five checkpoints each for CartPole, MountainCar, and Acrobot—with 120 candidates, 6,000 selection rows, and 1,500 paired/3,000 long-form post-selection evaluation rows. The occupancy-refinement bundle improved paired CartPole return by +83.619, 95% CI [26.971, 147.058], across a matched 2×2 factorial; certificate weighting's main-effect estimate was −108.461 [−288.061, 68.172]. Expanded paired student-minus-teacher return was −29.480 [−70.988, 0.072] for CartPole, +0.796 [−1.620, 3.502] for MountainCar, and −231.896 [−387.814, −76.253] for Acrobot. A degree-2 two-feature/two-action circuit completed 25 exhaustive-domain and 15 canary `REAL FHE` calls exactly. A separate four-context timing study retained 12 warmups and 64/64 successful measured calls: server p50/p95 were 544.536/830.709 ms and end-to-end p50/p95 were 550.076/837.010 ms. The clear studies provide no privacy evidence; the colocated FHE studies do not demonstrate local-client/remote-server secrecy. These are bounded executed studies, not efficacy across tasks or completion of the full preregistration.
 
 ## 1. Problem
 
@@ -184,9 +184,9 @@ Every planned denominator in this index equals its observed denominator; checksu
 
 | Environment | Checkpoints / paired episodes | Teacher return, mean | Integer-student return, mean | Paired Δ, 95% CI | Teacher agreement | Action certificate |
 |---|---:|---:|---:|---:|---:|---:|
-| CartPole-v1 | 5 / 500 | 461.488 | 432.008 | −29.480 [−71.358, 0.072] | 174,943 / 216,004 (80.991%) | 214,268 / 216,004 (99.196%); 0 certified mismatches |
-| MountainCar-v0 | 5 / 500 | −194.986 | −194.190 | +0.796 [−1.620, 3.544] | 87,773 / 97,095 (90.399%) | 96,925 / 97,095 (99.825%); 0 certified mismatches |
-| Acrobot-v1 | 5 / 500 | −94.260 | −326.156 | **−231.896 [−388.536, −75.831]** | 112,901 / 163,295 (69.139%) | 163,088 / 163,295 (99.873%); 0 certified mismatches |
+| CartPole-v1 | 5 / 500 | 461.488 | 432.008 | −29.480 [−70.988, 0.072] | 174,943 / 216,004 (80.991%) | 214,268 / 216,004 (99.196%); 0 certified mismatches |
+| MountainCar-v0 | 5 / 500 | −194.986 | −194.190 | +0.796 [−1.620, 3.502] | 87,773 / 97,095 (90.399%) | 96,925 / 97,095 (99.825%); 0 certified mismatches |
+| Acrobot-v1 | 5 / 500 | −94.260 | −326.156 | **−231.896 [−387.814, −76.253]** | 112,901 / 163,295 (69.139%) | 163,088 / 163,295 (99.873%); 0 certified mismatches |
 
 CartPole's and MountainCar's intervals include zero: these data do not establish an improvement or regression in either environment. Acrobot is an unambiguous negative result within this study: the selected integer policies lost 231.896 mean return relative to their matched teachers, with the entire interval below zero. High float-student/integer action-certificate coverage did not imply teacher agreement or task efficacy. These 15 clear runs test the bounded distillation/evaluation pipeline; they provide neither privacy evidence nor a generalization claim beyond the measured checkpoints.
 
@@ -196,18 +196,18 @@ CartPole's and MountainCar's intervals include zero: these data do not establish
 
 | Certificate weighting | Occupancy-refinement bundle | Paired return Δ, 95% CI | Selection-occupancy certificate | Post-selection held-out certificate |
 |---|---|---:|---:|---:|
-| off | off | −82.968 [−226.666, 0.916] | 101,858 / 103,671 | 201,770 / 205,855 |
-| off | on | −3.676 [−14.638, 1.572] | 121,192 / 122,402 | 242,990 / 245,501 |
-| on | off | −195.756 [−361.146, −30.122] | 75,387 / 76,454 | 147,368 / 149,461 |
-| on | on | −107.810 [−248.575, 9.772] | 95,419 / 96,653 | 190,971 / 193,434 |
+| off | off | −82.968 [−226.798, 0.926] | 101,858 / 103,671 | 201,770 / 205,855 |
+| off | on | −3.676 [−14.620, 1.662] | 121,192 / 122,402 | 242,990 / 245,501 |
+| on | off | −195.756 [−362.319, −29.932] | 75,387 / 76,454 | 147,368 / 149,461 |
+| on | on | −107.810 [−250.218, 10.219] | 95,419 / 96,653 | 190,971 / 193,434 |
 
 [`ablation-effects.jsonl`](../artifacts/studies/unseen-loop-release-analysis-004/ablation-effects.jsonl) averages matched contrasts across the other factor. Return and selection-certificate intervals are 10,000-repetition matched-checkpoint-then-episode percentile bootstraps. Held-out receipts preserve exact aggregate numerators/denominators but not per-episode certificate rows, so the analysis correctly does not manufacture held-out bootstrap intervals.
 
 | Factorial contrast | Paired-return effect, 95% CI | Selection-certificate-rate effect, 95% CI | Exact interpretation |
 |---|---:|---:|---|
-| Weighting main effect | **−108.461 [−288.649, 68.250]** | +0.000325 [−0.016047, 0.019685] | negative return point estimate; interval includes zero |
-| Occupancy-refinement-bundle main effect | **+83.619 [26.144, 145.954]** | +0.004396 [−0.011036, 0.022976] | positive return effect for this tested matched CartPole bundle |
-| Interaction | +8.654 [−180.737, 156.256] | −0.006414 [−0.038128, 0.026261] | interval includes zero |
+| Weighting main effect | **−108.461 [−288.061, 68.172]** | +0.000325 [−0.016181, 0.019625] | negative return point estimate; interval includes zero |
+| Occupancy-refinement-bundle main effect | **+83.619 [26.971, 147.058]** | +0.004396 [−0.010806, 0.022327] | positive return effect for this tested matched CartPole bundle |
+| Interaction | +8.654 [−181.744, 157.968] | −0.006414 [−0.038412, 0.026133] | interval includes zero |
 
 The positive causal claim is deliberately narrow: enabling the represented occupancy-refinement bundle caused higher paired return across these matched clear CartPole cells. It is not a claim about other environments, different teachers/search grids, any one component inside the bundle, or privacy. Certificate weighting has a negative point estimate but is statistically inconclusive here; it must not be advertised as beneficial.
 
@@ -288,10 +288,10 @@ The digest-pinned browser source is [`../site/data/flagship-evidence.json`](../s
 | Canary | Semantic check | Server evaluation | End-to-end / public context |
 |---|---|---:|---:|
 | CipherShield Concrete | 15,625/15,625 complete-domain simulations and 1/1 REAL FHE tensor match | 73.916 s | 77.491 s |
-| exact Concrete OPE `(1,2,1)` | simulation = REAL = integer reference | 1.866 s | 6.329 s |
-| CKKS OPE `(64,8,1)` | separately named approximation; 24 output ciphertexts | 7.465 s | 813,936,378 B public server context |
+| exact Concrete OPE `(1,2,1)` | simulation = REAL = integer reference | 1.826 s | 6.625 s |
+| CKKS OPE `(64,8,1)` | separately named approximation; 24 output ciphertexts | not retained in this snapshot | 813,969,437 B public server context |
 
-CipherShield used 758,473,160 B of evaluation keys, a 492,056 B request, and a 3,278,720 B response. Exact OPE used 589,084,056 B of evaluation keys, a 124,032 B request, and a 115,480 B response. CKKS used an 86,405,050 B request and 25,943,816 B response; the maximum released numerator error was 8.409 under a conservative declared soft-clip absolute-error bound of 32. These are cryptographic semantics/cost canaries, not empirical task efficacy or production systems results.
+CipherShield used 758,473,160 B of evaluation keys, a 492,056 B request, and a 3,278,720 B response. The retained CKKS excerpt reports maximum numerator error 8.399916 under a declared soft-clip absolute-error bound of 32. Earlier Markdown transcriptions of exact-OPE timing and CKKS context size did not match the committed publication; the table above now follows that file. Missing fields are not recovered from those transcriptions. See the generated [FHE size/cost table](fhe-fit.md) for exact retained key and payload fields, source links, and the absent-original-summary limitation. These are cryptographic semantics/cost canaries, not empirical task efficacy or production systems results.
 
 ### 8.5 Closed bounded smoke study
 

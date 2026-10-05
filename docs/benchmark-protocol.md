@@ -10,11 +10,11 @@ It is **not** completion of this full preregistration. The expanded search has e
 
 | Executed expanded environment | Student-minus-teacher paired return Δ, 95% CI | Conclusion bounded to the executed checkpoints |
 |---|---:|---|
-| CartPole-v1 | −29.480 [−71.358, 0.072] | interval includes zero |
-| MountainCar-v0 | +0.796 [−1.620, 3.544] | interval includes zero |
-| Acrobot-v1 | −231.896 [−388.536, −75.831] | retained negative result; interval below zero |
+| CartPole-v1 | −29.480 [−70.988, 0.072] | interval includes zero |
+| MountainCar-v0 | +0.796 [−1.620, 3.502] | interval includes zero |
+| Acrobot-v1 | −231.896 [−387.814, −76.253] | retained negative result; interval below zero |
 
-The matched clear CartPole factorial completed all four cells at five checkpoints and 500 paired evaluations per cell. Its occupancy-refinement-bundle main effect is +83.619 [26.144, 145.954], supporting a positive causal conclusion only for that bundle in those matched CartPole cells. Certificate weighting's main effect is −108.461 [−288.649, 68.250], a negative point estimate with an interval spanning zero. These are from `ablation-effects.jsonl` in the same analysis ledger.
+The matched clear CartPole factorial completed all four cells at five checkpoints and 500 paired evaluations per cell. Its occupancy-refinement-bundle main effect is +83.619 [26.971, 147.058], supporting a positive causal conclusion only for that bundle in those matched CartPole cells. Certificate weighting's main effect is −108.461 [−288.061, 68.172], a negative point estimate with an interval spanning zero. These are from `ablation-effects.jsonl` in the same analysis ledger.
 
 ## Workloads
 

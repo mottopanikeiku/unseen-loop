@@ -71,10 +71,7 @@ class IntegerStudent:
 
     def score(self, observation: npt.ArrayLike) -> FloatArray:
         values = np.asarray(observation, dtype=np.float64)
-        try:
-            quantized = self.policy.quantize(values, reject=self.reject)
-        except ValueError:
-            raise
+        quantized = self.policy.quantize(values, reject=self.reject)
         unbounded = np.rint(
             (values - np.asarray(self.policy.spec.quantizer.center))
             / np.asarray(self.policy.spec.quantizer.step)
