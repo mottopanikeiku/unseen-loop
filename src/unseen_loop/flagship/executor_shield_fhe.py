@@ -202,8 +202,7 @@ def _load_cache(
     if (
         isinstance(requested, bool)
         or not isinstance(requested, (int, float))
-        or float(requested)
-        != float(cast(int | float, challenge["global_p_error"]))
+        or float(requested) != float(cast(int | float, challenge["global_p_error"]))
     ):
         raise RuntimeError("compiled shield cache has the wrong global_p_error")
     markers = raw.get("server_secret_key_markers")

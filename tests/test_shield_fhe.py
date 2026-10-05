@@ -86,8 +86,7 @@ def test_output_encoding_places_all_margins_in_one_unsigned_bit_width() -> None:
     program = integer_margin_program(spec)
     encoded = np.asarray(
         [
-            clear_margin_tensor(spec, quantized, program=program)
-            + program.output_encoding_offset
+            clear_margin_tensor(spec, quantized, program=program) + program.output_encoding_offset
             for quantized in exhaustive_inputset()
         ],
         dtype=np.int64,

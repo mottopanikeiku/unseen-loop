@@ -43,7 +43,7 @@ def test_committed_extraction_keeps_measurement_populations_separate() -> None:
     rows = fit.extract_rows(ROOT)
     assert len(rows) == 8
     nonlinear, repeated, shield, ope, ckks, smoke, systems, reference = rows
-    assert "features=2; actions=2; degree=2; coefficients=12; qmax=2" == nonlinear.shape
+    assert nonlinear.shape == "features=2; actions=2; degree=2; coefficients=12; qmax=2"
     assert "p50 0.362091 s; p95 0.374514 s; n=40" in nonlinear.latency
     assert "40/40 match" in nonlinear.correctness
     assert "domain: 25 calls; fresh-ciphertext canary: 15 calls" in nonlinear.correctness

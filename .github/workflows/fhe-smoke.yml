@@ -23,7 +23,7 @@ jobs:
           version: "0.12.2"
           python-version: "3.12"
           enable-cache: true
-      - run: uv sync --frozen --extra dev --extra fhe
+      - run: uv sync --frozen --extra dev --extra fhe --extra cloud
       - name: Python tests with branch coverage
         run: uv run pytest --cov=unseen_loop --cov-report=term-missing -q
       - name: End-to-end REAL FHE smoke

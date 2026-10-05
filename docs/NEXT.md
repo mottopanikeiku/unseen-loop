@@ -34,3 +34,9 @@ Repository reference searches found no internal callers for `PolynomialPolicy.sc
 ## Retained documentation
 
 The [paper](paper.md), [reproduction guide](reproduction.md), [threat model](threat-model.md), [architecture](architecture.md), [benchmark protocol](benchmark-protocol.md), [tutorial](tutorial.md), and [Modal guide](modal.md) retain the detailed implementation and protocols. The former README is in [research-history.md](research-history.md), and the earlier changelog is in [change-history.md](change-history.md). Those two historical documents preserve older transcriptions; the current paper and generated table use the committed files directly.
+
+## Scheduled FHE check
+
+The [2026-09-28 scheduled run](https://github.com/mottopanikeiku/unseen-loop/actions/runs/36412284448) failed while collecting `tests/test_private_ope_orchestration.py`: that test loads `modal_flagship.py`, whose `import modal` failed because the workflow installed `dev` and `fhe` but not `cloud`. It failed before the end-to-end encrypted smoke. This was not a missing-secret or paid-Modal-compute failure. The workflow now installs `--extra cloud` so its local orchestration doubles can run; importing the SDK does not launch cloud jobs. Its schedule and manual trigger remain. CI installs the same dependency and CPU Torch for the existing GPU-teacher module's type checks and CPU tensor tests. No secret or cloud service is added.
+
+The encrypted scheduled workflow was not rerun as part of this CPU-only PR; fixing collection is not a new FHE result.

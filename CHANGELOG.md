@@ -8,6 +8,8 @@
 - Preserved the former README in [docs/research-history.md](docs/research-history.md) and the previous development log in [docs/change-history.md](docs/change-history.md).
 - Documented the borrowed-hardware prerequisites for a physically separate remote-client demonstration in [docs/NEXT.md](docs/NEXT.md), including unused convenience methods and the historical replay's ineffective failure-collection paths.
 - Removed a redundant catch-and-reraise around integer-student quantization. Quantization errors still propagate unchanged.
+- Fixed CI lint and formatting errors without changing the generated table. CI now installs the optional Modal dependency for orchestration tests and CPU Torch for teacher type checks/tests.
+- Fixed the scheduled FHE workflow's missing Modal dependency, which prevented test collection before any encrypted smoke ran. The schedule and manual trigger remain because this was a dependency failure, not a missing-secret or paid-cloud requirement.
 
 ## Earlier changes
 

@@ -24,7 +24,9 @@ jobs:
           version: "0.12.2"
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-      - run: uv sync --frozen --extra dev
+      - run: uv sync --frozen --extra dev --extra cloud
+      - name: Install CPU Torch for teacher type checks and tests
+        run: uv pip install torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
       - run: uv run ruff check .
       - run: uv run ruff format --check src tests modal_app.py
       - run: uv run mypy
