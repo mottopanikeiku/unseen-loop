@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 650" width="1080" height="650" role="img" aria-labelledby="title description" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#172b3a">
+  <title id="title">Encrypted evidence: two small, different experiments</title>
+  <desc id="description">A synthetic quadratic circuit was checked on a colocated client/server worker. An earlier affine CartPole policy had a short local-client/remote-server trace. Neither demonstrates encrypted reproduction of the expanded RL study.</desc>
+  <rect width="1080" height="650" fill="#ffffff" rx="12" />
+  <text x="32" y="44" font-size="29" font-weight="700">Encrypted evidence: two small, different experiments</text>
+  <text x="32" y="78">Existing Concrete measurements, not new runs or a head-to-head benchmark.</text>
+  <rect x="24" y="110" width="1032" height="226" rx="10" fill="#edf4fa" />
+  <rect x="24" y="352" width="1032" height="226" rx="10" fill="#f1f5ef" />
+  <text x="44" y="148" font-weight="700" font-size="23">SYNTHETIC quadratic circuit · client/server on one worker</text>
+  <a href="../../artifacts/studies/modal-nonlinear-qmax2-002/policy.json">
+    <text x="44" y="183">2 inputs · 2 outputs · degree 2 · 12 coefficients · qmax=2</text>
+  </a>
+  <a href="../../artifacts/studies/modal-nonlinear-qmax2-002/raw.jsonl">
+    <text x="44" y="219">40/40 encrypted calls matched the clear integer circuit</text>
+  </a>
+  <a href="../../artifacts/studies/modal-nonlinear-qmax2-002/summary.json">
+    <text x="44" y="254">Server p50 362.091 ms · p95 374.514 ms</text>
+  </a>
+  <a href="../../artifacts/studies/modal-nonlinear-qmax2-002/raw.jsonl">
+    <text x="44" y="289">Evaluation keys: 472,645,952 bytes</text>
+  </a>
+  <a href="../../artifacts/studies/modal-nonlinear-qmax2-002/summary.json">
+    <text x="44" y="319" fill="#235c91" font-size="17">Sources: summary + raw calls + policy (linked above)</text>
+  </a>
+  <text x="44" y="390" font-weight="700" font-size="23">EARLIER affine CartPole trace · local client / remote server</text>
+  <a href="../../artifacts/reference/modal-smoke-001/modal/policy.json">
+    <text x="44" y="425">4 inputs · 2 outputs · degree 1 · 10 coefficients · qmax=15</text>
+  </a>
+  <a href="../../artifacts/reference/modal-smoke-001.json">
+    <text x="44" y="461">25/25 encrypted control steps matched clear scores</text>
+  </a>
+  <a href="../../artifacts/reference/modal-smoke-001.json">
+    <text x="44" y="496">Trace terminated: false · not a full-episode comparison</text>
+  </a>
+  <a href="../../artifacts/reference/modal-smoke-001.json">
+    <text x="44" y="531">Evaluation keys: 64 bytes (this affine circuit only)</text>
+  </a>
+  <a href="../../artifacts/reference/modal-smoke-001.json">
+    <text x="44" y="561" fill="#235c91" font-size="17">Source: earlier remote reference (linked above)</text>
+  </a>
+  <text x="32" y="610" font-size="19" font-weight="700">NOT SHOWN: encrypted expanded-study champions, nonlinear remote RL, or task safety.</text>
+</svg>
