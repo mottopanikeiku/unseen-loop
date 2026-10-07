@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added source-linked SVGs for clear paired-return intervals and the separate synthetic nonlinear / earlier affine encrypted results, with a deterministic standard-library generator and focused regression tests. These redraw committed measurements; no experiment was rerun.
+- Led the README with what was shown and not shown, keeping failed distillation, inconclusive weighting, and the encrypted-study limits visible.
 - Reframed the README as an encrypted-control feasibility study, separating clear RL results from synthetic encrypted circuit tests and retaining the Acrobot loss and failed independent confirmation.
 - Added `tools/fhe_fit_table.py` and its tests to derive a circuit-shape, latency, and key/context-size comparison from committed artifacts. Missing CKKS timing remains missing.
 - Corrected statistical intervals and canary transcriptions in current documentation to match the committed analysis/publication files; no run data was changed.
