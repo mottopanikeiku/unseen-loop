@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed the rounding certificate's comparison so float64 rounding cannot certify a state whose exact margin only equals twice its bound. On aarch64 an integer-score tie was certified while the integer argmax differed, which made `test_range_invalid_candidate_is_excluded_from_pareto_front` fail. Re-checking all 414 committed policies over their quantizer boxes (66.8M points, exhaustive or 200k sampled) found no state whose certification changes, so no committed coverage figure is affected.
 - Added source-linked SVGs for clear paired-return intervals and the separate synthetic nonlinear / earlier affine encrypted results, with a deterministic standard-library generator and focused regression tests. These redraw committed measurements; no experiment was rerun.
 - Led the README with what was shown and not shown, keeping failed distillation, inconclusive weighting, and the encrypted-study limits visible.
 - Reframed the README as an encrypted-control feasibility study, separating clear RL results from synthetic encrypted circuit tests and retaining the Acrobot loss and failed independent confirmation.
