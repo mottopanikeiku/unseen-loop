@@ -83,7 +83,6 @@ def certify_actions(
     quantized: npt.ArrayLike,
     *,
     global_p_error: float = 1e-6,
-    use_global_bound: bool = False,
 ) -> ActionCertificate:
     """Certify float-student/integer-circuit argmax agreement.
 
@@ -113,15 +112,9 @@ def certify_actions(
         np.abs(policy.spec.float_array)
         + np.abs(policy.spec.integer_array) / policy.spec.coefficient_scale
     )
-    if use_global_bound:
-        per_action = np.broadcast_to(policy.global_coefficient_error_bound(), float_scores.shape)
-        box_maxima = policy.feature_box_maxima().astype(np.float64)
-        magnitude = np.full(values.shape[0], np.max(box_maxima @ coefficient_magnitude.T))
-    else:
-        per_action = policy.coefficient_error_bound(values)
-        abs_features = np.abs(policy.features(values).astype(np.float64))
-        magnitude = np.max(abs_features @ coefficient_magnitude.T, axis=1)
-    error_bounds = np.max(per_action, axis=1)
+    abs_features = np.abs(policy.features(values).astype(np.float64))
+    magnitude = np.max(abs_features @ coefficient_magnitude.T, axis=1)
+    error_bounds = np.max(policy.coefficient_error_bound(values), axis=1)
     # Each score, the margin, and each bound are sums of at most feature_count + 2
     # rounded float64 terms bounded by ``magnitude``; this covers their combined error.
     rounding_slack = 4 * (policy.spec.feature_count + 2) * np.finfo(np.float64).eps * magnitude
