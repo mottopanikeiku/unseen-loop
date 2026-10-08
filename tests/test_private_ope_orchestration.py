@@ -14,6 +14,8 @@ from unseen_loop.flagship.executor_private_ope import PrivateOPEAttempt, Verific
 from unseen_loop.flagship.manifest import PlannedJob
 from unseen_loop.flagship.registry import AppendOnlyRegistry, JobStatus, Provenance
 
+pytest.importorskip("modal", reason="modal_flagship.py needs the optional cloud extra")
+
 _module_spec = importlib.util.spec_from_file_location(
     "modal_flagship",
     Path(__file__).resolve().parents[1] / "modal_flagship.py",
