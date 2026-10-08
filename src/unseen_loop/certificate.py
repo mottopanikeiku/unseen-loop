@@ -83,13 +83,17 @@ def certify_actions(
     quantized: npt.ArrayLike,
     *,
     global_p_error: float = 1e-6,
-    use_global_bound: bool = False,
 ) -> ActionCertificate:
     """Certify float-student/integer-circuit argmax agreement.
 
     The certificate accounts for deterministic coefficient rounding. Concrete's
     whole-circuit ``global_p_error`` remains a separate probabilistic premise;
     empirical ciphertext agreement cannot replace it.
+
+    Margins and error bounds are themselves computed in float64. Their rounding
+    error is absorbed by a forward-error slack, so a state whose exact margin
+    equals twice its exact bound (for example an integer-score tie) is never
+    certified merely because rounding moved the computed values apart.
     """
     if not 0 <= global_p_error < 1:
         raise ValueError("global_p_error must lie in [0, 1)")
@@ -104,12 +108,17 @@ def certify_actions(
     float_scores = policy.float_scores_from_quantized(values)
     float_actions, margins = _top_two_margin(float_scores)
     integer_actions = policy.actions_from_quantized(values, integer=True)
-    if use_global_bound:
-        per_action = np.broadcast_to(policy.global_coefficient_error_bound(), float_scores.shape)
-    else:
-        per_action = policy.coefficient_error_bound(values)
-    error_bounds = np.max(per_action, axis=1)
-    certified = margins > 2 * error_bounds
+    coefficient_magnitude = (
+        np.abs(policy.spec.float_array)
+        + np.abs(policy.spec.integer_array) / policy.spec.coefficient_scale
+    )
+    abs_features = np.abs(policy.features(values).astype(np.float64))
+    magnitude = np.max(abs_features @ coefficient_magnitude.T, axis=1)
+    error_bounds = np.max(policy.coefficient_error_bound(values), axis=1)
+    # Each score, the margin, and each bound are sums of at most feature_count + 2
+    # rounded float64 terms bounded by ``magnitude``; this covers their combined error.
+    rounding_slack = 4 * (policy.spec.feature_count + 2) * np.finfo(np.float64).eps * magnitude
+    certified = margins > 2 * error_bounds + rounding_slack
     certificate = ActionCertificate(
         float_actions=float_actions,
         integer_actions=integer_actions,

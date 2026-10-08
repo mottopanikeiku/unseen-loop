@@ -93,18 +93,6 @@ class PolynomialPolicy:
         )
         return np.asarray(features @ coefficient_error.T, dtype=np.float64)
 
-    def global_coefficient_error_bound(self) -> FloatArray:
-        """Conservative bound over the complete compiled quantizer box."""
-        qmax = self.spec.quantizer.qmax
-        maxima = np.full(self.spec.feature_count, qmax, dtype=np.float64)
-        maxima[0] = 1
-        if self.spec.degree == 2:
-            maxima[1 + self.spec.quantizer.n_features :] = qmax * qmax
-        coefficient_error = np.abs(
-            self.spec.float_array - self.spec.integer_array / self.spec.coefficient_scale
-        )
-        return np.asarray(maxima @ coefficient_error.T, dtype=np.float64)
-
     def integer_output_bound(self) -> IntArray:
         """Absolute score bound over the quantizer box, used for overflow receipts."""
         qmax = self.spec.quantizer.qmax
